@@ -9,6 +9,7 @@ const config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
+        os: ["Open Sans", "sans-serif"]
       },
       keyframes: {
         "accordion-down": {

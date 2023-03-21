@@ -22,7 +22,7 @@ type NavbarProps = {
 
 const Navbar: React.FC<NavbarProps> = (props) => {
   return (
-    <NavigationMenu className="flex justify-between bg-slate-800 px-24 py-1 text-white">
+    <NavigationMenu className="flex justify-between bg-slate-800 px-24 py-1 text-white font-os">
       <NavigationMenuList className="space-x-8">
         <NavigationMenuItem>
           <Image
