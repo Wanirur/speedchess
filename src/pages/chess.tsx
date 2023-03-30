@@ -1,39 +1,26 @@
 import { type NextPage } from "next";
 import { useEffect, useState } from "react";
+import Chessboard from "~/components/chessboard";
 
-const Chessboard: NextPage = () => {
-  //contains tile colors - true means white, otherwise green
-  const [tiles, setTiles] = useState<boolean[]>();
-
-  useEffect(() => {
-    const tiles = [];
-    for (let i = 0; i < 64; i++) {
-      let tileColor = i % 2 == 0;
-
-      if (Math.floor(i / 8) % 2) {
-        tileColor = !tileColor;
-      }
-
-      tiles.push(tileColor);
-    }
-
-    setTiles(tiles);
-  }, []);
-
+const Play: NextPage = () => {
   return (
-    <main className="flex justify-center min-h-screen bg-neutral-900">
-      <div className="container grid w-max grid-cols-8 gap-0">
-        {tiles &&
-          tiles.map((tile, index) =>
-            tile ? (
-              <div key={index} className="h-24 w-24 bg-white"></div>
-            ) : (
-              <div key={index} className="h-24 w-24 bg-green-500"></div>
-            )
-          )}
+    <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
+      <Chessboard></Chessboard>
+      <div className="flex h-max w-max flex-col justify-center p-4">
+        <div className="h-72 w-72 bg-neutral-700"></div>
+        <div className="flex flex-row items-center justify-center gap-2 p-8">
+          <button className="rounded-md bg-yellow-600 px-5 py-3 font-os text-white">
+            {" "}
+            draw{" "}
+          </button>
+          <button className="rounded-md bg-red-900 px-5 py-3 font-os text-white">
+            {" "}
+            resign{" "}
+          </button>
+        </div>
       </div>
     </main>
   );
 };
 
-export default Chessboard;
+export default Play;
