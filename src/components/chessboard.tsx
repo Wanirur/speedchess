@@ -3,15 +3,19 @@ import { type PieceType } from "~/utils/pieces";
 
 const Chessboard: React.FC = () => {
   const [tiles, setTiles] = useState<(PieceType | null)[]>();
-
+  const [isPlayerWhite, setIsPlayerWhite] = useState<boolean>(false);
   useEffect(() => {
     const pieces = [] as (PieceType | null)[];
     for (let i = 0; i < 64; i++) {
       pieces.push(null);
     }
 
+    if (!isPlayerWhite) {
+      pieces.reverse();
+    }
+
     setTiles(pieces);
-  }, []);
+  }, [isPlayerWhite]);
 
   return (
     <div className="container grid h-max w-max grid-cols-8 gap-0">
