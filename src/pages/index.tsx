@@ -4,6 +4,7 @@ import Image from "next/image";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 import { api } from "~/utils/api";
+import Timer from "~/components/timer";
 
 const Home: NextPage = () => {
   const hello = api.example.hello.useQuery({ text: "from tRPC" });
@@ -37,6 +38,7 @@ const Home: NextPage = () => {
 const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
   return (
     <div className="container flex flex-col items-center justify-center gap-12 gap-8 px-3 py-16">
+      <Timer></Timer>
       <Image
         src={image}
         alt={"avatar"}
@@ -55,6 +57,7 @@ const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
         {" "}
         Log out{" "}
       </button>
+      <Timer></Timer>
     </div>
   );
 };

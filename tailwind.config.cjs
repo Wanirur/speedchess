@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { fontFamily } = require("tailwindcss/defaultTheme")
+const { fontFamily } = require("tailwindcss/defaultTheme");
 
 /** @type {import('tailwindcss').Config} */
 const config = {
@@ -9,7 +9,8 @@ const config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
-        os: ["Open Sans", "sans-serif"]
+        os: ["Open Sans", "sans-serif"],
+        timer: ["Share Tech Mono", "monospace"],
       },
       keyframes: {
         "accordion-down": {

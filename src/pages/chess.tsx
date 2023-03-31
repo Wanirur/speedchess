@@ -1,12 +1,14 @@
 import { type NextPage } from "next";
 import Chessboard from "~/components/chessboard";
+import Timer from "~/components/timer";
 
 const Play: NextPage = () => {
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
       <Chessboard></Chessboard>
-      <div className="flex h-max w-max flex-col justify-center p-4">
-        <div className="h-72 w-72 bg-neutral-700"></div>
+      <div className="flex h-[640px] w-max flex-col justify-center px-4">
+        <Timer></Timer>
+        <div className="h-full w-72 bg-neutral-700"></div>
         <div className="flex flex-row items-center justify-center gap-2 p-8">
           <button className="rounded-md bg-yellow-600 px-5 py-3 font-os text-white">
             {" "}
@@ -16,7 +18,8 @@ const Play: NextPage = () => {
             {" "}
             resign{" "}
           </button>
-        </div>
+        </div>  
+        <Timer></Timer>
       </div>
     </main>
   );
