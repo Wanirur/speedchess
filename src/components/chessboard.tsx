@@ -37,7 +37,7 @@ const Chessboard: React.FC = () => {
               a-key={index}
               className={
                 "relative h-20 w-20 " +
-                (highlightedTile == index ? "bg-red-500" : tileBgStyle)
+                (highlightedTile === index ? "bg-red-500" : tileBgStyle)
               }
               onClick={(e) => {
                 const tile = e.target;
@@ -46,12 +46,13 @@ const Chessboard: React.FC = () => {
                   if (!key) {
                     return;
                   }
+                  console.log(tiles[index])
                   //no highlighted piece and clicked tile is empty - dont highlight
-                  if (!highlightedTile && !tiles[index]) {
+                  if (highlightedTile === null && !tiles[index]) {
                     return;
                   }
 
-                  if (highlightedTile) {
+                  if (highlightedTile !== null) {
                     setTiles(movePiece(tiles, highlightedTile, index));
                     setHighlightedTile(null);
                     return;
