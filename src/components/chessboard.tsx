@@ -1,21 +1,18 @@
 import { useEffect, useState } from "react";
-import { type Tile, type Piece } from "~/utils/pieces";
+import { type Tile, type Piece, initBoard } from "~/utils/pieces";
 
 const Chessboard: React.FC = () => {
   const [tiles, setTiles] = useState<Tile[]>();
   const [isPlayerWhite, setIsPlayerWhite] = useState<boolean>(false);
-  const [scale, setScale] = useState<number>(1);
   useEffect(() => {
-    const pieces = [] as Tile[];
-    for (let i = 0; i < 64; i++) {
-      pieces.push(null);
-    }
+    const pieces = initBoard()
 
     if (!isPlayerWhite) {
       pieces.reverse();
     }
 
     setTiles(pieces);
+    console.log(pieces)
   }, [isPlayerWhite]);
 
   return (

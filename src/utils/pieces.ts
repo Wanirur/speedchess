@@ -14,8 +14,8 @@ export type Piece = {
 export type Tile = Piece | null;
 
 export const initBoard = (): Tile[] => {
-  const board = [] as Tile[];
-  board.fill(null, 0, 64);
+  let board = new Array(64) as Tile[];
+  board = board.fill(null, 0, 64);
 
   const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
   const blackRook = { ...whiteRook, color: "black" } as Piece;
@@ -35,13 +35,13 @@ export const initBoard = (): Tile[] => {
   board[2] = board[5] = whiteBishop;
   board[3] = whiteQueen;
   board[4] = whiteKing;
-  board.fill(whitePawn, 8, 16);
+  board = board.fill(whitePawn, 8, 16);
 
   board[63] = board[56] = blackRook;
   board[62] = board[57] = blackKnight;
   board[61] = board[58] = blackBishop;
   board[60] = blackQueen;
   board[59] = blackKing;
-  board.fill(blackPawn, 48, 56);
+  board = board.fill(blackPawn, 48, 56);
   return board;
 };
