@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { type Tile, pieceImages, initBoard } from "~/utils/pieces";
+import { type Tile, pieceImages, initBoard, movePiece } from "~/utils/pieces";
 import Image from "next/image";
 
 const Chessboard: React.FC = () => {
   const [tiles, setTiles] = useState<Tile[]>();
   const [isPlayerWhite, setIsPlayerWhite] = useState<boolean>(true);
+  const [highlightedTile, setHighlightedTile] = useState<number | null>(null);
+
   useEffect(() => {
     const pieces = initBoard();
 
@@ -13,7 +15,6 @@ const Chessboard: React.FC = () => {
     }
 
     setTiles(pieces);
-    console.log(pieces);
   }, [isPlayerWhite]);
 
   return (
@@ -29,31 +30,47 @@ const Chessboard: React.FC = () => {
             isWhite = !isWhite;
           }
 
-          if (isWhite) {
-            return (
-              <div key={index} className="relative h-20 w-20 bg-white">
-                {tile && pieceImages.get(tile) && (
-                  <Image
-                    src={pieceImages.get(tile) as string}
-                    alt={tile.pieceType}
-                    fill
-                  ></Image>
-                )}
-              </div>
-            );
-          } else {
-            return (
-              <div key={index} className="relative h-20 w-20 bg-green-500">
-                {tile && pieceImages.get(tile) && (
-                  <Image
-                    src={pieceImages.get(tile) as string}
-                    alt={tile.pieceType}
-                    fill
-                  ></Image>
-                )}
-              </div>
-            );
-          }
+          const tileBgStyle = isWhite ? "bg-white" : "bg-green-500";
+          return (
+            <div
+              key={index}
+              a-key={index}
+              className={
+                "relative h-20 w-20 " +
+                (highlightedTile == index ? "bg-red-500" : tileBgStyle)
+              }
+              onClick={(e) => {
+                const tile = e.target;
+                if (tile instanceof Element) {
+                  const key = tile.getAttribute("a-key");
+                  if (!key) {
+                    return;
+                  }
+                  //no highlighted piece and clicked tile is empty - dont highlight
+                  if (!highlightedTile && !tiles[index]) {
+                    return;
+                  }
+
+                  if (highlightedTile) {
+                    setTiles(movePiece(tiles, highlightedTile, index));
+                    setHighlightedTile(null);
+                    return;
+                  }
+
+                  setHighlightedTile(Number.parseInt(key));
+                }
+              }}
+            >
+              {tile && pieceImages.get(tile) && (
+                <Image
+                  src={pieceImages.get(tile) as string}
+                  alt={tile.pieceType}
+                  fill
+                  className="pointer-events-none"
+                ></Image>
+              )}
+            </div>
+          );
         })}
     </div>
   );

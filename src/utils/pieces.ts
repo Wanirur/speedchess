@@ -39,7 +39,7 @@ pieces.set(whiteQueen, "/white_queen.svg");
 pieces.set(blackQueen, "/black_queen.svg");
 pieces.set(whitePawn, "/white_pawn.svg");
 pieces.set(blackPawn, "/black_pawn.svg");
-export const pieceImages = pieces; 
+export const pieceImages = pieces;
 
 export const initBoard = (): Tile[] => {
   let board = new Array(64) as Tile[];
@@ -58,5 +58,16 @@ export const initBoard = (): Tile[] => {
   board[60] = blackQueen;
   board[59] = blackKing;
   board = board.fill(blackPawn, 48, 56);
+  return board;
+};
+
+export const movePiece = (board: Tile[], from: number, to: number): Tile[] => {
+  const movedPiece = board[from];
+  if (!movedPiece) {
+    return board;
+  }
+
+  board[from] = null;
+  board[to] = movedPiece;
   return board;
 };
