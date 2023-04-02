@@ -4,8 +4,9 @@ import Image from "next/image";
 
 const Chessboard: React.FC = () => {
   const [tiles, setTiles] = useState<Tile[]>();
-  const [isPlayerWhite, setIsPlayerWhite] = useState<boolean>(true);
+  const [isPlayerWhite, setIsPlayerWhite] = useState<boolean>(false);
   const [highlightedTile, setHighlightedTile] = useState<number | null>(null);
+  const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
 
   useEffect(() => {
     const pieces = initBoard();
@@ -34,19 +35,36 @@ const Chessboard: React.FC = () => {
           return (
             <div
               key={index}
-              a-key={index}
               className={
                 "relative h-20 w-20 " +
                 (highlightedTile === index ? "bg-red-500" : tileBgStyle)
               }
+              onDragOver={(e) => {
+                e.preventDefault();
+              }}
+              onDrag={(e) => {
+                const tile = e.target;
+                if (!(tile instanceof Element)) {
+                  return;
+                }
+
+                if (!tiles[index]) {
+                  return;
+                }
+
+                setDraggedPiece(index);
+              }}
+              onDrop={() => {
+                if (draggedPiece === null) {
+                  return;
+                }
+
+                movePiece(tiles, draggedPiece, index);
+                setDraggedPiece(null);
+              }}
               onClick={(e) => {
                 const tile = e.target;
                 if (tile instanceof Element) {
-                  const key = tile.getAttribute("a-key");
-                  if (!key) {
-                    return;
-                  }
-                  console.log(tiles[index])
                   //no highlighted piece and clicked tile is empty - dont highlight
                   if (highlightedTile === null && !tiles[index]) {
                     return;
@@ -58,7 +76,7 @@ const Chessboard: React.FC = () => {
                     return;
                   }
 
-                  setHighlightedTile(Number.parseInt(key));
+                  setHighlightedTile(index);
                 }
               }}
             >
@@ -67,7 +85,6 @@ const Chessboard: React.FC = () => {
                   src={pieceImages.get(tile) as string}
                   alt={tile.pieceType}
                   fill
-                  className="pointer-events-none"
                 ></Image>
               )}
             </div>

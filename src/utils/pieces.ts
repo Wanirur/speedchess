@@ -55,8 +55,8 @@ export const initBoard = (): Tile[] => {
   board[63] = board[56] = blackRook;
   board[62] = board[57] = blackKnight;
   board[61] = board[58] = blackBishop;
-  board[60] = blackQueen;
-  board[59] = blackKing;
+  board[60] = blackKing;
+  board[59] = blackQueen;
   board = board.fill(blackPawn, 48, 56);
   return board;
 };
