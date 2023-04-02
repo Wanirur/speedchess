@@ -64,20 +64,21 @@ const Chessboard: React.FC = () => {
               }}
               onClick={(e) => {
                 const tile = e.target;
-                if (tile instanceof Element) {
-                  //no highlighted piece and clicked tile is empty - dont highlight
-                  if (highlightedTile === null && !tiles[index]) {
-                    return;
-                  }
-
-                  if (highlightedTile !== null) {
-                    setTiles(movePiece(tiles, highlightedTile, index));
-                    setHighlightedTile(null);
-                    return;
-                  }
-
-                  setHighlightedTile(index);
+                if (!(tile instanceof Element)) {
+                  return;
                 }
+                //no highlighted piece and clicked tile is empty - dont highlight
+                if (highlightedTile === null && !tiles[index]) {
+                  return;
+                }
+
+                if (highlightedTile !== null) {
+                  setTiles(movePiece(tiles, highlightedTile, index));
+                  setHighlightedTile(null);
+                  return;
+                }
+
+                setHighlightedTile(index);
               }}
             >
               {tile && pieceImages.get(tile) && (
