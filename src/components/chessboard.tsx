@@ -86,6 +86,7 @@ const Chessboard: React.FC = () => {
                   src={pieceImages.get(tile) as string}
                   alt={tile.pieceType}
                   fill
+                  className="cursor-pointer"
                 ></Image>
               )}
             </div>
