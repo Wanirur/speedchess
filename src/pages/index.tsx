@@ -20,7 +20,12 @@ const Home: NextPage = () => {
         {sessionData && sessionData.user && sessionData.user.image ? (
           <UserLoggedInView image={sessionData.user.image}></UserLoggedInView>
         ) : (
-          <button className = "rounded-md bg-green-700 p-4 font-os text-white" onClick={() => void signIn()}>Log in</button>
+          <button
+            className="rounded-md bg-green-700 p-4 font-os text-white"
+            onClick={() => void signIn()}
+          >
+            Log in
+          </button>
         )}
 
         <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16 ">
@@ -36,7 +41,7 @@ const Home: NextPage = () => {
 
 const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
   return (
-    <div className="container flex flex-col items-center justify-center gap-12 gap-8 px-3 py-16">
+    <div className="container flex flex-col items-center justify-center gap-8 px-3 py-16">
       <Image
         src={image}
         alt={"avatar"}
