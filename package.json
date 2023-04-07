@@ -24,6 +24,7 @@
     "lucide-react": "^0.126.0",
     "next": "^13.2.1",
     "next-auth": "^4.19.0",
+    "pusher": "^5.1.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "superjson": "1.9.1",
