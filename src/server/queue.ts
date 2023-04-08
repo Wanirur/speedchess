@@ -13,5 +13,37 @@ const tiers = [
   "2500+",
 ] as const;
 
-export type TierTypes = (typeof tiers)[number];
-export const queue = new Map<TierTypes, any[]>();
+export type RatingTier = (typeof tiers)[number];
+const queue = new Map<RatingTier, string[]>();
+tiers.map((item) => {
+  queue.set(item, [] as string[]);
+});
+
+export const usersWaitingForMatch = queue;
+export const resolveRatingToTier = (rating :number): RatingTier => {
+    let tier = "guest" as RatingTier;
+    if(rating <= 250) {
+        tier = "0-250";
+    } else if(rating <= 500) {
+        tier = "251-500"
+    } else if(rating <= 750) {
+        tier = "501-750";
+    } else if(rating <= 1000) {
+        tier = "751-1000"; 
+    } else if(rating <= 1250) {
+        tier = "1001-1250";
+    } else if(rating <= 1500) {
+        tier = "1251-1500";
+    } else if(rating <= 1750) {
+        tier = "1501-1750";
+    } else if(rating <= 2000) {
+        tier = "1751-2000";
+    } else if(rating <= 2250) {
+        tier = "2001-2250";
+    } else if(rating <= 2500) {
+        tier = "2251-2500";
+    } else { 
+        tier = "2500+";
+    }
+    return tier;
+}
