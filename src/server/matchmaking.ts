@@ -16,9 +16,9 @@ const tiers = [
 ] as const;
 
 export type RatingTier = (typeof tiers)[number];
-const queue = new Map<RatingTier, string[]>();
+const queue = new Map<RatingTier, Game[]>();
 tiers.forEach((item) => {
-  queue.set(item, [] as string[]);
+  queue.set(item, [] as Game[]);
 });
 
 export const playersWaitingForMatch = queue;
@@ -50,4 +50,4 @@ export const resolveRatingToTier = (rating :number): RatingTier => {
     return tier;
 }
 
-export const matches = new Map<number, Game>();
+export const matches = new Map<string, Game>();
