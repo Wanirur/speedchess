@@ -6,27 +6,17 @@ import {
   resolveRatingToTier,
   matches,
 } from "~/server/matchmaking";
-import pusher, { pusherClient } from "~/server/websocket/pusher";
+import pusher from "~/server/pusher";
 import { Game, type PlayerId } from "~/server/game";
 import { z } from "zod";
 
 export const chessgameRouter = createTRPCRouter({
-  onStart: publicProcedure
-    .input(z.string().uuid())
-    .subscription(({ input }) => {
-      return observable<string>((emit) => {
-        const onStart = (data: string) => {
-          emit.next(data);
-        };
-
-        const channel = pusherClient.channel(input);
-        channel.bind("match_start", onStart);
-      });
-    }),
-
   queueUp: publicProcedure
-    .input(z.number().min(30).max(180))
-    .mutation(async ({ ctx, input }) => {
+    .input(z.object({ timeControl: z.number().min(30).max(180) }))
+    .mutation(async ({ ctx, input }) :Promise<{
+      uuid: string,
+      gameStarted: boolean,
+    } | undefined> => {
       let tier = "guest" as RatingTier;
       let id = "guest";
 
@@ -52,14 +42,25 @@ export const chessgameRouter = createTRPCRouter({
           const game = queue.pop();
           //TODO: error handling
           if (!game) {
-            return;
+            return new Promise((resolve, reject) => {
+              reject(new Error("game does not exist"))
+            });
           }
-          game.black = { id: playerId, secondsLeft: input };
+
+          game.black = { id: playerId, secondsLeft: input.timeControl };
           matches.set(game.id, game);
           await pusher.trigger(game.id, "match_start", { matchId: game.id });
+          return {
+            uuid: game.id,
+            gameStarted: true
+          };
         } else {
-          const game = new Game(playerId, input);
+          const game = new Game(playerId, input.timeControl);
           queue.push(game);
+          return {
+            uuid: game.id,
+            gameStarted: false
+          }
         }
       }
     }),
