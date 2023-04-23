@@ -26,7 +26,7 @@ const server = z.object({
   GITHUB_CLIENT_ID: z.string().min(1),
   GITHUB_CLIENT_SECRET: z.string().min(1),
   SOKETI_APP_ID: z.string().min(1),
-  SOKETI_APP_KEY: z.string().min(1),
+  NEXT_PUBLIC_SOKETI_APP_KEY: z.string().min(1),
   SOKETI_APP_SECRET: z.string().min(1),
 });
 
@@ -36,6 +36,7 @@ const server = z.object({
  */
 const client = z.object({
   // NEXT_PUBLIC_CLIENTVAR: z.string().min(1),
+  NEXT_PUBLIC_SOKETI_APP_KEY: z.string().min(1),
 });
 
 /**
@@ -56,7 +57,7 @@ const processEnv = {
   GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
   SOKETI_APP_ID: process.env.SOKETI_APP_ID,
-  SOKETI_APP_KEY: process.env.SOKETI_APP_KEY,
+  NEXT_PUBLIC_SOKETI_APP_KEY: process.env.NEXT_PUBLIC_SOKETI_APP_KEY,
   SOKETI_APP_SECRET:  process.env.SOKETI_APP_SECRET,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };

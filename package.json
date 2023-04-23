@@ -21,6 +21,7 @@
     "@trpc/server": "^10.9.0",
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",
+    "isomorphic-ws": "^5.0.0",
     "lucide-react": "^0.126.0",
     "next": "^13.2.1",
     "next-auth": "^4.19.0",
@@ -31,6 +32,7 @@
     "superjson": "1.9.1",
     "tailwind-merge": "^1.10.0",
     "tailwindcss-animate": "^1.0.5",
+    "ws": "^8.13.0",
     "zod": "^3.20.6"
   },
   "devDependencies": {
@@ -39,6 +41,7 @@
     "@types/prettier": "^2.7.2",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
     "autoprefixer": "^10.4.7",
