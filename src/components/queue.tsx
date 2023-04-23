@@ -16,8 +16,8 @@ const QueueDisplay: React.FC<{ gameId: string }> = ({ gameId }) => {
   }, [gameId, router]);
 
   return (
-    <div className="h-8 w-10 bg-neutral-900">
-      <Search className="h-3 w-3 animate-pulse fill-neutral-400"></Search>
+    <div className="flex h-8 w-max bg-neutral-900 font-os text-white items-center">
+      <Search className="m-2 h-5 w-5 animate-pulse fill-neutral-400"></Search>{" "}
       Looking for opponent...
     </div>
   );
