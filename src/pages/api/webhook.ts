@@ -1,15 +1,13 @@
 import { type NextApiHandler } from "next";
-import { type WebHookRequest } from "pusher";
 import { playersWaitingForMatch } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 
 const WebhookHandler: NextApiHandler = (req, res) => {
   const webhookReq = {
     headers: req.headers,
-    rawBody: JSON.stringify(req.body)
-  }
+    rawBody: JSON.stringify(req.body),
+  };
 
-  console.log(webhookReq)
   const webhook = pusher.webhook(webhookReq);
   const events = webhook.getEvents();
   const vacatedChannels = events
@@ -20,7 +18,10 @@ const WebhookHandler: NextApiHandler = (req, res) => {
 
   vacatedChannels.forEach((channel) => {
     playersWaitingForMatch.forEach((gamesInTier) => {
-      gamesInTier.findIndex((game) => game.id === channel);
+      console.log(gamesInTier);
+      const index = gamesInTier.findIndex((game) => game.id === channel);
+      gamesInTier.splice(index, 1);
+      console.log(gamesInTier);
     });
   });
 
