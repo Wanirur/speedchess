@@ -1,4 +1,3 @@
-import { observable } from "@trpc/server/observable";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import {
   type RatingTier,
