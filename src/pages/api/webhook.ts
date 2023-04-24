@@ -1,10 +1,15 @@
 import { type NextApiHandler } from "next";
-import type { WebHookRequest } from "pusher";
+import { type WebHookRequest } from "pusher";
 import { playersWaitingForMatch } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 
 const WebhookHandler: NextApiHandler = (req, res) => {
-  const webhookReq = req as unknown as WebHookRequest;
+  const webhookReq = {
+    headers: req.headers,
+    rawBody: JSON.stringify(req.body)
+  }
+
+  console.log(webhookReq)
   const webhook = pusher.webhook(webhookReq);
   const events = webhook.getEvents();
   const vacatedChannels = events
