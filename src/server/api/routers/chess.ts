@@ -8,6 +8,7 @@ import {
 import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
@@ -28,7 +29,6 @@ export const chessgameRouter = createTRPCRouter({
 
         if (ctx.session) {
           id = ctx.session.user.id;
-          //TODO: error handling
           try {
             const rating = await ctx.prisma.user
               .findUniqueOrThrow({
@@ -42,7 +42,7 @@ export const chessgameRouter = createTRPCRouter({
             }
           } catch (e) {
             console.error("no user with id: " + id + " in db");
-          }
+          } 
         }
 
         const playerId = id === "guest" ? id : Number.parseInt(id);
@@ -51,14 +51,20 @@ export const chessgameRouter = createTRPCRouter({
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const queue = playersWaitingForMatch.get(tier)!;
           if (queue.length > 0) {
-            const game = queue.pop();
-            //TODO: error handling
-            if (!game) {
-              return new Promise((resolve, reject) => {
-                reject(new Error("game does not exist"));
-              });
+            if(playerId != "guest" && queue[queue.length - 1]?.white.id === playerId) {
+             throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "You are already in queue. Multiple tabs open?"
+             })
             }
-
+            const game = queue.pop();
+            if (!game) {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Game you tried to join ceased to exist. Queue up again."
+               })
+            }
+          
             game.black = { id: playerId, secondsLeft: input.timeControl };
             matches.set(game.id, game);
             await pusher.trigger(game.id, "match_start", { matchId: game.id });
