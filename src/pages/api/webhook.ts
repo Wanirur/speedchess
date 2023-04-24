@@ -11,17 +11,14 @@ const WebhookHandler: NextApiHandler = (req, res) => {
   const webhook = pusher.webhook(webhookReq);
   const events = webhook.getEvents();
   const vacatedChannels = events
-    .filter((item) => {
-      return item.event === "channel_vacated";
+    .filter((event) => {
+      return event.name === "channel_vacated";
     })
-    .map((item) => item.channel);
-
+    .map((event) => event.channel);
   vacatedChannels.forEach((channel) => {
     playersWaitingForMatch.forEach((gamesInTier) => {
-      console.log(gamesInTier);
       const index = gamesInTier.findIndex((game) => game.id === channel);
       gamesInTier.splice(index, 1);
-      console.log(gamesInTier);
     });
   });
 
