@@ -1,5 +1,6 @@
-import { initBoard } from "~/utils/pieces";
+import { initBoard, movePiece } from "~/utils/pieces";
 import { randomUUID } from "crypto";
+import { z } from "zod";
 
 export type PlayerId = number | "guest";
 export type Player = { 
@@ -41,5 +42,13 @@ export class Game {
         }
 
         this._id = randomUUID()
+    }
+
+    move(from: number, to: number) {
+        const schema = z.number().min(0).max(63); 
+        schema.parse(from);
+        schema.parse(to);
+
+        movePiece(this.board, from, to)
     }
 }
