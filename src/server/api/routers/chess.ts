@@ -76,6 +76,30 @@ export const chessgameRouter = createTRPCRouter({
         }
       }
     }),
+  getPlayerColor: protectedProcedure
+    .input(z.object({ uuid: z.string() }))
+    .query(({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+
+      if (user.id === match.white.id) {
+        return "white";
+      }
+      if (user.id === match.black.id) {
+        return "black";
+      }
+      
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "You are not a player",
+      });
+    }),
   movePiece: protectedProcedure
     .input(
       z.object({
@@ -94,7 +118,7 @@ export const chessgameRouter = createTRPCRouter({
           message: "The game does not exist",
         });
       }
-      if (user.id != match.white.id && user.id != match.black.id) {
+      if (user.id !== match.white.id && user.id !== match.black.id) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "You are not a player",
