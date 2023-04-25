@@ -1,22 +1,23 @@
 import { useEffect, useState } from "react";
 import { type Tile, pieceImages, initBoard, movePiece } from "~/utils/pieces";
 import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "~/utils/api";
 
-const Chessboard: React.FC = () => {
+const Chessboard: React.FC<{uuid: string}> = ({uuid}) => {
   const [tiles, setTiles] = useState<Tile[]>();
-  const [isPlayerWhite, setIsPlayerWhite] = useState<boolean>(false);
   const [highlightedTile, setHighlightedTile] = useState<number | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
-
+  const playerColor = api.chess.getPlayerColor.useQuery({uuid: uuid})
   useEffect(() => {
     const pieces = initBoard();
 
-    if (isPlayerWhite) {
+    if (playerColor) {
       pieces.reverse();
     }
 
     setTiles(pieces);
-  }, [isPlayerWhite]);
+  }, [playerColor]);
 
   return (
     <div className="container grid h-max w-max grid-cols-8 gap-0">
