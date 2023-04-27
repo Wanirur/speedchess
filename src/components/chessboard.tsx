@@ -1,99 +1,143 @@
-import { useEffect, useState } from "react";
-import { type Tile, pieceImages, initBoard, movePiece } from "~/utils/pieces";
+import { useState } from "react";
+import { resolvePieceToImage, movePiece } from "~/utils/pieces";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "~/utils/api";
+import pusherClient from "~/utils/pusherClient";
 
-const Chessboard: React.FC<{uuid: string}> = ({uuid}) => {
-  const [tiles, setTiles] = useState<Tile[]>();
+const Chessboard: React.FC<{ uuid: string }> = ({ uuid }) => {
+  const utils = api.useContext();
   const [highlightedTile, setHighlightedTile] = useState<number | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
-  const playerColor = api.chess.getPlayerColor.useQuery({uuid: uuid})
-  useEffect(() => {
-    const pieces = initBoard();
+  const { isLoading, isError, isSuccess, data } =
+    api.chess.getStartingData.useQuery(
+      { uuid: uuid },
+      {
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        onSuccess: () => {
+          const onMove = (move: { fromTile: number; toTile: number }) => {
+            utils.chess.getStartingData.setData({ uuid: uuid }, (old) => {
+              if (!old) {
+                return old;
+              }
 
-    if (playerColor) {
-      pieces.reverse();
-    }
+              return {
+                ...old,
+                board: movePiece(old.board, move.fromTile, move.toTile),
+                isTurnYours: !old.isTurnYours,
+              };
+            });
+          };
 
-    setTiles(pieces);
-  }, [playerColor]);
+          const channel = pusherClient.subscribe(uuid);
+          channel.bind("move_made", onMove);
+        },
+      }
+    );
+
+  const moveMutation = api.chess.movePiece.useMutation();
 
   return (
-    <div className="container grid h-max w-max grid-cols-8 gap-0">
-      {tiles &&
-        tiles.map((tile, index) => {
-          let isWhite = true;
-          if (index % 2) {
-            isWhite = false;
-          }
+    <>
+      {" "}
+      {isLoading && <p className="text-white">Loading...</p>}
+      {isError && (
+        <p className="text-red-600">An error occured. Please refresh</p>
+      )}
+      {isSuccess && (
+        <div className="container grid h-max w-max grid-cols-8 gap-0">
+          {data.board.map((tile, index) => {
+            console.log("rerender!");
+            let isWhite = true;
+            if (index % 2) {
+              isWhite = false;
+            }
 
-          if (Math.floor(index / 8) % 2) {
-            isWhite = !isWhite;
-          }
+            if (Math.floor(index / 8) % 2) {
+              isWhite = !isWhite;
+            }
 
-          const tileBgStyle = isWhite ? "bg-white" : "bg-green-500";
-          return (
-            <div
-              key={index}
-              className={
-                "relative h-20 w-20 " +
-                (highlightedTile === index ? "bg-red-500" : tileBgStyle)
-              }
-              onDragOver={(e) => {
-                e.preventDefault();
-              }}
-              onDrag={(e) => {
-                const tile = e.target;
-                if (!(tile instanceof Element)) {
-                  return;
+            const tileBgStyle = isWhite ? "bg-white" : "bg-green-500";
+            return (
+              <div
+                key={index}
+                className={
+                  "relative h-20 w-20 " +
+                  (highlightedTile === index ? "bg-red-500" : tileBgStyle)
                 }
+                onDragOver={(e) => {
+                  e.preventDefault();
+                }}
+                onDrag={(e) => {
+                  if (!data.isTurnYours) {
+                    return;
+                  }
+                  const tile = e.target;
+                  if (!(tile instanceof Element)) {
+                    return;
+                  }
 
-                if (!tiles[index]) {
-                  return;
-                }
+                  if (!data.board[index]) {
+                    return;
+                  }
 
-                setDraggedPiece(index);
-              }}
-              onDrop={() => {
-                if (draggedPiece === null) {
-                  return;
-                }
+                  setDraggedPiece(index);
+                }}
+                onDrop={() => {
+                  if (draggedPiece === null) {
+                    return;
+                  }
 
-                movePiece(tiles, draggedPiece, index);
-                setDraggedPiece(null);
-              }}
-              onClick={(e) => {
-                const tile = e.target;
-                if (!(tile instanceof Element)) {
-                  return;
-                }
-                //no highlighted piece and clicked tile is empty - dont highlight
-                if (highlightedTile === null && !tiles[index]) {
-                  return;
-                }
+                  moveMutation.mutate({
+                    uuid: uuid,
+                    fromTile: draggedPiece,
+                    toTile: index,
+                    secondsUsed: 0,
+                  });
+                  setDraggedPiece(null);
+                }}
+                onClick={(e) => {
+                  if (!data.isTurnYours) {
+                    return;
+                  }
+                  const tile = e.target;
+                  if (!(tile instanceof Element)) {
+                    return;
+                  }
+                  //no highlighted piece and clicked tile is empty - dont highlight
+                  if (highlightedTile === null && !data.board[index]) {
+                    return;
+                  }
 
-                if (highlightedTile !== null) {
-                  setTiles(movePiece(tiles, highlightedTile, index));
-                  setHighlightedTile(null);
-                  return;
-                }
+                  if (highlightedTile !== null) {
+                    moveMutation.mutate({
+                      uuid: uuid,
+                      fromTile: highlightedTile,
+                      toTile: index,
+                      secondsUsed: 0,
+                    });
+                    setHighlightedTile(null);
+                    return;
+                  }
 
-                setHighlightedTile(index);
-              }}
-            >
-              {tile && pieceImages.get(tile) && (
-                <Image
-                  src={pieceImages.get(tile) as string}
-                  alt={tile.pieceType}
-                  fill
-                  className="cursor-pointer"
-                ></Image>
-              )}
-            </div>
-          );
-        })}
-    </div>
+                  setHighlightedTile(index);
+                }}
+              >
+                {tile && (
+                  <Image
+                    src={resolvePieceToImage(tile) as string}
+                    alt={tile.pieceType}
+                    fill
+                    className="cursor-pointer"
+                  ></Image>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 };
 
