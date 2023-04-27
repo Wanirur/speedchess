@@ -5,11 +5,11 @@ import Timer from "~/components/timer";
 
 const Play: NextPage = () => {
   const router = useRouter();
-  const {uuid} = router.query;
+  const { uuid } = router.query;
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
-      <Chessboard uuid={uuid as string}></Chessboard>
+      {router.isReady && <Chessboard uuid={uuid as string}></Chessboard>}
       <div className="flex h-[640px] w-max flex-col justify-center px-4">
         <Timer></Timer>
         <div className="h-full w-72 bg-neutral-700"></div>
@@ -22,7 +22,7 @@ const Play: NextPage = () => {
             {" "}
             resign{" "}
           </button>
-        </div>  
+        </div>
         <Timer></Timer>
       </div>
     </main>
