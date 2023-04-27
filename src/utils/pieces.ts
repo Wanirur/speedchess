@@ -26,20 +26,23 @@ const blackPawn = { ...whitePawn, color: "black" } as Piece;
 
 export type Tile = Piece | null;
 
-const pieces = new Map<Piece, string>();
-pieces.set(whiteRook, "/white_rook.svg");
-pieces.set(blackRook, "/black_rook.svg");
-pieces.set(whiteBishop, "/white_bishop.svg");
-pieces.set(blackBishop, "/black_bishop.svg");
-pieces.set(whiteKnight, "/white_knight.svg");
-pieces.set(blackKnight, "/black_knight.svg");
-pieces.set(whiteKing, "/white_king.svg");
-pieces.set(blackKing, "/black_king.svg");
-pieces.set(whiteQueen, "/white_queen.svg");
-pieces.set(blackQueen, "/black_queen.svg");
-pieces.set(whitePawn, "/white_pawn.svg");
-pieces.set(blackPawn, "/black_pawn.svg");
-export const pieceImages = pieces;
+const pieces = new Map<string, string>();
+pieces.set(JSON.stringify(whiteRook), "/white_rook.svg");
+pieces.set(JSON.stringify(blackRook), "/black_rook.svg");
+pieces.set(JSON.stringify(whiteBishop), "/white_bishop.svg");
+pieces.set(JSON.stringify(blackBishop), "/black_bishop.svg");
+pieces.set(JSON.stringify(whiteKnight), "/white_knight.svg");
+pieces.set(JSON.stringify(blackKnight), "/black_knight.svg");
+pieces.set(JSON.stringify(whiteKing), "/white_king.svg");
+pieces.set(JSON.stringify(blackKing), "/black_king.svg");
+pieces.set(JSON.stringify(whiteQueen), "/white_queen.svg");
+pieces.set(JSON.stringify(blackQueen), "/black_queen.svg");
+pieces.set(JSON.stringify(whitePawn), "/white_pawn.svg");
+pieces.set(JSON.stringify(blackPawn), "/black_pawn.svg");
+
+export const resolvePieceToImage = (piece: Piece) => {
+  return pieces.get(JSON.stringify(piece));
+}
 
 export const initBoard = (): Tile[] => {
   let board = new Array(64) as Tile[];
@@ -62,6 +65,9 @@ export const initBoard = (): Tile[] => {
 };
 
 export const movePiece = (board: Tile[], from: number, to: number): Tile[] => {
+  if(!board) {
+    return board;
+  }
   const movedPiece = board[from];
   if (!movedPiece) {
     return board;
