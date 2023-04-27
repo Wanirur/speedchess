@@ -2,9 +2,8 @@ import { initBoard, movePiece } from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 
-export type PlayerId = number | "guest";
 export type Player = { 
-    id: PlayerId,
+    id: string,
     secondsLeft: number
 }
 
@@ -28,18 +27,28 @@ export class Game {
     public set black(value: Player) {
         this._black = value;
     }
-    private board = initBoard();
+    private _board = initBoard();
+    public get board() {
+        return this._board;
+    }
 
-    constructor(whiteId: PlayerId, timeControl: number) { 
+    private _turn :Player;
+    public get turn() {
+        return this._turn;
+    }
+
+
+    constructor(whiteId: string, timeControl: number) { 
         this._white = { 
             id: whiteId, 
             secondsLeft: timeControl
         }
 
         this._black = {
-            id: -1, 
+            id: "-1", 
             secondsLeft: timeControl
         }
+        this._turn = this._white;
 
         this._id = randomUUID()
     }
@@ -50,5 +59,10 @@ export class Game {
         schema.parse(to);
 
         movePiece(this.board, from, to)
+        if(this._turn === this._white) {
+            this._turn = this._black;
+        } else {
+            this._turn = this._white;
+        }
     }
 }
