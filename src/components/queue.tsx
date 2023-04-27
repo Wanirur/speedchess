@@ -8,9 +8,9 @@ const QueueDisplay: React.FC<{ gameId: string }> = ({ gameId }) => {
 
   useEffect(() => {
     const onStart = (data: {
-      gameId: string
+      matchId: string
     }) => {
-      void router.push("/play/" + data.gameId);
+      void router.push("/play/" + data.matchId);
     };
 
     const channel = pusherClient.subscribe(gameId);
