@@ -6,7 +6,7 @@ import {
   matches,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
-import { Game, PlayerId } from "~/server/game";
+import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 
@@ -35,16 +35,11 @@ export const chessgameRouter = createTRPCRouter({
         }
       }
 
-      const playerId = id === "guest" ? id : Number.parseInt(id);
-
       if (playersWaitingForMatch.has(tier)) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const queue = playersWaitingForMatch.get(tier)!;
         if (queue.length > 0) {
-          if (
-            playerId != "guest" &&
-            queue[queue.length - 1]?.white.id === playerId
-          ) {
+          if (id != "guest" && queue[queue.length - 1]?.white.id === id) {
             throw new TRPCError({
               code: "BAD_REQUEST",
               message: "You are already in queue. Multiple tabs open?",
@@ -59,7 +54,7 @@ export const chessgameRouter = createTRPCRouter({
             });
           }
 
-          game.black = { id: playerId, secondsLeft: input.timeControl };
+          game.black = { id: id, secondsLeft: input.timeControl };
           matches.set(game.id, game);
           await pusher.trigger(game.id, "match_start", { matchId: game.id });
           return {
@@ -67,7 +62,7 @@ export const chessgameRouter = createTRPCRouter({
             gameStarted: true,
           };
         } else {
-          const game = new Game(playerId, input.timeControl);
+          const game = new Game(id, input.timeControl);
           queue.push(game);
           return {
             uuid: game.id,
@@ -76,8 +71,8 @@ export const chessgameRouter = createTRPCRouter({
         }
       }
     }),
-  getPlayerColor: protectedProcedure
-    .input(z.object({ uuid: z.string() }))
+  getStartingData: protectedProcedure
+    .input(z.object({ uuid: z.string().uuid() }))
     .query(({ ctx, input }) => {
       const user = ctx.session.user;
       const match = matches.get(input.uuid);
@@ -87,18 +82,22 @@ export const chessgameRouter = createTRPCRouter({
           message: "The game does not exist",
         });
       }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
 
-      if (user.id === match.white.id) {
-        return "white";
-      }
-      if (user.id === match.black.id) {
-        return "black";
-      }
-      
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "You are not a player",
-      });
+      const color = user.id === match.white.id ? "white" : "black";
+     
+      return {
+        board: match.board,
+        color: color,
+        isTurnYours: match.turn.id === user.id,
+        whiteSecondsLeft: match.white.secondsLeft,
+        blackSecondsLeft: match.black.secondsLeft
+      };
     }),
   movePiece: protectedProcedure
     .input(
@@ -106,7 +105,7 @@ export const chessgameRouter = createTRPCRouter({
         uuid: z.string().uuid(),
         fromTile: z.number().min(0).max(63),
         toTile: z.number().min(0).max(63),
-        secondsUsed: z.number().min(30).max(180),
+        secondsUsed: z.number().nonnegative(),
       })
     )
     .mutation(async ({ ctx, input }) => {
