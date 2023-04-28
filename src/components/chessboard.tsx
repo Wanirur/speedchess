@@ -2,9 +2,9 @@ import { useState } from "react";
 import { resolvePieceToImage, movePiece } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
-import pusherClient from "~/utils/pusherClient";
+import type { Channel } from "pusher-js";
 
-const Chessboard: React.FC<{ uuid: string }> = ({ uuid }) => {
+const Chessboard: React.FC<{ uuid: string, channel: Channel }> = ({ uuid, channel }) => {
   const utils = api.useContext();
   const [highlightedTile, setHighlightedTile] = useState<number | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
@@ -30,14 +30,13 @@ const Chessboard: React.FC<{ uuid: string }> = ({ uuid }) => {
             });
           };
 
-          const channel = pusherClient.subscribe(uuid);
           channel.bind("move_made", onMove);
         },
       }
     );
 
   const moveMutation = api.chess.movePiece.useMutation();
-
+  
   return (
     <>
       {" "}

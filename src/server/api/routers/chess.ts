@@ -90,13 +90,13 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       const color = user.id === match.white.id ? "white" : "black";
-     
+
       return {
         board: match.board,
         color: color,
         isTurnYours: match.turn.id === user.id,
         whiteSecondsLeft: match.white.secondsLeft,
-        blackSecondsLeft: match.black.secondsLeft
+        blackSecondsLeft: match.black.secondsLeft,
       };
     }),
   movePiece: protectedProcedure
@@ -136,5 +136,26 @@ export const chessgameRouter = createTRPCRouter({
           message: "Invalid move",
         });
       }
+    }),
+  resign: protectedProcedure
+    .input(z.object({ uuid: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      await pusher.trigger(match.id, "resign", {});
+      
     }),
 });
