@@ -117,10 +117,18 @@ export const chessgameRouter = createTRPCRouter({
           message: "The game does not exist",
         });
       }
+
       if (user.id !== match.white.id && user.id !== match.black.id) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "You are not a player",
+        });
+      }
+
+      if (user.id !== match.turn.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Not your turn!",
         });
       }
 
@@ -156,6 +164,51 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       await pusher.trigger(match.id, "resign", {});
-      
+    }),
+  offerDraw: protectedProcedure
+    .input(z.object({ uuid: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      const color = match.white.id === user.id ? "white" : "black";
+      const result = match.offerDraw(color);
+      if(result === "draw") {
+        await pusher.trigger(match.id, "draw", {});
+      } else {
+        await pusher.trigger(match.id, "draw_offer", { color: color });
+      }
+    }),
+  refuseDraw: protectedProcedure
+    .input(z.object({ uuid: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      await pusher.trigger(match.id, "draw_refused", {})
     }),
 });
