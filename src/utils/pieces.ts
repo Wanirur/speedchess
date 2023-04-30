@@ -11,6 +11,11 @@ export type Piece = {
   pieceType: (typeof PieceTypes)[number];
 };
 
+export type Coords = {
+  x: number,
+  y: number
+}
+
 const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
 const blackRook = { ...whiteRook, color: "black" } as Piece;
 const whiteBishop = { pieceType: "Bishop", color: "white" } as Piece;
@@ -42,7 +47,7 @@ pieces.set(JSON.stringify(blackPawn), "/black_pawn.svg");
 
 export const resolvePieceToImage = (piece: Piece) => {
   return pieces.get(JSON.stringify(piece));
-}
+};
 
 export const initBoard = (): Tile[] => {
   let board = new Array(64) as Tile[];
@@ -64,16 +69,19 @@ export const initBoard = (): Tile[] => {
   return board;
 };
 
-export const movePiece = (board: Tile[], from: number, to: number): Tile[] => {
-  if(!board) {
+export const movePiece = (board: Tile[], from: Coords , to: Coords): Tile[] => {
+  if (!board) {
     return board;
   }
-  const movedPiece = board[from];
+
+  const fromIndex = 8 * from.y + from.x;
+  const toIndex = 8 * to.y + to.x;
+  const movedPiece = board[fromIndex];
   if (!movedPiece) {
     return board;
   }
 
-  board[from] = null;
-  board[to] = movedPiece;
+  board[fromIndex] = null;
+  board[toIndex] = movedPiece;
   return board;
 };

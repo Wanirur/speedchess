@@ -103,8 +103,14 @@ export const chessgameRouter = createTRPCRouter({
     .input(
       z.object({
         uuid: z.string().uuid(),
-        fromTile: z.number().min(0).max(63),
-        toTile: z.number().min(0).max(63),
+        fromTile: z.object({
+          x: z.number().min(0).max(7),
+          y: z.number().min(0).max(7)
+        }),
+        toTile: z.object({
+          x: z.number().min(0).max(7),
+          y: z.number().min(0).max(7)
+        }),
         secondsUsed: z.number().nonnegative(),
       })
     )

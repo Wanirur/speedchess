@@ -1,4 +1,4 @@
-import { initBoard, movePiece } from "~/utils/pieces";
+import { type Coords, initBoard, movePiece } from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 
@@ -64,11 +64,7 @@ export class Game {
     this._id = randomUUID();
   }
 
-  move(from: number, to: number) {
-    const schema = z.number().min(0).max(63);
-    schema.parse(from);
-    schema.parse(to);
-
+  move(from: Coords, to: Coords) {
     movePiece(this.board, from, to);
     if (this._turn === this._white) {
       this._turn = this._black;

@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { resolvePieceToImage, movePiece } from "~/utils/pieces";
+import { resolvePieceToImage, movePiece, type Coords } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
 import type { Channel } from "pusher-js";
 
-const Chessboard: React.FC<{ uuid: string, channel: Channel }> = ({ uuid, channel }) => {
+const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
+  uuid,
+  channel,
+}) => {
   const utils = api.useContext();
-  const [highlightedTile, setHighlightedTile] = useState<number | null>(null);
-  const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
+  const [highlightedTile, setHighlightedTile] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [draggedPiece, setDraggedPiece] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const { isLoading, isError, isSuccess, data } =
     api.chess.getStartingData.useQuery(
       { uuid: uuid },
@@ -16,7 +25,7 @@ const Chessboard: React.FC<{ uuid: string, channel: Channel }> = ({ uuid, channe
         refetchOnMount: false,
         refetchOnReconnect: false,
         onSuccess: () => {
-          const onMove = (move: { fromTile: number; toTile: number }) => {
+          const onMove = (move: { fromTile: Coords; toTile: Coords }) => {
             utils.chess.getStartingData.setData({ uuid: uuid }, (old) => {
               if (!old) {
                 return old;
@@ -36,7 +45,7 @@ const Chessboard: React.FC<{ uuid: string, channel: Channel }> = ({ uuid, channe
     );
 
   const moveMutation = api.chess.movePiece.useMutation();
-  
+
   return (
     <>
       {" "}
@@ -45,92 +54,122 @@ const Chessboard: React.FC<{ uuid: string, channel: Channel }> = ({ uuid, channe
         <p className="text-red-600">An error occured. Please refresh</p>
       )}
       {isSuccess && (
-        <div className="container grid h-max w-max grid-cols-8 gap-0">
-          {data.board.map((tile, index) => {
-            console.log("rerender!");
-            let isWhite = true;
-            if (index % 2) {
-              isWhite = false;
-            }
-
-            if (Math.floor(index / 8) % 2) {
-              isWhite = !isWhite;
-            }
-
-            const tileBgStyle = isWhite ? "bg-white" : "bg-green-500";
+        <div
+          className={`container flex h-max w-max ${
+            data.color === "white" ? "flex-col-reverse" : "flex-col"
+          } gap-0`}
+        >
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((row) => {
             return (
-              <div
-                key={index}
-                className={
-                  "relative h-20 w-20 " +
-                  (highlightedTile === index ? "bg-red-500" : tileBgStyle)
-                }
-                onDragOver={(e) => {
-                  e.preventDefault();
-                }}
-                onDrag={(e) => {
-                  if (!data.isTurnYours) {
-                    return;
-                  }
-                  const tile = e.target;
-                  if (!(tile instanceof Element)) {
-                    return;
+              <div key={-row} className="flex flex-row">
+                {data.board.slice(row * 8, row * 8 + 8).map((tile, index) => {
+                  let isWhite = true;
+                  if (row % 2) {
+                    isWhite = false;
                   }
 
-                  if (!data.board[index]) {
-                    return;
+                  if (index % 2) {
+                    isWhite = !isWhite;
                   }
 
-                  setDraggedPiece(index);
-                }}
-                onDrop={() => {
-                  if (draggedPiece === null) {
-                    return;
+                  if (data.color === "white") {
+                    isWhite = !isWhite;
                   }
 
-                  moveMutation.mutate({
-                    uuid: uuid,
-                    fromTile: draggedPiece,
-                    toTile: index,
-                    secondsUsed: 0,
-                  });
-                  setDraggedPiece(null);
-                }}
-                onClick={(e) => {
-                  if (!data.isTurnYours) {
-                    return;
-                  }
-                  const tile = e.target;
-                  if (!(tile instanceof Element)) {
-                    return;
-                  }
-                  //no highlighted piece and clicked tile is empty - dont highlight
-                  if (highlightedTile === null && !data.board[index]) {
-                    return;
-                  }
+                  const tileBgStyle = isWhite ? "bg-white" : "bg-green-500";
+                  return (
+                    <div
+                      key={index * row + index}
+                      className={
+                        "h-20 w-20 " +
+                        (highlightedTile &&
+                        highlightedTile.x === index &&
+                        highlightedTile.y === row
+                          ? "bg-red-500"
+                          : tileBgStyle)
+                      }
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                      }}
+                      onDrag={(e) => {
+                        if (!data.isTurnYours) {
+                          return;
+                        }
+                        const tile = e.target;
+                        if (!(tile instanceof Element)) {
+                          return;
+                        }
 
-                  if (highlightedTile !== null) {
-                    moveMutation.mutate({
-                      uuid: uuid,
-                      fromTile: highlightedTile,
-                      toTile: index,
-                      secondsUsed: 0,
-                    });
-                    setHighlightedTile(null);
-                    return;
-                  }
+                        if (!data.board[index]) {
+                          return;
+                        }
 
-                  setHighlightedTile(index);
-                }}
-              >
-                {tile && (
-                  <Image
-                    src={resolvePieceToImage(tile) as string}
-                    alt={tile.pieceType}
-                    fill
-                    className="cursor-pointer"
-                  ></Image>
-                )}
+                        setDraggedPiece({ x: index, y: row });
+                      }}
+                      onDrop={() => {
+                        if (draggedPiece === null) {
+                          return;
+                        }
+
+                        moveMutation.mutate({
+                          uuid: uuid,
+                          fromTile: {
+                            x: draggedPiece.x,
+                            y: draggedPiece.y,
+                          },
+                          toTile: {
+                            x: index,
+                            y: row,
+                          },
+                          secondsUsed: 0,
+                        });
+                        setDraggedPiece(null);
+                      }}
+                      onClick={(e) => {
+                        if (!data.isTurnYours) {
+                          return;
+                        }
+                        const tile = e.target;
+                        if (!(tile instanceof Element)) {
+                          return;
+                        }
+                        //no highlighted piece and clicked tile is empty - dont highlight
+                        if (highlightedTile === null && !data.board[index]) {
+                          return;
+                        }
+
+                        if (highlightedTile !== null) {
+                          moveMutation.mutate({
+                            uuid: uuid,
+                            fromTile: {
+                              x: highlightedTile.x,
+                              y: highlightedTile.y,
+                            },
+                            toTile: {
+                              x: index,
+                              y: row,
+                            },
+                            secondsUsed: 0,
+                          });
+                          setHighlightedTile(null);
+                          return;
+                        }
+
+                        setHighlightedTile({ x: index, y: row });
+                      }}
+                    >
+                      {tile && (
+                        <Image
+                          src={resolvePieceToImage(tile) as string}
+                          alt={tile.pieceType}
+                          width={80}
+                          height={80}
+                          className="cursor-pointer"
+                        ></Image>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
