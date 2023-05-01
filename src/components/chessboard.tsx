@@ -4,19 +4,14 @@ import Image from "next/image";
 import { api } from "~/utils/api";
 import type { Channel } from "pusher-js";
 
-const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
-  uuid,
-  channel,
-}) => {
+const Chessboard: React.FC<{
+  uuid: string;
+  channel: Channel;
+  color: "white" | "black";
+}> = ({ uuid, channel, color }) => {
   const utils = api.useContext();
-  const [highlightedTile, setHighlightedTile] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [draggedPiece, setDraggedPiece] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
+  const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const { isLoading, isError, isSuccess, data } =
     api.chess.getStartingData.useQuery(
       { uuid: uuid },
@@ -43,7 +38,6 @@ const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
         },
       }
     );
-
   const moveMutation = api.chess.movePiece.useMutation();
 
   return (
@@ -56,7 +50,7 @@ const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
       {isSuccess && (
         <div
           className={`container flex h-max w-max ${
-            data.color === "white" ? "flex-col-reverse" : "flex-col"
+            color === "white" ? "flex-col-reverse" : "flex-col"
           } gap-0`}
         >
           {[0, 1, 2, 3, 4, 5, 6, 7].map((row) => {
@@ -72,7 +66,7 @@ const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
                     isWhite = !isWhite;
                   }
 
-                  if (data.color === "white") {
+                  if (color === "white") {
                     isWhite = !isWhite;
                   }
 
@@ -121,7 +115,6 @@ const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
                             x: index,
                             y: row,
                           },
-                          secondsUsed: 0,
                         });
                         setDraggedPiece(null);
                       }}
@@ -129,12 +122,12 @@ const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
                         if (!data.isTurnYours) {
                           return;
                         }
-                        const tile = e.target;
-                        if (!(tile instanceof Element)) {
+                        const tileElement = e.target;
+                        if (!(tileElement instanceof Element)) {
                           return;
                         }
                         //no highlighted piece and clicked tile is empty - dont highlight
-                        if (highlightedTile === null && !data.board[index]) {
+                        if (highlightedTile === null && tile === null) {
                           return;
                         }
 
@@ -149,7 +142,6 @@ const Chessboard: React.FC<{ uuid: string; channel: Channel }> = ({
                               x: index,
                               y: row,
                             },
-                            secondsUsed: 0,
                           });
                           setHighlightedTile(null);
                           return;

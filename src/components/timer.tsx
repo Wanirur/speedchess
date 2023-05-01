@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-const Timer: React.FC = () => {
-  const [seconds, setSeconds] = useState<number>(19);
+const Timer: React.FC<{uuid: string, color: "white" | "black", initial: number}> = ({uuid, color, initial}) => {
+  const [seconds, setSeconds] = useState<number>(initial);
 
   useEffect(() => {
     if (seconds <= 0) {

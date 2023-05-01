@@ -56,7 +56,7 @@ export const chessgameRouter = createTRPCRouter({
 
           game.black = { id: id, secondsLeft: input.timeControl };
           matches.set(game.id, game);
-          await pusher.trigger(game.id, "match_start", { matchId: game.id });
+          await pusher.trigger(game.id, "match_start", { matchId: game.id, timeControl: input.timeControl });
           return {
             uuid: game.id,
             gameStarted: true,
@@ -89,15 +89,36 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      const color = user.id === match.white.id ? "white" : "black";
-
       return {
         board: match.board,
-        color: color,
         isTurnYours: match.turn.id === user.id,
         whiteSecondsLeft: match.white.secondsLeft,
         blackSecondsLeft: match.black.secondsLeft,
       };
+    }),
+  getColor: protectedProcedure
+    .input(
+      z.object({
+        uuid: z.string().uuid(),
+      })
+    )
+    .query(({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      return user.id === match.white.id ? "white" : "black";
     }),
   movePiece: protectedProcedure
     .input(
@@ -105,13 +126,12 @@ export const chessgameRouter = createTRPCRouter({
         uuid: z.string().uuid(),
         fromTile: z.object({
           x: z.number().min(0).max(7),
-          y: z.number().min(0).max(7)
+          y: z.number().min(0).max(7),
         }),
         toTile: z.object({
           x: z.number().min(0).max(7),
-          y: z.number().min(0).max(7)
+          y: z.number().min(0).max(7),
         }),
-        secondsUsed: z.number().nonnegative(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -139,10 +159,11 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       try {
-        match.move(input.fromTile, input.toTile);
+        const time = match.move(input.fromTile, input.toTile);
         await pusher.trigger(match.id, "move_made", {
           fromTile: input.fromTile,
           toTile: input.toTile,
+          timeTakenInSeconds: time,
         });
       } catch (e) {
         throw new TRPCError({
@@ -191,7 +212,7 @@ export const chessgameRouter = createTRPCRouter({
 
       const color = match.white.id === user.id ? "white" : "black";
       const result = match.offerDraw(color);
-      if(result === "draw") {
+      if (result === "draw") {
         await pusher.trigger(match.id, "draw", {});
       } else {
         await pusher.trigger(match.id, "draw_offer", { color: color });
@@ -215,6 +236,6 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      await pusher.trigger(match.id, "draw_refused", {})
+      await pusher.trigger(match.id, "draw_refused", {});
     }),
 });

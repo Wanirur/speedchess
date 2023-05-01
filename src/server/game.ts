@@ -1,6 +1,5 @@
 import { type Coords, initBoard, movePiece } from "~/utils/pieces";
 import { randomUUID } from "crypto";
-import { z } from "zod";
 
 export type Player = {
   id: string;
@@ -14,7 +13,6 @@ export class Game {
   public get id(): string {
     return this._id;
   }
-
   private _white: Player;
   public get white(): Player {
     return this._white;
@@ -33,20 +31,21 @@ export class Game {
   public get board() {
     return this._board;
   }
-
   private _turn: Player;
   public get turn() {
     return this._turn;
   }
-
   private _drawOfferedBy: Player | null;
   public get drawOfferedBy() {
     return this._turn;
   }
-
   private _gameResult: Result | null = null;
   private get gameResult() {
     return this._gameResult;
+  }
+  private _lastMoveTime: number;
+  private get lastMoveTime() {
+    return this._lastMoveTime;
   }
 
   constructor(whiteId: string, timeControl: number) {
@@ -62,6 +61,7 @@ export class Game {
     this._turn = this._white;
     this._drawOfferedBy = null;
     this._id = randomUUID();
+    this._lastMoveTime = Date.now();
   }
 
   move(from: Coords, to: Coords) {
@@ -71,7 +71,12 @@ export class Game {
     } else {
       this._turn = this._white;
     }
-  }
+
+    const moveEnd = Date.now();
+    const duration = moveEnd - this._lastMoveTime;
+    this._lastMoveTime = moveEnd;
+    return duration;
+}
 
   offerDraw(color: "white" | "black") :Result | null {
     if (color === "white") {

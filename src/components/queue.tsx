@@ -7,10 +7,8 @@ const QueueDisplay: React.FC<{ gameId: string }> = ({ gameId }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const onStart = (data: {
-      matchId: string
-    }) => {
-      void router.push("/play/" + data.matchId);
+    const onStart = (data: { matchId: string; timeControl: number }) => {
+      void router.push(`/play/${data.timeControl}/${data.matchId}`);
     };
 
     const channel = pusherClient.subscribe(gameId);
