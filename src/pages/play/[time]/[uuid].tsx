@@ -19,16 +19,33 @@ const Play: NextPage = () => {
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [isDrawOffered, setIsDrawOffered] = useState<boolean>(false);
   const {
-    isSuccess,
-    isLoading,
-    isError,
+    isSuccess: isSuccessColor,
+    isLoading: isLoadingColor,
+    isError: isErrorColor,
     data: playerColor,
   } = api.chess.getColor.useQuery(
     { uuid: uuid as string },
-    { enabled: !!uuid,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false }
+    {
+      enabled: !!uuid,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    }
+  );
+
+  const {
+    isSuccess: isSuccessTurn,
+    isLoading: isLoadingTurn,
+    isError: isErrorTurn,
+    data: playerTurn,
+  } = api.chess.getPlayerTurn.useQuery(
+    { uuid: uuid as string },
+    {
+      enabled: !!playerColor,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    }
   );
 
   useEffect(() => {
@@ -61,16 +78,25 @@ const Play: NextPage = () => {
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
       {gameFinished && <div className="text-white"> You lost</div>}
-      {isSuccess && !gameFinished && channelRef.current && subscribed && (
+      {(isLoadingColor || isLoadingTurn)  && <div className="text-white"> Loading... </div>}
+      {(isErrorColor || isErrorTurn) && (
+        <div className="text-red-600"> An error occured. Please refresh. </div>
+      )}
+      {isSuccessColor && isSuccessTurn && !gameFinished && channelRef.current && subscribed && (
         <Chessboard
           uuid={uuid as string}
           channel={channelRef.current}
-          color={playerColor}
+          playerColor={playerColor}
+          isYourTurn={playerTurn == playerColor}
         ></Chessboard>
       )}
-      {isSuccess && (
+      {isSuccessColor && isSuccessTurn && (
         <div className="flex h-[640px] w-max flex-col justify-center px-4">
-          <Timer uuid={uuid as string} color={playerColor} initial={Number.parseInt(time as string)}></Timer>
+          <Timer
+            uuid={uuid as string}
+            color={playerColor === "white" ? "black" : "white"}
+            initial={Number.parseInt(time as string)}
+          ></Timer>
           <div className="h-full w-80 bg-neutral-700"></div>
           <div className="flex w-80 flex-row items-center justify-center gap-2 p-8">
             {isDrawOffered && (
@@ -122,7 +148,11 @@ const Play: NextPage = () => {
               </>
             )}
           </div>
-          <Timer uuid={uuid as string} color={playerColor} initial={Number.parseInt(time as string)}></Timer>
+          <Timer
+            uuid={uuid as string}
+            color={playerColor}
+            initial={Number.parseInt(time as string)}
+          ></Timer>
         </div>
       )}
     </main>

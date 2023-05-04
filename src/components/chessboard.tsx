@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { resolvePieceToImage, movePiece, type Coords } from "~/utils/pieces";
+import { resolvePieceToImage, movePiece, type Coords, type PlayerColor } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
 import type { Channel } from "pusher-js";
@@ -7,13 +7,14 @@ import type { Channel } from "pusher-js";
 const Chessboard: React.FC<{
   uuid: string;
   channel: Channel;
-  color: "white" | "black";
-}> = ({ uuid, channel, color }) => {
+  playerColor: PlayerColor;
+  isYourTurn: boolean;
+}> = ({ uuid, channel, playerColor: color, isYourTurn }) => {
   const utils = api.useContext();
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const { isLoading, isError, isSuccess, data } =
-    api.chess.getStartingData.useQuery(
+    api.chess.getGameState.useQuery(
       { uuid: uuid },
       {
         refetchOnWindowFocus: false,
@@ -21,7 +22,7 @@ const Chessboard: React.FC<{
         refetchOnReconnect: false,
         onSuccess: () => {
           const onMove = (move: { fromTile: Coords; toTile: Coords }) => {
-            utils.chess.getStartingData.setData({ uuid: uuid }, (old) => {
+            utils.chess.getGameState.setData({ uuid: uuid }, (old) => {
               if (!old) {
                 return old;
               }
@@ -29,7 +30,6 @@ const Chessboard: React.FC<{
               return {
                 ...old,
                 board: movePiece(old.board, move.fromTile, move.toTile),
-                isTurnYours: !old.isTurnYours,
               };
             });
           };
@@ -86,7 +86,7 @@ const Chessboard: React.FC<{
                         e.preventDefault();
                       }}
                       onDrag={(e) => {
-                        if (!data.isTurnYours) {
+                        if (!isYourTurn) {
                           return;
                         }
                         const tile = e.target;
@@ -119,7 +119,7 @@ const Chessboard: React.FC<{
                         setDraggedPiece(null);
                       }}
                       onClick={(e) => {
-                        if (!data.isTurnYours) {
+                        if (!isYourTurn) {
                           return;
                         }
                         const tileElement = e.target;
