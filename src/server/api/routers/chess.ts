@@ -9,7 +9,7 @@ import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { PlayerColor } from "~/utils/pieces";
+import { type PlayerColor } from "~/utils/pieces";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
@@ -55,7 +55,7 @@ export const chessgameRouter = createTRPCRouter({
             });
           }
 
-          game.black = { id: id, secondsLeft: input.timeControl };
+          game.black = { id: id, timeLeftInMilis: input.timeControl * 1000 };
           matches.set(game.id, game);
           await pusher.trigger(game.id, "match_start", {
             matchId: game.id,
@@ -95,13 +95,13 @@ export const chessgameRouter = createTRPCRouter({
 
       return {
         board: match.board,
-        whiteSecondsLeft: match.white.secondsLeft,
-        blackSecondsLeft: match.black.secondsLeft,
+        whiteMilisLeft: match.white.timeLeftInMilis,
+        blackMilisLeft: match.black.timeLeftInMilis,
       };
     }),
   getPlayerTurn: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
-    .query(({ctx, input}): PlayerColor => {
+    .query(({ ctx, input }): PlayerColor => {
       const user = ctx.session.user;
       const match = matches.get(input.uuid);
       if (!match) {
@@ -116,8 +116,6 @@ export const chessgameRouter = createTRPCRouter({
           message: "You are not a player",
         });
       }
-      
-    
 
       return match.turn === match.white ? "white" : "black";
     }),
@@ -185,10 +183,11 @@ export const chessgameRouter = createTRPCRouter({
 
       try {
         const time = match.move(input.fromTile, input.toTile);
+        match.turn.timeLeftInMilis -= time;
         await pusher.trigger(match.id, "move_made", {
           fromTile: input.fromTile,
           toTile: input.toTile,
-          timeTakenInSeconds: time,
+          timeLeftInMilis: match.turn.timeLeftInMilis,
         });
       } catch (e) {
         throw new TRPCError({

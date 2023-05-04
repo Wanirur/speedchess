@@ -1,12 +1,13 @@
+import type { Channel } from "pusher-js";
 import { useEffect, useState } from "react";
-import { PlayerColor } from "~/utils/pieces";
+import type { Coords, PlayerColor } from "~/utils/pieces";
 
 const Timer: React.FC<{
-  uuid: string;
+  channel: Channel;
   color: PlayerColor;
   initial: number;
   isLocked: boolean;
-}> = ({ uuid, color, initial, isLocked }) => {
+}> = ({ channel, color, initial, isLocked }) => {
   const [seconds, setSeconds] = useState<number>(initial);
 
   useEffect(() => {
@@ -23,6 +24,23 @@ const Timer: React.FC<{
       clearInterval(interval);
     };
   }, [seconds, isLocked]);
+
+  useEffect(() => {
+    const onMove = (move: {
+      fromTile: Coords;
+      toTile: Coords;
+      timeLeftInMilis: number;
+    }) => {
+      if (!isLocked) {
+        setSeconds(Math.floor(move.timeLeftInMilis / 1000));
+      }
+    };
+
+    channel.bind("move_made", onMove);
+    return () => {
+      channel.unbind("move_made", onMove);
+    };
+  }, [channel, isLocked]);
   return (
     <div
       className={
@@ -30,7 +48,7 @@ const Timer: React.FC<{
         (seconds <= 10 ? "text-red-900" : "text-white")
       }
     >
-      {Math.floor(seconds / 60).toString() +
+      {Math.round(seconds / 60).toString() +
         ":" +
         (seconds % 60).toString().padStart(2, "0")}
     </div>

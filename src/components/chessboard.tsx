@@ -21,7 +21,7 @@ const Chessboard: React.FC<{
         refetchOnMount: false,
         refetchOnReconnect: false,
         onSuccess: () => {
-          const onMove = (move: { fromTile: Coords; toTile: Coords }) => {
+          const onMove = (move: { fromTile: Coords; toTile: Coords; timeLeftinMilis: number }) => {
             utils.chess.getGameState.setData({ uuid: uuid }, (old) => {
               if (!old) {
                 return old;

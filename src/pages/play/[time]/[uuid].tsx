@@ -109,10 +109,10 @@ const Play: NextPage = () => {
             isYourTurn={playerTurn === playerColor}
           ></Chessboard>
         )}
-      {isSuccessColor && isSuccessTurn && (
+      {isSuccessColor && isSuccessTurn &&  channelRef.current &&(
         <div className="flex h-[640px] w-max flex-col justify-center px-4">
           <Timer
-            uuid={uuid as string}
+            channel={channelRef.current}
             color={opponentsColor}
             initial={Number.parseInt(time as string)}
             isLocked={playerTurn === playerColor}
@@ -169,7 +169,7 @@ const Play: NextPage = () => {
             )}
           </div>
           <Timer
-            uuid={uuid as string}
+            channel={channelRef.current}
             color={playerColor}
             initial={Number.parseInt(time as string)}
             isLocked={playerTurn === opponentsColor}

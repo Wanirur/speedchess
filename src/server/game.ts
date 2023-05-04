@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 
 export type Player = {
   id: string;
-  secondsLeft: number;
+  timeLeftInMilis: number;
 };
 
 type Result = "white" | "black" | "draw";
@@ -51,12 +51,12 @@ export class Game {
   constructor(whiteId: string, timeControl: number) {
     this._white = {
       id: whiteId,
-      secondsLeft: timeControl,
+      timeLeftInMilis: timeControl * 1000,
     };
 
     this._black = {
       id: "-1",
-      secondsLeft: timeControl,
+      timeLeftInMilis: timeControl * 1000,
     };
     this._turn = this._white;
     this._drawOfferedBy = null;
