@@ -18,6 +18,8 @@ const Play: NextPage = () => {
   const channelRef = useRef<Channel>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [isDrawOffered, setIsDrawOffered] = useState<boolean>(false);
+  const utils = api.useContext();
+
   const {
     isSuccess: isSuccessColor,
     isLoading: isLoadingColor,
@@ -41,10 +43,19 @@ const Play: NextPage = () => {
   } = api.chess.getPlayerTurn.useQuery(
     { uuid: uuid as string },
     {
-      enabled: !!playerColor,
+      enabled: !!playerColor && !!channelRef.current,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
+      onSuccess: () => {
+        const onMove = () => { 
+          utils.chess.getPlayerTurn.setData({uuid: uuid as string}, old => {
+            return old === "white" ? "black" : "white";
+          })
+        }
+
+        channelRef.current?.bind("move_made", onMove);
+      }
     }
   );
 
@@ -75,27 +86,36 @@ const Play: NextPage = () => {
     setSubscribed(true);
   }, [router.isReady, uuid]);
 
+  const opponentsColor = playerColor === "white" ? "black" : "white";
+
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
       {gameFinished && <div className="text-white"> You lost</div>}
-      {(isLoadingColor || isLoadingTurn)  && <div className="text-white"> Loading... </div>}
+      {(isLoadingColor || isLoadingTurn) && (
+        <div className="text-white"> Loading... </div>
+      )}
       {(isErrorColor || isErrorTurn) && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
       )}
-      {isSuccessColor && isSuccessTurn && !gameFinished && channelRef.current && subscribed && (
-        <Chessboard
-          uuid={uuid as string}
-          channel={channelRef.current}
-          playerColor={playerColor}
-          isYourTurn={playerTurn == playerColor}
-        ></Chessboard>
-      )}
+      {isSuccessColor &&
+        isSuccessTurn &&
+        !gameFinished &&
+        channelRef.current &&
+        subscribed && (
+          <Chessboard
+            uuid={uuid as string}
+            channel={channelRef.current}
+            playerColor={playerColor}
+            isYourTurn={playerTurn === playerColor}
+          ></Chessboard>
+        )}
       {isSuccessColor && isSuccessTurn && (
         <div className="flex h-[640px] w-max flex-col justify-center px-4">
           <Timer
             uuid={uuid as string}
-            color={playerColor === "white" ? "black" : "white"}
+            color={opponentsColor}
             initial={Number.parseInt(time as string)}
+            isLocked={playerTurn === playerColor}
           ></Timer>
           <div className="h-full w-80 bg-neutral-700"></div>
           <div className="flex w-80 flex-row items-center justify-center gap-2 p-8">
@@ -152,6 +172,7 @@ const Play: NextPage = () => {
             uuid={uuid as string}
             color={playerColor}
             initial={Number.parseInt(time as string)}
+            isLocked={playerTurn === opponentsColor}
           ></Timer>
         </div>
       )}

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { PlayerColor } from "~/utils/pieces";
 
-const Timer: React.FC<{uuid: string, color: "white" | "black", initial: number}> = ({uuid, color, initial}) => {
+const Timer: React.FC<{
+  uuid: string;
+  color: PlayerColor;
+  initial: number;
+  isLocked: boolean;
+}> = ({ uuid, color, initial, isLocked }) => {
   const [seconds, setSeconds] = useState<number>(initial);
 
   useEffect(() => {
@@ -8,13 +14,15 @@ const Timer: React.FC<{uuid: string, color: "white" | "black", initial: number}>
       return;
     }
     const interval = setInterval(() => {
-      setSeconds((x) => x - 1);
+      if (!isLocked) {
+        setSeconds((x) => x - 1);
+      }
     }, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [seconds]);
+  }, [seconds, isLocked]);
   return (
     <div
       className={
