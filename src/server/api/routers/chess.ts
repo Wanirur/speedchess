@@ -9,6 +9,7 @@ import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { PlayerColor } from "~/utils/pieces";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
@@ -56,7 +57,10 @@ export const chessgameRouter = createTRPCRouter({
 
           game.black = { id: id, secondsLeft: input.timeControl };
           matches.set(game.id, game);
-          await pusher.trigger(game.id, "match_start", { matchId: game.id, timeControl: input.timeControl });
+          await pusher.trigger(game.id, "match_start", {
+            matchId: game.id,
+            timeControl: input.timeControl,
+          });
           return {
             uuid: game.id,
             gameStarted: true,
@@ -71,7 +75,7 @@ export const chessgameRouter = createTRPCRouter({
         }
       }
     }),
-  getStartingData: protectedProcedure
+  getGameState: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
     .query(({ ctx, input }) => {
       const user = ctx.session.user;
@@ -91,10 +95,31 @@ export const chessgameRouter = createTRPCRouter({
 
       return {
         board: match.board,
-        isTurnYours: match.turn.id === user.id,
         whiteSecondsLeft: match.white.secondsLeft,
         blackSecondsLeft: match.black.secondsLeft,
       };
+    }),
+  getPlayerTurn: protectedProcedure
+    .input(z.object({ uuid: z.string().uuid() }))
+    .query(({ctx, input}): PlayerColor => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+      
+    
+
+      return match.turn === match.white ? "white" : "black";
     }),
   getColor: protectedProcedure
     .input(
