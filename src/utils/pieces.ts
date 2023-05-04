@@ -6,8 +6,11 @@ export const PieceTypes = [
   "Queen",
   "King",
 ] as const;
+
+export type PlayerColor = "white" | "black";
+
 export type Piece = {
-  color: "white" | "black";
+  color: PlayerColor;
   pieceType: (typeof PieceTypes)[number];
 };
 
@@ -15,6 +18,7 @@ export type Coords = {
   x: number,
   y: number
 }
+
 
 const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
 const blackRook = { ...whiteRook, color: "black" } as Piece;
