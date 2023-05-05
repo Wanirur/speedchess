@@ -8,7 +8,7 @@ const Timer: React.FC<{
   initial: number;
   isLocked: boolean;
 }> = ({ channel, color, initial, isLocked }) => {
-  const [seconds, setSeconds] = useState<number>(initial);
+  const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
     if (seconds <= 0) {
@@ -48,7 +48,7 @@ const Timer: React.FC<{
         (seconds <= 10 ? "text-red-900" : "text-white")
       }
     >
-      {Math.round(seconds / 60).toString() +
+      {Math.floor(seconds / 60).toString() +
         ":" +
         (seconds % 60).toString().padStart(2, "0")}
     </div>

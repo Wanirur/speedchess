@@ -46,7 +46,7 @@ const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
 
   useEffect(() => {
     if(queueUpMutation.isSuccess && queueUpMutation.data && queueUpMutation.data.gameStarted) {
-      void router.push(`/play/${180}/${queueUpMutation.data.uuid}`);
+      void router.push(`/play/${queueUpMutation.data.uuid}`);
       return;
     }
   }, [queueUpMutation.data, queueUpMutation.isError, queueUpMutation.isSuccess, router])

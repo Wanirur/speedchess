@@ -6,11 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
+import { type Coords, movePiece } from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
   const router = useRouter();
-  const { time, uuid } = router.query;
+  const { uuid } = router.query;
   const resignMutation = api.chess.resign.useMutation();
   const drawOfferMutation = api.chess.offerDraw.useMutation();
   const drawRefuseMutation = api.chess.refuseDraw.useMutation();
@@ -21,41 +22,34 @@ const Play: NextPage = () => {
   const utils = api.useContext();
 
   const {
-    isSuccess: isSuccessColor,
-    isLoading: isLoadingColor,
-    isError: isErrorColor,
-    data: playerColor,
-  } = api.chess.getColor.useQuery(
+    isSuccess,
+    isLoading,
+    isError,
+    data: gameState,
+  } = api.chess.getGameState.useQuery(
     { uuid: uuid as string },
     {
       enabled: !!uuid,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-    }
-  );
-
-  const {
-    isSuccess: isSuccessTurn,
-    isLoading: isLoadingTurn,
-    isError: isErrorTurn,
-    data: playerTurn,
-  } = api.chess.getPlayerTurn.useQuery(
-    { uuid: uuid as string },
-    {
-      enabled: !!playerColor && !!channelRef.current,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
       onSuccess: () => {
-        const onMove = () => { 
-          utils.chess.getPlayerTurn.setData({uuid: uuid as string}, old => {
-            return old === "white" ? "black" : "white";
-          })
-        }
+        const onMove = (move: { fromTile: Coords; toTile: Coords; timeLeftinMilis: number }) => {
+          utils.chess.getGameState.setData({ uuid: uuid as string }, (old) => {
+            if (!old) {
+              return old;
+            }
+
+            return {
+              ...old,
+              board: movePiece(old.board, move.fromTile, move.toTile),
+              turn: old.turn === "white" ? "black" : "white",
+            };
+          });
+        };
 
         channelRef.current?.bind("move_made", onMove);
-      }
+      },
     }
   );
 
@@ -86,36 +80,31 @@ const Play: NextPage = () => {
     setSubscribed(true);
   }, [router.isReady, uuid]);
 
-  const opponentsColor = playerColor === "white" ? "black" : "white";
+  const opponentsColor =
+    isSuccess && gameState.color === "white" ? "black" : "white";
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
       {gameFinished && <div className="text-white"> You lost</div>}
-      {(isLoadingColor || isLoadingTurn) && (
-        <div className="text-white"> Loading... </div>
-      )}
-      {(isErrorColor || isErrorTurn) && (
+      {isLoading && <div className="text-white"> Loading... </div>}
+      {isError && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
       )}
-      {isSuccessColor &&
-        isSuccessTurn &&
-        !gameFinished &&
-        channelRef.current &&
-        subscribed && (
-          <Chessboard
-            uuid={uuid as string}
-            channel={channelRef.current}
-            playerColor={playerColor}
-            isYourTurn={playerTurn === playerColor}
-          ></Chessboard>
-        )}
-      {isSuccessColor && isSuccessTurn &&  channelRef.current &&(
+      {isSuccess && !gameFinished && channelRef.current && subscribed && (
+        <Chessboard
+          uuid={uuid as string}
+          color={gameState.color}
+          isYourTurn={gameState.turn === gameState.color}
+          board={gameState.board}
+        ></Chessboard>
+      )}
+      {isSuccess && channelRef.current && (
         <div className="flex h-[640px] w-max flex-col justify-center px-4">
           <Timer
             channel={channelRef.current}
             color={opponentsColor}
-            initial={Number.parseInt(time as string)}
-            isLocked={playerTurn === playerColor}
+            initial={opponentsColor === "white" ? gameState.whiteMilisLeft : gameState.blackMilisLeft}
+            isLocked={gameState.turn === gameState.color}
           ></Timer>
           <div className="h-full w-80 bg-neutral-700"></div>
           <div className="flex w-80 flex-row items-center justify-center gap-2 p-8">
@@ -170,9 +159,9 @@ const Play: NextPage = () => {
           </div>
           <Timer
             channel={channelRef.current}
-            color={playerColor}
-            initial={Number.parseInt(time as string)}
-            isLocked={playerTurn === opponentsColor}
+            color={gameState.color}
+            initial={gameState.color === "white" ? gameState.whiteMilisLeft : gameState.blackMilisLeft}
+            isLocked={gameState.turn === opponentsColor}
           ></Timer>
         </div>
       )}

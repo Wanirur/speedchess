@@ -1,53 +1,21 @@
 import { useState } from "react";
-import { resolvePieceToImage, movePiece, type Coords, type PlayerColor } from "~/utils/pieces";
+import { resolvePieceToImage, type Coords, type PlayerColor, type Tile } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
-import type { Channel } from "pusher-js";
 
 const Chessboard: React.FC<{
   uuid: string;
-  channel: Channel;
-  playerColor: PlayerColor;
+  color: PlayerColor;
   isYourTurn: boolean;
-}> = ({ uuid, channel, playerColor: color, isYourTurn }) => {
-  const utils = api.useContext();
+  board: Tile[];
+}> = ({ uuid, color, isYourTurn, board}) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
-  const { isLoading, isError, isSuccess, data } =
-    api.chess.getGameState.useQuery(
-      { uuid: uuid },
-      {
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: false,
-        onSuccess: () => {
-          const onMove = (move: { fromTile: Coords; toTile: Coords; timeLeftinMilis: number }) => {
-            utils.chess.getGameState.setData({ uuid: uuid }, (old) => {
-              if (!old) {
-                return old;
-              }
-
-              return {
-                ...old,
-                board: movePiece(old.board, move.fromTile, move.toTile),
-              };
-            });
-          };
-
-          channel.bind("move_made", onMove);
-        },
-      }
-    );
   const moveMutation = api.chess.movePiece.useMutation();
 
   return (
     <>
       {" "}
-      {isLoading && <p className="text-white">Loading...</p>}
-      {isError && (
-        <p className="text-red-600">An error occured. Please refresh</p>
-      )}
-      {isSuccess && (
         <div
           className={`container flex h-max w-max ${
             color === "white" ? "flex-col-reverse" : "flex-col"
@@ -56,7 +24,7 @@ const Chessboard: React.FC<{
           {[0, 1, 2, 3, 4, 5, 6, 7].map((row) => {
             return (
               <div key={-row} className="flex flex-row">
-                {data.board.slice(row * 8, row * 8 + 8).map((tile, index) => {
+                {board.slice(row * 8, row * 8 + 8).map((tile, index) => {
                   let isWhite = true;
                   if (row % 2) {
                     isWhite = false;
@@ -94,7 +62,7 @@ const Chessboard: React.FC<{
                           return;
                         }
 
-                        if (!data.board[index]) {
+                        if (!board[index]) {
                           return;
                         }
 
@@ -166,7 +134,6 @@ const Chessboard: React.FC<{
             );
           })}
         </div>
-      )}
     </>
   );
 };

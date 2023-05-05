@@ -9,7 +9,7 @@ import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { type PlayerColor } from "~/utils/pieces";
+import { PlayerColor } from "~/utils/pieces";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
@@ -93,55 +93,22 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
+      let whiteTime = match.white.timeLeftInMilis;
+      let blackTime = match.black.timeLeftInMilis;
+      const timeSinceLastMove = Date.now() - match.lastMoveTime;
+      if (match.turn === match.white) {
+        whiteTime -= timeSinceLastMove;
+      } else {
+        blackTime -= timeSinceLastMove;
+      }
+
       return {
         board: match.board,
-        whiteMilisLeft: match.white.timeLeftInMilis,
-        blackMilisLeft: match.black.timeLeftInMilis,
+        whiteMilisLeft: whiteTime,
+        blackMilisLeft: blackTime,
+        color: (user.id === match.white.id ? "white" : "black") as PlayerColor,
+        turn: (match.turn === match.white ? "white" : "black") as PlayerColor,
       };
-    }),
-  getPlayerTurn: protectedProcedure
-    .input(z.object({ uuid: z.string().uuid() }))
-    .query(({ ctx, input }): PlayerColor => {
-      const user = ctx.session.user;
-      const match = matches.get(input.uuid);
-      if (!match) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "The game does not exist",
-        });
-      }
-      if (user.id !== match.white.id && user.id !== match.black.id) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "You are not a player",
-        });
-      }
-
-      return match.turn === match.white ? "white" : "black";
-    }),
-  getColor: protectedProcedure
-    .input(
-      z.object({
-        uuid: z.string().uuid(),
-      })
-    )
-    .query(({ ctx, input }) => {
-      const user = ctx.session.user;
-      const match = matches.get(input.uuid);
-      if (!match) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "The game does not exist",
-        });
-      }
-      if (user.id !== match.white.id && user.id !== match.black.id) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "You are not a player",
-        });
-      }
-
-      return user.id === match.white.id ? "white" : "black";
     }),
   movePiece: protectedProcedure
     .input(
@@ -183,11 +150,10 @@ export const chessgameRouter = createTRPCRouter({
 
       try {
         const time = match.move(input.fromTile, input.toTile);
-        match.turn.timeLeftInMilis -= time;
         await pusher.trigger(match.id, "move_made", {
           fromTile: input.fromTile,
           toTile: input.toTile,
-          timeLeftInMilis: match.turn.timeLeftInMilis,
+          timeLeftInMilis: time,
         });
       } catch (e) {
         throw new TRPCError({

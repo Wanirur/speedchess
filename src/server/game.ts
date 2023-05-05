@@ -44,7 +44,7 @@ export class Game {
     return this._gameResult;
   }
   private _lastMoveTime: number;
-  private get lastMoveTime() {
+  public get lastMoveTime() {
     return this._lastMoveTime;
   }
 
@@ -66,16 +66,19 @@ export class Game {
 
   move(from: Coords, to: Coords) {
     movePiece(this.board, from, to);
+
+    const moveEnd = Date.now();
+    const duration = moveEnd - this._lastMoveTime;
+    this._lastMoveTime = moveEnd;
+    this._turn.timeLeftInMilis -= duration;
+    const timeLeft = this._turn.timeLeftInMilis;
     if (this._turn === this._white) {
       this._turn = this._black;
     } else {
       this._turn = this._white;
     }
 
-    const moveEnd = Date.now();
-    const duration = moveEnd - this._lastMoveTime;
-    this._lastMoveTime = moveEnd;
-    return duration;
+    return timeLeft;
 }
 
   offerDraw(color: "white" | "black") :Result | null {
