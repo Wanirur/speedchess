@@ -148,19 +148,19 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      try {
-        const time = match.move(input.fromTile, input.toTile);
-        await pusher.trigger(match.id, "move_made", {
-          fromTile: input.fromTile,
-          toTile: input.toTile,
-          timeLeftInMilis: time,
-        });
-      } catch (e) {
+      const time = match.move(input.fromTile, input.toTile);
+      if (time <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Invalid move",
+          message: "Your time has run out",
         });
       }
+
+      await pusher.trigger(match.id, "move_made", {
+        fromTile: input.fromTile,
+        toTile: input.toTile,
+        timeLeftInMilis: time,
+      });
     }),
   resign: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))

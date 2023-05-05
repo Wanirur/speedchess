@@ -65,13 +65,17 @@ export class Game {
   }
 
   move(from: Coords, to: Coords) {
-    movePiece(this.board, from, to);
-
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
     this._turn.timeLeftInMilis -= duration;
     const timeLeft = this._turn.timeLeftInMilis;
+    if(timeLeft <= 0) {
+      return timeLeft;
+    }
+
+    movePiece(this.board, from, to);
+
     if (this._turn === this._white) {
       this._turn = this._black;
     } else {
