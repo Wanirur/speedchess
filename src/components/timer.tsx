@@ -7,7 +7,7 @@ const Timer: React.FC<{
   color: PlayerColor;
   initial: number;
   isLocked: boolean;
-}> = ({ channel, color, initial, isLocked }) => {
+}> = ({ channel, initial, isLocked }) => {
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const Timer: React.FC<{
       timeLeftInMilis: number;
     }) => {
       if (!isLocked) {
-        setSeconds(Math.floor(move.timeLeftInMilis / 1000));
+        setSeconds(Math.round(move.timeLeftInMilis / 1000));
       }
     };
 
