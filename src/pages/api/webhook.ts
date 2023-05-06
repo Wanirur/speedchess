@@ -9,6 +9,11 @@ const WebhookHandler: NextApiHandler = (req, res) => {
   };
 
   const webhook = pusher.webhook(webhookReq);
+  if(!webhook.isValid()) {
+    res.status(400);
+    return;
+  }
+
   const events = webhook.getEvents();
   const vacatedChannels = events
     .filter((event) => {
