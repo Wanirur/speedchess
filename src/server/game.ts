@@ -1,5 +1,6 @@
 import { type Coords, initBoard, movePiece } from "~/utils/pieces";
 import { randomUUID } from "crypto";
+import { matches } from "./matchmaking";
 
 export type Player = {
   id: string;
@@ -71,6 +72,8 @@ export class Game {
     this._turn.timeLeftInMilis -= duration;
     const timeLeft = this._turn.timeLeftInMilis;
     if(timeLeft <= 0) {
+      this._gameResult = this._turn === this._white ? "black" : "white";
+      this.finishGame();
       return timeLeft;
     }
 
@@ -93,6 +96,7 @@ export class Game {
 
       if (this._drawOfferedBy === this._black) {
         this._gameResult = "draw";
+        this.finishGame();
         return "draw";
       }
 
@@ -105,6 +109,7 @@ export class Game {
 
       if (this._drawOfferedBy === this._white) {
         this._gameResult = "draw";
+        this.finishGame();
         return "draw";
       }
 
@@ -115,5 +120,11 @@ export class Game {
 
   refuseDraw() {
     this._drawOfferedBy = null;
+  }
+
+  private finishGame() { 
+    if(this._gameResult) {
+      matches.delete(this._id)
+    }
   }
 }
