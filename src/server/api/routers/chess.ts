@@ -9,7 +9,7 @@ import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { PlayerColor } from "~/utils/pieces";
+import { type PlayerColor } from "~/utils/pieces";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
