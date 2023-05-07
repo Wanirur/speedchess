@@ -6,10 +6,19 @@ export const PieceTypes = [
   "Queen",
   "King",
 ] as const;
+
+export type PlayerColor = "white" | "black";
+
 export type Piece = {
-  color: "white" | "black";
+  color: PlayerColor;
   pieceType: (typeof PieceTypes)[number];
 };
+
+export type Coords = {
+  x: number,
+  y: number
+}
+
 
 const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
 const blackRook = { ...whiteRook, color: "black" } as Piece;
@@ -26,20 +35,23 @@ const blackPawn = { ...whitePawn, color: "black" } as Piece;
 
 export type Tile = Piece | null;
 
-const pieces = new Map<Piece, string>();
-pieces.set(whiteRook, "/white_rook.svg");
-pieces.set(blackRook, "/black_rook.svg");
-pieces.set(whiteBishop, "/white_bishop.svg");
-pieces.set(blackBishop, "/black_bishop.svg");
-pieces.set(whiteKnight, "/white_knight.svg");
-pieces.set(blackKnight, "/black_knight.svg");
-pieces.set(whiteKing, "/white_king.svg");
-pieces.set(blackKing, "/black_king.svg");
-pieces.set(whiteQueen, "/white_queen.svg");
-pieces.set(blackQueen, "/black_queen.svg");
-pieces.set(whitePawn, "/white_pawn.svg");
-pieces.set(blackPawn, "/black_pawn.svg");
-export const pieceImages = pieces;
+const pieces = new Map<string, string>();
+pieces.set(JSON.stringify(whiteRook), "/white_rook.svg");
+pieces.set(JSON.stringify(blackRook), "/black_rook.svg");
+pieces.set(JSON.stringify(whiteBishop), "/white_bishop.svg");
+pieces.set(JSON.stringify(blackBishop), "/black_bishop.svg");
+pieces.set(JSON.stringify(whiteKnight), "/white_knight.svg");
+pieces.set(JSON.stringify(blackKnight), "/black_knight.svg");
+pieces.set(JSON.stringify(whiteKing), "/white_king.svg");
+pieces.set(JSON.stringify(blackKing), "/black_king.svg");
+pieces.set(JSON.stringify(whiteQueen), "/white_queen.svg");
+pieces.set(JSON.stringify(blackQueen), "/black_queen.svg");
+pieces.set(JSON.stringify(whitePawn), "/white_pawn.svg");
+pieces.set(JSON.stringify(blackPawn), "/black_pawn.svg");
+
+export const resolvePieceToImage = (piece: Piece) => {
+  return pieces.get(JSON.stringify(piece));
+};
 
 export const initBoard = (): Tile[] => {
   let board = new Array(64) as Tile[];
@@ -61,13 +73,19 @@ export const initBoard = (): Tile[] => {
   return board;
 };
 
-export const movePiece = (board: Tile[], from: number, to: number): Tile[] => {
-  const movedPiece = board[from];
+export const movePiece = (board: Tile[], from: Coords , to: Coords): Tile[] => {
+  if (!board) {
+    return board;
+  }
+
+  const fromIndex = 8 * from.y + from.x;
+  const toIndex = 8 * to.y + to.x;
+  const movedPiece = board[fromIndex];
   if (!movedPiece) {
     return board;
   }
 
-  board[from] = null;
-  board[to] = movedPiece;
+  board[fromIndex] = null;
+  board[toIndex] = movedPiece;
   return board;
 };

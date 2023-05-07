@@ -1,20 +1,46 @@
+import type { Channel } from "pusher-js";
 import { useEffect, useState } from "react";
+import type { Coords, PlayerColor } from "~/utils/pieces";
 
-const Timer: React.FC = () => {
-  const [seconds, setSeconds] = useState<number>(19);
+const Timer: React.FC<{
+  channel: Channel;
+  color: PlayerColor;
+  initial: number;
+  isLocked: boolean;
+}> = ({ channel, initial, isLocked }) => {
+  const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
     if (seconds <= 0) {
       return;
     }
     const interval = setInterval(() => {
-      setSeconds((x) => x - 1);
+      if (!isLocked) {
+        setSeconds((x) => x - 1);
+      }
     }, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [seconds]);
+  }, [seconds, isLocked]);
+
+  useEffect(() => {
+    const onMove = (move: {
+      fromTile: Coords;
+      toTile: Coords;
+      timeLeftInMilis: number;
+    }) => {
+      if (!isLocked) {
+        setSeconds(Math.round(move.timeLeftInMilis / 1000));
+      }
+    };
+
+    channel.bind("move_made", onMove);
+    return () => {
+      channel.unbind("move_made", onMove);
+    };
+  }, [channel, isLocked]);
   return (
     <div
       className={

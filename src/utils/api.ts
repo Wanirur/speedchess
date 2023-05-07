@@ -11,7 +11,6 @@ import {
 import { createTRPCNext } from "@trpc/next";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
-import ws from "isomorphic-ws";
 import { type AppRouter } from "~/server/api/root";
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
 
