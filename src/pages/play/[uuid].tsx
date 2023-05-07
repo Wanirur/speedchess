@@ -1,9 +1,9 @@
-import { Check, X } from "lucide-react";
 import { type NextPage } from "next";
 import { useRouter } from "next/router";
 import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
+import DrawResignPanel from "~/components/drawresignpanel";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import { type Coords, movePiece } from "~/utils/pieces";
@@ -12,13 +12,13 @@ import pusherClient from "~/utils/pusherClient";
 const Play: NextPage = () => {
   const router = useRouter();
   const { uuid } = router.query;
-  const resignMutation = api.chess.resign.useMutation();
-  const drawOfferMutation = api.chess.offerDraw.useMutation();
-  const drawRefuseMutation = api.chess.refuseDraw.useMutation();
   const [gameFinished, setGameFinished] = useState<boolean>(false);
   const channelRef = useRef<Channel>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [isDrawOffered, setIsDrawOffered] = useState<boolean>(false);
+  const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
+  const [isEnemyDisconnected, setIsEnemyDisconnected] =
+    useState<boolean>(false);
   const utils = api.useContext();
 
   const {
@@ -34,7 +34,11 @@ const Play: NextPage = () => {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       onSuccess: () => {
-        const onMove = (move: { fromTile: Coords; toTile: Coords; timeLeftinMilis: number }) => {
+        const onMove = (move: {
+          fromTile: Coords;
+          toTile: Coords;
+          timeLeftinMilis: number;
+        }) => {
           utils.chess.getGameState.setData({ uuid: uuid as string }, (old) => {
             if (!old) {
               return old;
@@ -77,6 +81,24 @@ const Play: NextPage = () => {
       setIsDrawOffered(false);
     });
 
+    channelRef.current.bind(
+      "pusher:subscription_count",
+      ({ subscription_count }: { subscription_count: number }) => {
+        setIsEnemyDisconnected(subscription_count < 2);
+      }
+    );
+
+    pusherClient.connection.bind(
+      "state_change",
+      ({ previous, current }: { previous: string; current: string }) => {
+        if (current === "connecting" || current === "unavailable") {
+          setIsUserDisconnected(true);
+        } else if (current === "connected") {
+          setIsUserDisconnected(false);
+        } 
+      }
+    );
+
     setSubscribed(true);
   }, [router.isReady, uuid]);
 
@@ -103,64 +125,30 @@ const Play: NextPage = () => {
           <Timer
             channel={channelRef.current}
             color={opponentsColor}
-            initial={opponentsColor === "white" ? gameState.whiteMilisLeft : gameState.blackMilisLeft}
+            initial={
+              opponentsColor === "white"
+                ? gameState.whiteMilisLeft
+                : gameState.blackMilisLeft
+            }
             isLocked={gameState.turn === gameState.color}
           ></Timer>
           <div className="h-full w-80 bg-neutral-700"></div>
-          <div className="flex w-80 flex-row items-center justify-center gap-2 p-8">
-            {isDrawOffered && (
-              <>
-                <p className="max-w-full font-os text-white">
-                  Your opponent offered a draw. Do you accept?{" "}
-                </p>
-                <button
-                  className="rounded-md bg-green-600"
-                  onClick={() =>
-                    drawOfferMutation.mutate({ uuid: uuid as string })
-                  }
-                >
-                  {" "}
-                  <Check className="fill-white"></Check>
-                </button>{" "}
-                <button
-                  className="rounded-md bg-red-600"
-                  onClick={() =>
-                    drawRefuseMutation.mutate({ uuid: uuid as string })
-                  }
-                >
-                  {" "}
-                  <X className="fill-white"></X>
-                </button>{" "}
-              </>
-            )}
-            {!isDrawOffered && (
-              <>
-                <button
-                  className="rounded-md bg-yellow-600 px-5 py-3 font-os text-white"
-                  onClick={() => {
-                    drawOfferMutation.mutate({ uuid: uuid as string });
-                  }}
-                >
-                  {" "}
-                  draw{" "}
-                </button>
-                <button
-                  className="rounded-md bg-red-900 px-5 py-3 font-os text-white"
-                  onClick={() => {
-                    resignMutation.mutate({ uuid: uuid as string });
-                    setGameFinished(true);
-                  }}
-                >
-                  {" "}
-                  resign{" "}
-                </button>
-              </>
-            )}
-          </div>
+
+          <DrawResignPanel
+            isDrawOffered={isDrawOffered}
+            uuid={uuid as string}
+            setGameFinished={setGameFinished}
+            isUserDisconnected={isUserDisconnected}
+            isEnemyDisconnected={isEnemyDisconnected}
+          ></DrawResignPanel>
           <Timer
             channel={channelRef.current}
             color={gameState.color}
-            initial={gameState.color === "white" ? gameState.whiteMilisLeft : gameState.blackMilisLeft}
+            initial={
+              gameState.color === "white"
+                ? gameState.whiteMilisLeft
+                : gameState.blackMilisLeft
+            }
             isLocked={gameState.turn === opponentsColor}
           ></Timer>
         </div>
