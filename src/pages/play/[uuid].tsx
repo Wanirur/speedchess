@@ -90,7 +90,7 @@ const Play: NextPage = () => {
 
     pusherClient.connection.bind(
       "state_change",
-      ({ previous, current }: { previous: string; current: string }) => {
+      ({current }: { previous: string; current: string }) => {
         if (current === "connecting" || current === "unavailable") {
           setIsUserDisconnected(true);
         } else if (current === "connected") {
