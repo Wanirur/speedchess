@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 export const PieceTypes = [
   "Pawn",
   "Knight",
@@ -15,10 +16,9 @@ export type Piece = {
 };
 
 export type Coords = {
-  x: number,
-  y: number
-}
-
+  x: number;
+  y: number;
+};
 
 const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
 const blackRook = { ...whiteRook, color: "black" } as Piece;
@@ -53,39 +53,40 @@ export const resolvePieceToImage = (piece: Piece) => {
   return pieces.get(JSON.stringify(piece));
 };
 
-export const initBoard = (): Tile[] => {
-  let board = new Array(64) as Tile[];
-  board = board.fill(null, 0, 64);
+export const initBoard = (): Tile[][] => {
+  const board = new Array<Tile[]>(8);
+  for(let i = 0; i < 8; i++) {
+    board[i] = new Array<Tile>(8).fill(null);
+  }
+  const white_row = board[0]!;
+  white_row[0] = white_row[7] = whiteRook;
+  white_row[1] = white_row[6] = whiteKnight;
+  white_row[2] = white_row[5] = whiteBishop;
+  white_row[3] = whiteQueen;
+  white_row[4] = whiteKing;
+  board[1]?.fill(whitePawn);
 
-  board[0] = board[7] = whiteRook;
-  board[1] = board[6] = whiteKnight;
-  board[2] = board[5] = whiteBishop;
-  board[3] = whiteQueen;
-  board[4] = whiteKing;
-  board = board.fill(whitePawn, 8, 16);
-
-  board[63] = board[56] = blackRook;
-  board[62] = board[57] = blackKnight;
-  board[61] = board[58] = blackBishop;
-  board[60] = blackKing;
-  board[59] = blackQueen;
-  board = board.fill(blackPawn, 48, 56);
+  const black_row = board[7]!;
+  black_row[0] = black_row[7] = blackRook;
+  black_row[1] = black_row[6] = blackKnight;
+  black_row[2] = black_row[5] = blackBishop;
+  black_row[3] = blackKing;
+  black_row[4] = blackQueen;
+  board[6]?.fill(blackPawn);
   return board;
 };
 
-export const movePiece = (board: Tile[], from: Coords , to: Coords): Tile[] => {
+export const movePiece = (board: Tile[][], from: Coords, to: Coords) => {
   if (!board) {
     return board;
   }
 
-  const fromIndex = 8 * from.y + from.x;
-  const toIndex = 8 * to.y + to.x;
-  const movedPiece = board[fromIndex];
+  const movedPiece = board[from.y]![from.x];
   if (!movedPiece) {
     return board;
   }
 
-  board[fromIndex] = null;
-  board[toIndex] = movedPiece;
+  board[from.y]![from.x] = null;
+  board[to.y]![to.x] = movedPiece;
   return board;
 };
