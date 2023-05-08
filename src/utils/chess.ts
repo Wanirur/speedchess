@@ -22,6 +22,14 @@ class Chess {
 
   getPossibleMoves(position: Coords) {
     const possibleMoves = [] as Coords[];
+    if (
+      position.x < 0 ||
+      position.x >= 8 ||
+      position.y < 0 ||
+      position.y >= 8
+    ) {
+      return [];
+    }
     const piece = this._board[position.y]?.[position.x];
     if (piece === null) {
       return possibleMoves;
@@ -33,7 +41,9 @@ class Chess {
     if (piece?.pieceType === "Pawn") {
       return this._getPossiblePawnMoves(position, piece.color);
     }
-
+    if (piece?.pieceType === "Bishop") {
+      return this._getPossibleBishopMoves(position, piece.color);
+    }
     return possibleMoves;
   }
 
@@ -103,7 +113,7 @@ class Chess {
       coords = { x: position.x, y: position.y - 1 };
     }
 
-    let can_move_one_tile = false;
+    let canMoveOneTile = false;
 
     //checking only y because x is the same as moved position and is guaranteed to be correct
     if (
@@ -112,7 +122,7 @@ class Chess {
       this._board[coords.y]![coords.x] === null
     ) {
       possibleMoves.push(coords);
-      can_move_one_tile = true;
+      canMoveOneTile = true;
     }
 
     //possible pawn captures including en passant
@@ -172,8 +182,51 @@ class Chess {
     }
 
     //checking only y because x is the same as moved position and is guaranteed to be correct
-    if (coords.y >= 0 && coords.y < 8 && can_move_one_tile && this._board[coords.y]![coords.x] === null) {
+    if (
+      coords.y >= 0 &&
+      coords.y < 8 &&
+      canMoveOneTile &&
+      this._board[coords.y]![coords.x] === null
+    ) {
       possibleMoves.push(coords);
+    }
+
+    return possibleMoves;
+  }
+
+  private _getPossibleBishopMoves(position: Coords, color: PlayerColor) {
+    const possibleMoves = [] as Coords[];
+
+    const breaks = [false, false, false, false];
+
+    for (let i = 1; i < 8; i++) {
+      const currentCoords = [
+        { x: position.x + i, y: position.y + i },
+        { x: position.x + i, y: position.y - i },
+        { x: position.x - i, y: position.y - i },
+        { x: position.x - i, y: position.y + i },
+      ];
+
+      currentCoords.forEach((coords, index) => {
+        if (!(coords.x >= 0 && coords.x < 8 && coords.y >= 0 && coords.y < 8)) {
+          return;
+        }
+
+        if (breaks[index]) {
+          return;
+        }
+
+        const tile = this._board[coords.y]![coords.x];
+        if (tile !== null) {
+          if (tile?.color !== color) {
+            possibleMoves.push(coords);
+          }
+
+          breaks[index] = true;
+          return;
+        }
+        possibleMoves.push(coords);
+      });
     }
 
     return possibleMoves;
