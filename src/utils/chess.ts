@@ -1,9 +1,5 @@
-import {
-  type Tile,
-  type Coords,
-  type PlayerColor,
-  testBoard,
-} from "./pieces";
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { type Tile, type Coords, type PlayerColor, testBoard } from "./pieces";
 
 class Chess {
   private _board: Tile[][];
@@ -14,11 +10,13 @@ class Chess {
     this._board = value;
   }
 
-  constructor(board?:Tile[][]) {
-    if(board) {
-        this._board = board;
+  private _movedPawns = new Array<Coords>(16);
+  private _pawnsPossibleToEnPassant = new Array<Coords>(16);
+  constructor(board?: Tile[][]) {
+    if (board) {
+      this._board = board;
     } else {
-        this._board = testBoard();
+      this._board = testBoard();
     }
   }
 
@@ -31,6 +29,9 @@ class Chess {
 
     if (piece?.pieceType === "Rook") {
       return this._getPossibleRookMoves(position, piece.color);
+    }
+    if (piece?.pieceType === "Pawn") {
+      return this._getPossiblePawnMoves(position, piece.color);
     }
 
     return possibleMoves;
@@ -88,6 +89,91 @@ class Chess {
         break;
       }
       possibleMoves.push(currentCoords);
+    }
+
+    return possibleMoves;
+  }
+
+  private _getPossiblePawnMoves(position: Coords, color: PlayerColor) {
+    const possibleMoves = [] as Coords[];
+    let coords;
+    if (color === "white") {
+      coords = { x: position.x, y: position.y + 1 };
+    } else {
+      coords = { x: position.x, y: position.y - 1 };
+    }
+
+    let can_move_one_tile = false;
+
+    //checking only y because x is the same as moved position and is guaranteed to be correct
+    if (
+      coords.y >= 0 &&
+      coords.y < 8 &&
+      this._board[coords.y]![coords.x] === null
+    ) {
+      possibleMoves.push(coords);
+      can_move_one_tile = true;
+    }
+
+    //possible pawn captures including en passant
+    let coords2;
+    if (color === "white") {
+      coords = { x: position.x - 1, y: position.y + 1 };
+      coords2 = { x: position.x + 1, y: position.y + 1 };
+    } else {
+      coords = { x: position.x - 1, y: position.y - 1 };
+      coords2 = { x: position.x + 1, y: position.y - 1 };
+    }
+
+    if (
+      (coords.x >= 0 &&
+        coords.x < 8 &&
+        coords.y >= 0 &&
+        coords.y < 8 &&
+        this._board[coords.y]![coords.x] !== null &&
+        this._board[coords.y]![coords.x]!.color !== color) ||
+      (this._board[position.y]![coords.x] !== null &&
+        this._board[position.y]![coords.x]!.color !== color &&
+        this._pawnsPossibleToEnPassant.find(
+          (coords) => coords.x === position.x - 1 && coords.y === position.y
+        ))
+    ) {
+      possibleMoves.push(coords);
+    }
+
+    if (
+      coords2.x >= 0 &&
+      coords2.x < 8 &&
+      coords2.y >= 0 &&
+      coords2.y < 8 &&
+      ((this._board[coords2.y]![coords2.x] !== null &&
+        this._board[coords2.y]![coords2.x]!.color !== color) ||
+        (this._board[position.y]![coords2.x] !== null &&
+          this._board[position.y]![coords2.x]!.color !== color &&
+          this._pawnsPossibleToEnPassant.find(
+            (coords) => coords?.x === position.x + 1 && coords?.y === position.y
+          )))
+    ) {
+      possibleMoves.push(coords2);
+    }
+
+    if (
+      this._movedPawns.find(
+        (coords) => coords?.x === position.x && coords?.y === position.y
+      ) !== undefined
+    ) {
+      return possibleMoves;
+    }
+
+    if (color === "white") {
+      coords = { x: position.x, y: position.y + 2 };
+    } else {
+      coords = { x: position.x, y: position.y - 2 };
+    }
+
+    //checking only y because x is the same as moved position and is guaranteed to be correct
+    if (coords.y >= 0 && coords.y < 8 && can_move_one_tile && this._board[coords.y]![coords.x] === null) {
+      possibleMoves.push(coords);
     }
 
     return possibleMoves;
