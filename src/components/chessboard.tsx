@@ -4,6 +4,7 @@ import {
   type Coords,
   type PlayerColor,
   type Tile,
+  getPossibleMoves,
 } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
@@ -15,6 +16,7 @@ const Chessboard: React.FC<{
   board: Tile[][];
 }> = ({ uuid, color, isYourTurn, board }) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
+  const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const moveMutation = api.chess.movePiece.useMutation();
 
@@ -42,18 +44,25 @@ const Chessboard: React.FC<{
                 isWhite = !isWhite;
               }
 
-              const tileBgStyle = isWhite ? "bg-white" : "bg-green-500";
+              let tileBgStyle = isWhite ? "bg-white " : "bg-green-500 ";
+              if (
+                highlightedTile &&
+                highlightedTile.x === index &&
+                highlightedTile.y === row_index
+              ) {
+                tileBgStyle = "bg-red-500";
+              } else if (
+                possibleMoves?.find(
+                  (tile) => tile.x === index && tile.y === row_index
+                ) !== undefined
+              ) {
+                tileBgStyle = "bg-green-100";
+              }
+
               return (
                 <div
                   key={index * row_index + index}
-                  className={
-                    "h-20 w-20 " +
-                    (highlightedTile &&
-                    highlightedTile.x === index &&
-                    highlightedTile.y === row_index
-                      ? "bg-red-500"
-                      : tileBgStyle)
-                  }
+                  className={`h-20 w-20 ${tileBgStyle}`}
                   onDragOver={(e) => {
                     e.preventDefault();
                   }}
@@ -116,10 +125,13 @@ const Chessboard: React.FC<{
                         },
                       });
                       setHighlightedTile(null);
+                      setPossibleMoves(null);
                       return;
                     }
 
-                    setHighlightedTile({ x: index, y: row_index });
+                    const coords = { x: index, y: row_index };
+                    setHighlightedTile(coords);
+                    setPossibleMoves(getPossibleMoves(board, coords));
                   }}
                 >
                   {tile && (

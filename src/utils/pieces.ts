@@ -20,18 +20,18 @@ export type Coords = {
   y: number;
 };
 
-const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
-const blackRook = { ...whiteRook, color: "black" } as Piece;
-const whiteBishop = { pieceType: "Bishop", color: "white" } as Piece;
-const blackBishop = { ...whiteBishop, color: "black" } as Piece;
-const whiteKnight = { pieceType: "Knight", color: "white" } as Piece;
-const blackKnight = { ...whiteKnight, color: "black" } as Piece;
-const whiteKing = { pieceType: "King", color: "white" } as Piece;
-const blackKing = { ...whiteKing, color: "black" } as Piece;
-const whiteQueen = { pieceType: "Queen", color: "white" } as Piece;
-const blackQueen = { ...whiteQueen, color: "black" } as Piece;
-const whitePawn = { pieceType: "Pawn", color: "white" } as Piece;
-const blackPawn = { ...whitePawn, color: "black" } as Piece;
+export const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
+export const blackRook = { ...whiteRook, color: "black" } as Piece;
+export const whiteBishop = { pieceType: "Bishop", color: "white" } as Piece;
+export const blackBishop = { ...whiteBishop, color: "black" } as Piece;
+export const whiteKnight = { pieceType: "Knight", color: "white" } as Piece;
+export const blackKnight = { ...whiteKnight, color: "black" } as Piece;
+export const whiteKing = { pieceType: "King", color: "white" } as Piece;
+export const blackKing = { ...whiteKing, color: "black" } as Piece;
+export const whiteQueen = { pieceType: "Queen", color: "white" } as Piece;
+export const blackQueen = { ...whiteQueen, color: "black" } as Piece;
+export const whitePawn = { pieceType: "Pawn", color: "white" } as Piece;
+export const blackPawn = { ...whitePawn, color: "black" } as Piece;
 
 export type Tile = Piece | null;
 
@@ -53,7 +53,20 @@ export const resolvePieceToImage = (piece: Piece) => {
   return pieces.get(JSON.stringify(piece));
 };
 
-export const initBoard = (): Tile[][] => {
+export const testBoard = () => {
+  const board = new Array<Tile[]>(8);
+  for(let i = 0; i < 8; i++) {
+    board[i] = new Array<Tile>(8).fill(null);
+  }
+  return board;
+}
+
+export const addToTestBoard = (board: Tile[][], piece: Piece, coords: Coords) => {
+  board[coords.y]![coords.x] = piece;
+  return board;
+}
+
+export const initBoard = () => {
   const board = new Array<Tile[]>(8);
   for(let i = 0; i < 8; i++) {
     board[i] = new Array<Tile>(8).fill(null);
@@ -90,3 +103,74 @@ export const movePiece = (board: Tile[][], from: Coords, to: Coords) => {
   board[to.y]![to.x] = movedPiece;
   return board;
 };
+
+export const getPossibleMoves = (board: Tile[][], position: Coords) => {
+  const possibleMoves = [] as Coords[];
+  const piece = board[position.y]![position.x];
+  if(piece === null) {
+    return possibleMoves;
+  }
+
+  if(piece?.pieceType === "Rook") {
+    return getPossibleRookMoves(board, position, piece.color);
+  }
+
+  return possibleMoves;
+}
+
+const getPossibleRookMoves = (board: Tile[][], position: Coords, color: PlayerColor) => {
+  const possibleMoves = [] as Coords[];
+    let start = position.x;
+    
+    for(let i = start + 1; i < 8; i++) {
+      const currentCoords = {...position, x: i}
+      const tile = board[currentCoords.y]![currentCoords.x]
+      if(tile !== null) { 
+        if(tile?.color !== color) {
+          possibleMoves.push(currentCoords);
+        }
+        break;
+      }
+      possibleMoves.push(currentCoords);
+    } 
+
+    for(let i = start - 1; i >= 0; i--) {
+      const currentCoords = {...position, x: i}
+      const tile = board[currentCoords.y]![currentCoords.x]
+      if(tile !== null) { 
+        if(tile?.color !== color) {
+          possibleMoves.push(currentCoords);
+        }
+        break;
+      }
+      possibleMoves.push(currentCoords);
+    }
+
+    start = position.y;
+
+    for(let i = start + 1; i < 8; i++) {
+      const currentCoords = {...position, y: i}
+      const tile = board[currentCoords.y]![currentCoords.x]
+      if(tile !== null) { 
+        if(tile?.color !== color) {
+          possibleMoves.push(currentCoords);
+        }
+        break;
+      }
+      possibleMoves.push(currentCoords);
+    } 
+
+    for(let i = start - 1; i >= 0; i--) {
+      const currentCoords = {...position, y: i}
+      const tile = board[currentCoords.y]![currentCoords.x]
+      if(tile !== null) { 
+        if(tile?.color !== color) {
+          possibleMoves.push(currentCoords);
+        }
+        break;
+      }
+      possibleMoves.push(currentCoords);
+    }
+
+  return possibleMoves
+}
