@@ -44,6 +44,10 @@ class Chess {
     if (piece?.pieceType === "Bishop") {
       return this._getPossibleBishopMoves(position, piece.color);
     }
+    if (piece?.pieceType === "Queen") {
+      return this._getPossibleQueenMoves(position, piece.color);
+    }
+
     return possibleMoves;
   }
 
@@ -230,6 +234,12 @@ class Chess {
     }
 
     return possibleMoves;
+  }
+
+  private _getPossibleQueenMoves(position: Coords, color: PlayerColor) {
+    return this._getPossibleRookMoves(position, color).concat(
+      this._getPossibleBishopMoves(position, color)
+    );
   }
 }
 

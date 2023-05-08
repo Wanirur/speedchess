@@ -1,6 +1,6 @@
 import { type NextPage } from "next";
 import Chessboard from "~/components/chessboard";
-import { addToTestBoard, blackBishop, blackPawn, blackRook, testBoard, whiteBishop, whitePawn, whiteRook } from "~/utils/pieces";
+import { addToTestBoard, blackBishop, blackPawn, blackQueen, blackRook, testBoard, whiteBishop, whitePawn, whiteQueen, whiteRook } from "~/utils/pieces";
 
 const Test: NextPage = () => {
     const board = testBoard();
@@ -13,7 +13,8 @@ const Test: NextPage = () => {
     addToTestBoard(board, whitePawn, {x: 3, y: 4})
     addToTestBoard(board, whiteBishop, {x: 0, y: 3})
     addToTestBoard(board, blackBishop, {x: 3, y: 0})
-
+    addToTestBoard(board, whiteQueen, {x: 0, y: 4})
+    addToTestBoard(board, blackQueen, {x: 0, y: 7})
   return (
     <div className="h-screen flex items-center justify-center bg-neutral-900">
       <Chessboard
