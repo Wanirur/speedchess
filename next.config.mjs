@@ -18,5 +18,19 @@ const config = {
     locales: ["en"],
     defaultLocale: "en",
   },
+  images: {
+    remotePatterns: [
+      {
+        hostname: 'avatars.githubusercontent.com',    
+      },
+      {
+        hostname: 'lh3.googleusercontent.com'
+      },
+      {
+        hostname: 'cdn.discordapp.com'
+      }
+    ],
+  },
+  output: "standalone"
 };
 export default config;
