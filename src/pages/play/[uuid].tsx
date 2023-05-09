@@ -6,7 +6,8 @@ import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/drawresignpanel";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
-import { type Coords, movePiece } from "~/utils/pieces";
+import { type Coords } from "~/utils/coords";
+import { movePiece } from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {

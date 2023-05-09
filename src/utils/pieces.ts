@@ -1,3 +1,5 @@
+import { type Coords } from "./coords";
+
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 export const PieceTypes = [
   "Pawn",
@@ -13,11 +15,6 @@ export type PlayerColor = "white" | "black";
 export type Piece = {
   color: PlayerColor;
   pieceType: (typeof PieceTypes)[number];
-};
-
-export type Coords = {
-  x: number;
-  y: number;
 };
 
 export const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
@@ -61,7 +58,10 @@ export const testBoard = () => {
   return board;
 }
 
-export const addToTestBoard = (board: Tile[][], piece: Piece, coords: Coords) => {
+export const addToTestBoard = (board: Tile[][], piece: Piece, coords: Coords | undefined) => {
+  if(!coords) {
+    return board;
+  }
   board[coords.y]![coords.x] = piece;
   return board;
 }

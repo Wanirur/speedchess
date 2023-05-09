@@ -10,6 +10,7 @@ import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { type PlayerColor } from "~/utils/pieces";
+import { Coords } from "~/utils/coords";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
@@ -148,7 +149,10 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      const time = match.move(input.fromTile, input.toTile);
+      const time = match.move(
+        Coords.getInstance(input.fromTile.x, input.fromTile.y),
+        Coords.getInstance(input.toTile.x, input.toTile.y)
+      );
       if (time <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",

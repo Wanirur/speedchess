@@ -1,6 +1,7 @@
-import { type Coords, initBoard, movePiece } from "~/utils/pieces";
+import { initBoard, movePiece } from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { matches } from "./matchmaking";
+import { type Coords } from "~/utils/coords";
 
 export type Player = {
   id: string;
@@ -65,7 +66,10 @@ export class Game {
     this._lastMoveTime = Date.now();
   }
 
-  move(from: Coords, to: Coords) {
+  move(from: Coords | undefined, to: Coords | undefined) {
+    if(!from || !to) {
+      throw new Error();
+    }
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;

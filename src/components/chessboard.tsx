@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
 import {
   resolvePieceToImage,
-  type Coords,
   type PlayerColor,
   type Tile,
 } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
+import { Coords } from "~/utils/coords";
 
 const Chessboard: React.FC<{
   uuid: string;
@@ -82,8 +82,11 @@ const Chessboard: React.FC<{
                       if (!board[index]) {
                         return;
                       }
-
-                      setDraggedPiece({ x: index, y: row_index });
+                      const coords = Coords.getInstance(index, row_index);
+                      if(!coords) {
+                        return;
+                      }
+                      setDraggedPiece(coords);
                     }}
                     onDrop={() => {
                       if (draggedPiece === null) {
@@ -133,7 +136,10 @@ const Chessboard: React.FC<{
                         return;
                       }
 
-                      const coords = { x: index, y: row_index };
+                      const coords = Coords.getInstance(index, row_index);
+                      if(!coords) {
+                        return;
+                      }
                       setHighlightedTile(coords);
                       setPossibleMoves(
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

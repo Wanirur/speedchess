@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { type Tile, type Coords, type PlayerColor, testBoard } from "./pieces";
+import { Coords } from "./coords";
+import { type Tile, type PlayerColor, testBoard } from "./pieces";
 
 class Chess {
   private _board: Tile[][];
@@ -12,7 +13,8 @@ class Chess {
 
   private _movedPawns = new Array<Coords>(16);
   private _pawnsPossibleToEnPassant = new Array<Coords>(16);
-  private _attackedTiles = new Set<Coords>();
+  private _tilesAttackedByWhite = new Set<Coords>();
+  private _tilesAttackedByBlack = new Set<Coords>();
 
   constructor(board?: Tile[][]) {
     if (board) {
@@ -21,20 +23,33 @@ class Chess {
       this._board = testBoard();
     }
 
-    let x = 0, y = 0;
-    for(const row of this._board) {
-        for(const tile of row) {
-            if(tile === null) {
-                x++;
-                continue;
-            }
-
-            const possibleAttacks = tile.pieceType === "Pawn" ? this._getPossiblePawnAttacks({x: x, y: y}, tile.color) : this.getPossibleMoves({x: x, y: y})
-            possibleAttacks.forEach(coords => this._attackedTiles.add(coords))
-            x++;
+    let x = 0,
+      y = 0;
+    for (const row of this._board) {
+      for (const tile of row) {
+        if (tile === null) {
+          x++;
+          continue;
         }
+        const coords = Coords.getInstance(x, y);
+        if (!coords) {
+          x++;
+          continue;
+        }
+        const possibleAttacks =
+          tile.pieceType === "Pawn"
+            ? this._getPossiblePawnAttacks(coords, tile.color)
+            : this.getPossibleMoves(coords);
+        possibleAttacks.forEach((coords) =>
+          tile.color === "white"
+            ? this._tilesAttackedByWhite.add(coords)
+            : this._tilesAttackedByBlack.add(coords)
+        );
+        x++;
+      }
+      x = 0;
+      y++;
     }
-    y++;
   }
 
   getPossibleMoves(position: Coords) {
@@ -73,7 +88,10 @@ class Chess {
     let start = position.x;
 
     for (let i = start + 1; i < 8; i++) {
-      const currentCoords = { ...position, x: i };
+      const currentCoords = Coords.getInstance(i, position.y);
+      if (!currentCoords) {
+        break;
+      }
       const tile = this._board[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (tile?.color !== color) {
@@ -85,7 +103,10 @@ class Chess {
     }
 
     for (let i = start - 1; i >= 0; i--) {
-      const currentCoords = { ...position, x: i };
+      const currentCoords = Coords.getInstance(i, position.y);
+      if (!currentCoords) {
+        break;
+      }
       const tile = this._board[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (tile?.color !== color) {
@@ -99,7 +120,10 @@ class Chess {
     start = position.y;
 
     for (let i = start + 1; i < 8; i++) {
-      const currentCoords = { ...position, y: i };
+      const currentCoords = Coords.getInstance(position.x, i);
+      if (!currentCoords) {
+        break;
+      }
       const tile = this._board[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (tile?.color !== color) {
@@ -111,7 +135,10 @@ class Chess {
     }
 
     for (let i = start - 1; i >= 0; i--) {
-      const currentCoords = { ...position, y: i };
+      const currentCoords = Coords.getInstance(position.x, i);
+      if (!currentCoords) {
+        break;
+      }
       const tile = this._board[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (tile?.color !== color) {
@@ -128,98 +155,84 @@ class Chess {
   private _getPossiblePawnMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
     let coords;
-    if (color === "white") {
-      coords = { x: position.x, y: position.y + 1 };
-    } else {
-      coords = { x: position.x, y: position.y - 1 };
-    }
-
     let canMoveOneTile = false;
 
+    if (color === "white") {
+      coords = Coords.getInstance(position.x, position.y + 1);
+    } else {
+      coords = Coords.getInstance(position.x, position.y - 1);
+    }
+
     //checking only y because x is the same as moved position and is guaranteed to be correct
-    if (
-      coords.y >= 0 &&
-      coords.y < 8 &&
-      this._board[coords.y]![coords.x] === null
-    ) {
+    if (coords && this._board[coords.y]![coords.x] === null) {
       possibleMoves.push(coords);
       canMoveOneTile = true;
     }
-
-    possibleMoves.concat(this._getPossiblePawnAttacks(position, color))    
 
     if (
       this._movedPawns.find(
         (coords) => coords?.x === position.x && coords?.y === position.y
       ) !== undefined
     ) {
-      return possibleMoves;
+      return possibleMoves.concat(this._getPossiblePawnAttacks(position, color));
     }
 
     if (color === "white") {
-      coords = { x: position.x, y: position.y + 2 };
+      coords = Coords.getInstance(position.x, position.y + 2);
     } else {
-      coords = { x: position.x, y: position.y - 2 };
+      coords = Coords.getInstance(position.x, position.y - 2);
     }
 
     //checking only y because x is the same as moved position and is guaranteed to be correct
-    if (
-      coords.y >= 0 &&
-      coords.y < 8 &&
-      canMoveOneTile &&
-      this._board[coords.y]![coords.x] === null
-    ) {
+    if (coords && canMoveOneTile && this._board[coords.y]![coords.x] === null) {
       possibleMoves.push(coords);
     }
 
-    return possibleMoves;
+    return possibleMoves.concat(this._getPossiblePawnAttacks(position, color));
   }
 
   private _getPossiblePawnAttacks(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
     let coords;
-    let coords2;
+
     if (color === "white") {
-        coords = { x: position.x - 1, y: position.y + 1 };
-        coords2 = { x: position.x + 1, y: position.y + 1 };
-      } else {
-        coords = { x: position.x - 1, y: position.y - 1 };
-        coords2 = { x: position.x + 1, y: position.y - 1 };
-      }
-  
-      if (
-        (coords.x >= 0 &&
-          coords.x < 8 &&
-          coords.y >= 0 &&
-          coords.y < 8 &&
-          this._board[coords.y]![coords.x] !== null &&
-          this._board[coords.y]![coords.x]!.color !== color) ||
+      coords = Coords.getInstance(position.x - 1, position.y + 1);
+    } else {
+      coords = Coords.getInstance(position.x - 1, position.y - 1);
+    }
+
+    if (
+      coords &&
+      ((this._board[coords.y]![coords.x] !== null &&
+        this._board[coords.y]![coords.x]!.color !== color) ||
         (this._board[position.y]![coords.x] !== null &&
           this._board[position.y]![coords.x]!.color !== color &&
           this._pawnsPossibleToEnPassant.find(
             (coords) => coords.x === position.x - 1 && coords.y === position.y
-          ))
-      ) {
-        possibleMoves.push(coords);
-      }
-  
-      if (
-        coords2.x >= 0 &&
-        coords2.x < 8 &&
-        coords2.y >= 0 &&
-        coords2.y < 8 &&
-        ((this._board[coords2.y]![coords2.x] !== null &&
-          this._board[coords2.y]![coords2.x]!.color !== color) ||
-          (this._board[position.y]![coords2.x] !== null &&
-            this._board[position.y]![coords2.x]!.color !== color &&
-            this._pawnsPossibleToEnPassant.find(
-              (coords) => coords?.x === position.x + 1 && coords?.y === position.y
-            )))
-      ) {
-        possibleMoves.push(coords2);
-      }
+          )))
+    ) {
+      possibleMoves.push(coords);
+    }
 
-      return possibleMoves;
+    if (color === "white") {
+      coords = Coords.getInstance(position.x + 1, position.y + 1);
+    } else {
+      coords = Coords.getInstance(position.x + 1, position.y - 1);
+    }
+    if (
+      coords &&
+      ((this._board[coords.y]![coords.x] !== null &&
+        this._board[coords.y]![coords.x]!.color !== color) ||
+        (this._board[position.y]![coords.x] !== null &&
+          this._board[position.y]![coords.x]!.color !== color &&
+          this._pawnsPossibleToEnPassant.find(
+            (coords) => coords?.x === position.x + 1 && coords?.y === position.y
+          )))
+    ) {
+      possibleMoves.push(coords);
+    }
+
+    return possibleMoves;
   }
 
   private _getPossibleBishopMoves(position: Coords, color: PlayerColor) {
@@ -229,14 +242,13 @@ class Chess {
 
     for (let i = 1; i < 8; i++) {
       const currentCoords = [
-        { x: position.x + i, y: position.y + i },
-        { x: position.x + i, y: position.y - i },
-        { x: position.x - i, y: position.y - i },
-        { x: position.x - i, y: position.y + i },
+        Coords.getInstance(position.x + i, position.y + i),
+        Coords.getInstance(position.x + i, position.y - i),
+        Coords.getInstance(position.x - i, position.y - i),
+        Coords.getInstance(position.x - i, position.y + i),
       ];
-
       currentCoords.forEach((coords, index) => {
-        if (!(coords.x >= 0 && coords.x < 8 && coords.y >= 0 && coords.y < 8)) {
+        if (!coords) {
           return;
         }
 
@@ -267,7 +279,25 @@ class Chess {
   }
 
   private _getPossibleKingMoves(position: Coords, color: PlayerColor) {
-    
+    const possibleMoves = [] as Coords[];
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        if (i === 0 && j === 0) {
+          continue;
+        }
+        const tile = this._board[position.x + i]![position.y + j];
+        if (tile !== null) {
+          const tile_color = tile?.color;
+          if (tile_color === color) {
+            continue;
+          }
+
+          possibleMoves.push();
+        }
+      }
+    }
+
+    return possibleMoves;
   }
 }
 
