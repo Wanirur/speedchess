@@ -54,30 +54,28 @@ class Chess {
 
   getPossibleMoves(position: Coords) {
     const possibleMoves = [] as Coords[];
-    if (
-      position.x < 0 ||
-      position.x >= 8 ||
-      position.y < 0 ||
-      position.y >= 8
-    ) {
+    if (!position) {
       return [];
     }
-    const piece = this._board[position.y]?.[position.x];
+    const piece = this._board[position.y]![position.x]!;
     if (piece === null) {
       return possibleMoves;
     }
 
-    if (piece?.pieceType === "Rook") {
+    if (piece.pieceType === "Rook") {
       return this._getPossibleRookMoves(position, piece.color);
     }
-    if (piece?.pieceType === "Pawn") {
+    if (piece.pieceType === "Pawn") {
       return this._getPossiblePawnMoves(position, piece.color);
     }
-    if (piece?.pieceType === "Bishop") {
+    if (piece.pieceType === "Bishop") {
       return this._getPossibleBishopMoves(position, piece.color);
     }
-    if (piece?.pieceType === "Queen") {
+    if (piece.pieceType === "Queen") {
       return this._getPossibleQueenMoves(position, piece.color);
+    }
+    if (piece.pieceType === "King") {
+      return this._getPossibleKingMoves(position, piece.color);
     }
 
     return possibleMoves;
@@ -174,7 +172,9 @@ class Chess {
         (coords) => coords?.x === position.x && coords?.y === position.y
       ) !== undefined
     ) {
-      return possibleMoves.concat(this._getPossiblePawnAttacks(position, color));
+      return possibleMoves.concat(
+        this._getPossiblePawnAttacks(position, color)
+      );
     }
 
     if (color === "white") {
@@ -285,14 +285,27 @@ class Chess {
         if (i === 0 && j === 0) {
           continue;
         }
-        const tile = this._board[position.x + i]![position.y + j];
+
+        const coords = Coords.getInstance(position.x + i, position.y + j);
+        if (!coords) {
+          continue;
+        }
+        const tile = this._board[coords.y]![coords.x]!;
         if (tile !== null) {
-          const tile_color = tile?.color;
+          const tile_color = tile.color;
           if (tile_color === color) {
             continue;
           }
 
-          possibleMoves.push();
+          possibleMoves.push(coords);
+        }
+
+        if (
+          color === "white"
+            ? !this._tilesAttackedByBlack.has(coords)
+            : !this._tilesAttackedByWhite.has(coords)
+        ) {
+          possibleMoves.push(coords);
         }
       }
     }

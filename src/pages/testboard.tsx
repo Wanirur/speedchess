@@ -1,7 +1,7 @@
 import { type NextPage } from "next";
 import Chessboard from "~/components/chessboard";
 import { Coords } from "~/utils/coords";
-import { addToTestBoard, blackBishop, blackPawn, blackQueen, blackRook, testBoard, whiteBishop, whitePawn, whiteQueen, whiteRook } from "~/utils/pieces";
+import { addToTestBoard, blackBishop, blackKing, blackPawn, blackQueen, blackRook, testBoard, whiteBishop, whiteKing, whitePawn, whiteQueen, whiteRook } from "~/utils/pieces";
 
 const Test: NextPage = () => {
     const board = testBoard();
@@ -17,6 +17,8 @@ const Test: NextPage = () => {
     addToTestBoard(board, blackBishop, Coords.getInstance(3, 0))
     addToTestBoard(board, whiteQueen, Coords.getInstance(0, 4))
     addToTestBoard(board, blackQueen, Coords.getInstance(0, 7))
+    addToTestBoard(board, whiteKing, Coords.getInstance(2, 0));
+    addToTestBoard(board, blackKing, Coords.getInstance(1, 6));
   return (
     <div className="h-screen flex items-center justify-center bg-neutral-900">
       <Chessboard
