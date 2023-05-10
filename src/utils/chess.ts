@@ -52,7 +52,7 @@ class Chess {
     }
   }
 
-  getPossibleMoves(position: Coords, includeDefendedPieces = false) {
+  public getPossibleMoves(position: Coords, includeDefendedPieces = false) {
     const possibleMoves = [] as Coords[];
     if (!position) {
       return [];
@@ -92,6 +92,13 @@ class Chess {
     }
     if (piece.pieceType === "King") {
       return this._getPossibleKingMoves(
+        position,
+        piece.color,
+        includeDefendedPieces
+      );
+    }
+    if (piece.pieceType === "Knight") {
+      return this._getPossibleKnightMoves(
         position,
         piece.color,
         includeDefendedPieces
@@ -327,6 +334,36 @@ class Chess {
     ).concat(
       this._getPossibleBishopMoves(position, color, includeDefendedPieces)
     );
+  }
+
+  private _getPossibleKnightMoves(
+    position: Coords,
+    color: PlayerColor,
+    includeDefendedPieces: boolean
+  ) {
+    const possibleMoves = [] as Coords[];
+    const xDiff = [1, 1, -1, -1, 2, 2, -2, -2];
+    const yDiff = [2, -2, 2, -2, 1, -1, 1, -1];
+    for (let i = 0; i < 8; i++) {
+      const coords = Coords.getInstance(
+        position.x + xDiff[i]!,
+        position.y + yDiff[i]!
+      );
+      if (!coords) {
+        continue;
+      }
+
+      const tile = this._board[coords.y]![coords.x]!;
+      if (tile === null) {
+        possibleMoves.push(coords);
+      } else {
+        if (includeDefendedPieces || tile.color !== color) {
+          possibleMoves.push(coords);
+        }
+      }
+    }
+
+    return possibleMoves;
   }
 
   private _getPossibleKingMoves(
