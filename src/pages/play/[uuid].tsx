@@ -119,6 +119,7 @@ const Play: NextPage = () => {
           color={gameState.color}
           isYourTurn={gameState.turn === gameState.color}
           board={gameState.board}
+          mutate
         ></Chessboard>
       )}
       {isSuccess && channelRef.current && (

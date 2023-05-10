@@ -14,7 +14,8 @@ const Chessboard: React.FC<{
   color: PlayerColor;
   isYourTurn: boolean;
   board: Tile[][];
-}> = ({ uuid, color, isYourTurn, board }) => {
+  mutate?: boolean;
+}> = ({ uuid, color, isYourTurn, board, mutate = false }) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
@@ -83,7 +84,7 @@ const Chessboard: React.FC<{
                         return;
                       }
                       const coords = Coords.getInstance(index, row_index);
-                      if(!coords) {
+                      if (!coords) {
                         return;
                       }
                       setDraggedPiece(coords);
@@ -92,7 +93,9 @@ const Chessboard: React.FC<{
                       if (draggedPiece === null) {
                         return;
                       }
-
+                      if (!mutate) {
+                        return;
+                      }
                       moveMutation.mutate({
                         uuid: uuid,
                         fromTile: {
@@ -120,6 +123,11 @@ const Chessboard: React.FC<{
                       }
 
                       if (highlightedTile !== null) {
+                        if (!mutate) {
+                          setHighlightedTile(null);
+                          setPossibleMoves(null);
+                          return;
+                        }
                         moveMutation.mutate({
                           uuid: uuid,
                           fromTile: {
@@ -137,7 +145,7 @@ const Chessboard: React.FC<{
                       }
 
                       const coords = Coords.getInstance(index, row_index);
-                      if(!coords) {
+                      if (!coords) {
                         return;
                       }
                       setHighlightedTile(coords);
