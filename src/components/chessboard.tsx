@@ -151,7 +151,7 @@ const Chessboard: React.FC<{
                       setHighlightedTile(coords);
                       setPossibleMoves(
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        chessRef.current!.getPossibleMoves(coords)
+                        chessRef.current!.getPossibleMoves(coords).possibleMoves
                       );
                     }}
                   >
