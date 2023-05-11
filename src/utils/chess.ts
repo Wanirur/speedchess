@@ -128,8 +128,8 @@ class Chess {
       }
 
       this._movedPawns.add(to);
-    
-      if(Math.abs(from.y - to.y) === 2) {
+
+      if (Math.abs(from.y - to.y) === 2) {
         this._pawnPossibleToEnPassant = to;
       }
     }
@@ -156,65 +156,6 @@ class Chess {
     return this.board;
   }
 
-  public getPossibleMoves(position: Coords, includeDefendedPieces = false) {
-    const possibleMoves = [] as Coords[];
-    if (!position) {
-      return { possibleMoves: possibleMoves, isKingAttacked: false };
-    }
-    const piece = this._currentBoard[position.y]![position.x]!;
-    if (piece === null) {
-      return { possibleMoves: possibleMoves, isKingAttacked: false };
-    }
-
-    if (piece.pieceType === "ROOK") {
-      return this._getPossibleRookMoves(
-        position,
-        piece.color,
-        includeDefendedPieces
-      );
-    }
-    if (piece.pieceType === "PAWN") {
-      return this._getPossiblePawnMoves(
-        position,
-        piece.color,
-        includeDefendedPieces
-      );
-    }
-    if (piece.pieceType === "BISHOP") {
-      return this._getPossibleBishopMoves(
-        position,
-        piece.color,
-        includeDefendedPieces
-      );
-    }
-    if (piece.pieceType === "QUEEN") {
-      return this._getPossibleQueenMoves(
-        position,
-        piece.color,
-        includeDefendedPieces
-      );
-    }
-    if (piece.pieceType === "KING") {
-      return {
-        possibleMoves: this._getPossibleKingMoves(
-          position,
-          piece.color,
-          includeDefendedPieces
-        ),
-        isKingAttacked: false,
-      };
-    }
-    if (piece.pieceType === "KNIGHT") {
-      return this._getPossibleKnightMoves(
-        position,
-        piece.color,
-        includeDefendedPieces
-      );
-    }
-
-    return { possibleMoves: possibleMoves, isKingAttacked: false };
-  }
-
   private _calculateAttackedTiles() {
     let x = 0,
       y = 0;
@@ -234,13 +175,18 @@ class Chess {
         }
         const possibleAttacks =
           tile.pieceType === "PAWN"
-            ? this._getPossiblePawnAttacks(coords, tile.color, true)
+            ? this._getPossiblePawnAttacks(coords, tile.color)
             : this.getPossibleMoves(coords);
         possibleAttacks.possibleMoves.forEach((coords) =>
           tile.color === "WHITE"
             ? this._tilesAttackedByWhite.add(coords)
             : this._tilesAttackedByBlack.add(coords)
         );
+        possibleAttacks.defendedTiles.forEach((coords) => {
+          tile.color === "WHITE"
+            ? this._tilesAttackedByWhite.add(coords)
+            : this._tilesAttackedByBlack.add(coords);
+        });
 
         if (possibleAttacks.isKingAttacked) {
           if (tile.color === "WHITE") {
@@ -259,12 +205,55 @@ class Chess {
     this._isBlackKingChecked = isBlackKingCheckedThisTurn;
   }
 
-  private _getPossibleRookMoves(
-    position: Coords,
-    color: PlayerColor,
-    includeDefendedPieces: boolean
-  ) {
+  public getPossibleMoves(position: Coords) {
+    if (!position) {
+      return {
+        possibleMoves: [] as Coords[],
+        defendedTiles: [] as Coords[],
+        isKingAttacked: false,
+      };
+    }
+    const piece = this._currentBoard[position.y]![position.x]!;
+    if (piece === null) {
+      return {
+        possibleMoves: [] as Coords[],
+        defendedTiles: [] as Coords[],
+        isKingAttacked: false,
+      };
+    }
+
+    if (piece.pieceType === "ROOK") {
+      return this._getPossibleRookMoves(position, piece.color);
+    }
+    if (piece.pieceType === "PAWN") {
+      return this._getPossiblePawnMoves(position, piece.color);
+    }
+    if (piece.pieceType === "BISHOP") {
+      return this._getPossibleBishopMoves(position, piece.color);
+    }
+    if (piece.pieceType === "QUEEN") {
+      return this._getPossibleQueenMoves(position, piece.color);
+    }
+    if (piece.pieceType === "KING") {
+      return {
+        ...this._getPossibleKingMoves(position, piece.color),
+        isKingAttacked: false,
+      };
+    }
+    if (piece.pieceType === "KNIGHT") {
+      return this._getPossibleKnightMoves(position, piece.color);
+    }
+
+    return {
+      possibleMoves: [] as Coords[],
+      defendedTiles: [] as Coords[],
+      isKingAttacked: false,
+    };
+  }
+
+  private _getPossibleRookMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
+    const defendedTiles = [] as Coords[];
     let isKingAttacked = false;
     let start = position.x;
 
@@ -275,11 +264,13 @@ class Chess {
       }
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
-        if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "KING" && tile.color !== color) {
+        if (tile?.color !== color) {
+          if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
+        } else {
+          defendedTiles.push(currentCoords);
         }
 
         break;
@@ -294,12 +285,15 @@ class Chess {
       }
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
-        if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "KING" && tile.color !== color) {
+        if (tile?.color !== color) {
+          if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
+        } else {
+          defendedTiles.push(currentCoords);
         }
+
         break;
       }
       possibleMoves.push(currentCoords);
@@ -314,12 +308,15 @@ class Chess {
       }
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
-        if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "KING" && tile.color !== color) {
+        if (tile?.color !== color) {
+          if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
+        } else {
+          defendedTiles.push(currentCoords);
         }
+
         break;
       }
       possibleMoves.push(currentCoords);
@@ -332,34 +329,33 @@ class Chess {
       }
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
-        if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "KING" && tile.color !== color) {
+        if (tile?.color !== color) {
+          if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
+        } else {
+          defendedTiles.push(currentCoords);
         }
+
         break;
       }
       possibleMoves.push(currentCoords);
     }
 
-    return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+    return {
+      possibleMoves: possibleMoves,
+      defendedTiles: defendedTiles,
+      isKingAttacked: isKingAttacked,
+    };
   }
 
-  private _getPossiblePawnMoves(
-    position: Coords,
-    color: PlayerColor,
-    includeDefendedPieces: boolean
-  ) {
+  private _getPossiblePawnMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
     let coords;
     let canMoveOneTile = false;
 
-    const attacks = this._getPossiblePawnAttacks(
-      position,
-      color,
-      includeDefendedPieces
-    );
+    const attacks = this._getPossiblePawnAttacks(position, color);
     possibleMoves.concat(attacks.possibleMoves);
 
     if (color === "WHITE") {
@@ -368,8 +364,8 @@ class Chess {
       coords = Coords.getInstance(position.x, position.y - 1);
     }
 
-    if(!coords) {
-        return attacks;
+    if (!coords) {
+      return attacks;
     }
 
     if (this._currentBoard[coords.y]![coords.x] === null) {
@@ -379,7 +375,8 @@ class Chess {
 
     if (this._movedPawns.has(coords)) {
       return {
-        possibleMoves: possibleMoves.concat(attacks.possibleMoves),
+        possibleMoves: possibleMoves,
+        defendedTiles: attacks.defendedTiles,
         isKingAttacked: attacks.isKingAttacked,
       };
     }
@@ -401,17 +398,15 @@ class Chess {
 
     return {
       possibleMoves: possibleMoves,
+      defendedTiles: attacks.defendedTiles,
       isKingAttacked: attacks.isKingAttacked,
     };
   }
 
-  private _getPossiblePawnAttacks(
-    position: Coords,
-    color: PlayerColor,
-    includeDefendedPieces: boolean
-  ) {
+  private _getPossiblePawnAttacks(position: Coords, color: PlayerColor) {
     const getCaptures = (xDiff: number) => {
       const possibleMoves = [] as Coords[];
+      const defendedTiles = [] as Coords[];
       let isKingAttacked = false;
       let coords;
       if (color === "WHITE") {
@@ -420,29 +415,47 @@ class Chess {
         coords = Coords.getInstance(position.x + xDiff, position.y - 1);
       }
       if (!coords) {
-        return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+        return {
+          possibleMoves: possibleMoves,
+          defendedTiles: defendedTiles,
+          isKingAttacked: isKingAttacked,
+        };
       }
 
       const tile = this._currentBoard[coords.y]![coords.x]!;
       if (tile === null) {
-        return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+        return {
+          possibleMoves: possibleMoves,
+          defendedTiles: defendedTiles,
+          isKingAttacked: isKingAttacked,
+        };
       }
-      if (coords && (includeDefendedPieces || tile.color !== color)) {
-        if (tile.pieceType === "KING" && tile.color !== color) {
+      if (tile.color !== color) {
+        if (tile.pieceType === "KING") {
           isKingAttacked = true;
         }
         possibleMoves.push(coords);
+      } else {
+        defendedTiles.push(coords);
       }
 
       const enPassantCoords = Coords.getInstance(coords.x, position.y);
       if (!enPassantCoords) {
-        return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+        return {
+          possibleMoves: possibleMoves,
+          defendedTiles: defendedTiles,
+          isKingAttacked: isKingAttacked,
+        };
       }
 
       const tilePossibleToEnPassant =
         this._currentBoard[enPassantCoords.y]![enPassantCoords.x]!;
       if (tile === null) {
-        return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+        return {
+          possibleMoves: possibleMoves,
+          defendedTiles: defendedTiles,
+          isKingAttacked: isKingAttacked,
+        };
       }
       if (
         this._pawnPossibleToEnPassant == enPassantCoords &&
@@ -451,7 +464,11 @@ class Chess {
       ) {
         possibleMoves.push(enPassantCoords);
       }
-      return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+      return {
+        possibleMoves: possibleMoves,
+        defendedTiles: defendedTiles,
+        isKingAttacked: isKingAttacked,
+      };
     };
 
     const leftCaptures = getCaptures(-1);
@@ -461,17 +478,17 @@ class Chess {
       possibleMoves: leftCaptures.possibleMoves.concat(
         rightCaptures.possibleMoves
       ),
+      defendedTiles: leftCaptures.defendedTiles.concat(
+        rightCaptures.defendedTiles
+      ),
       isKingAttacked:
         leftCaptures.isKingAttacked || rightCaptures.isKingAttacked,
     };
   }
 
-  private _getPossibleBishopMoves(
-    position: Coords,
-    color: PlayerColor,
-    includeDefendedPieces: boolean
-  ) {
+  private _getPossibleBishopMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
+    const defendedTiles = [] as Coords[];
     let isKingAttacked = false;
     const breaks = [false, false, false, false];
 
@@ -493,11 +510,13 @@ class Chess {
 
         const tile = this._currentBoard[coords.y]![coords.x];
         if (tile !== null) {
-          if (includeDefendedPieces || tile?.color !== color) {
+          if (tile?.color !== color) {
             if (tile?.pieceType === "KING" && tile.color !== color) {
               isKingAttacked = true;
             }
             possibleMoves.push(coords);
+          } else {
+            defendedTiles.push(coords);
           }
 
           breaks[index] = true;
@@ -507,42 +526,35 @@ class Chess {
       });
     }
 
-    return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+    return {
+      possibleMoves: possibleMoves,
+      defendedTiles: defendedTiles,
+      isKingAttacked: isKingAttacked,
+    };
   }
 
-  private _getPossibleQueenMoves(
-    position: Coords,
-    color: PlayerColor,
-    includeDefendedPieces: boolean
-  ) {
-    const rookResult = this._getPossibleRookMoves(
-      position,
-      color,
-      includeDefendedPieces
-    );
+  private _getPossibleQueenMoves(position: Coords, color: PlayerColor) {
+    const rookResult = this._getPossibleRookMoves(position, color);
 
-    const bishopResult = this._getPossibleBishopMoves(
-      position,
-      color,
-      includeDefendedPieces
-    );
+    const bishopResult = this._getPossibleBishopMoves(position, color);
     const possibleMoves = rookResult.possibleMoves.concat(
       bishopResult.possibleMoves
+    );
+    const defendedTiles = rookResult.defendedTiles.concat(
+      bishopResult.defendedTiles
     );
 
     return {
       possibleMoves: possibleMoves,
+      defendedTiles: defendedTiles,
       isKingAttacked: rookResult.isKingAttacked || bishopResult.isKingAttacked,
     };
   }
 
-  private _getPossibleKnightMoves(
-    position: Coords,
-    color: PlayerColor,
-    includeDefendedPieces: boolean
-  ) {
+  private _getPossibleKnightMoves(position: Coords, color: PlayerColor) {
     let isKingAttacked = false;
     const possibleMoves = [] as Coords[];
+    const defendedTiles = [] as Coords[];
     const xDiff = [1, 1, -1, -1, 2, 2, -2, -2];
     const yDiff = [2, -2, 2, -2, 1, -1, 1, -1];
     for (let i = 0; i < 8; i++) {
@@ -558,24 +570,27 @@ class Chess {
       if (tile === null) {
         possibleMoves.push(coords);
       } else {
-        if (includeDefendedPieces || tile.color !== color) {
+        if (tile.color !== color) {
           possibleMoves.push(coords);
-          if (tile.pieceType == "KING" && tile.color !== color) {
+          if (tile.pieceType == "KING") {
             isKingAttacked = true;
           }
+        } else {
+          defendedTiles.push(coords);
         }
       }
     }
 
-    return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
+    return {
+      possibleMoves: possibleMoves,
+      defendedTiles: defendedTiles,
+      isKingAttacked: isKingAttacked,
+    };
   }
 
-  private _getPossibleKingMoves(
-    position: Coords,
-    color: PlayerColor,
-    includeDefendedPieces: boolean
-  ) {
+  private _getPossibleKingMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
+    const defendedTiles = [] as Coords[];
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
         if (i === 0 && j === 0) {
@@ -589,16 +604,16 @@ class Chess {
         const tile = this._currentBoard[coords.y]![coords.x]!;
         if (tile !== null) {
           const tile_color = tile.color;
-          if (
-            !includeDefendedPieces &&
-            (tile_color === color || color === "WHITE"
-              ? this._tilesAttackedByBlack.has(coords)
-              : this._tilesAttackedByWhite.has(coords))
-          ) {
-            continue;
+          if (tile_color !== color) {
+            if (
+              color === "WHITE"
+                ? !this._tilesAttackedByBlack.has(coords)
+                : !this._tilesAttackedByWhite.has(coords)
+            )
+              possibleMoves.push(coords);
+          } else {
+            defendedTiles.push(coords);
           }
-
-          possibleMoves.push(coords);
         }
 
         if (
@@ -611,7 +626,7 @@ class Chess {
       }
     }
 
-    return possibleMoves;
+    return { possibleMoves: possibleMoves, defendedTiles: defendedTiles };
   }
 }
 
