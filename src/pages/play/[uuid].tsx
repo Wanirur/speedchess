@@ -128,7 +128,7 @@ const Play: NextPage = () => {
             channel={channelRef.current}
             color={opponentsColor}
             initial={
-              opponentsColor === "white"
+              opponentsColor === "WHITE"
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }

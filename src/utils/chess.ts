@@ -2,11 +2,11 @@
 import { Coords } from "./coords";
 import {
   type PlayerColor,
-  testBoard,
   type Board,
+  type GameResult,
+  testBoard,
   whiteKing,
   blackKing,
-  type GameResult,
 } from "./pieces";
 
 class Chess {
@@ -31,8 +31,8 @@ class Chess {
     this._gameResult = value;
   }
 
-  private _movedPawns = new Array<Coords>(16);
-  private _pawnsPossibleToEnPassant = new Array<Coords>(16);
+  private _movedPawns = new Set<Coords>();
+  private _pawnPossibleToEnPassant: Coords | null = null;
   private _tilesAttackedByWhite = new Set<Coords>();
   private _tilesAttackedByBlack = new Set<Coords>();
   private _isWhiteKingChecked = false;
@@ -88,6 +88,9 @@ class Chess {
     this.board[from.y]![from.x] = null;
     this.board[to.y]![to.x] = movedPiece;
 
+    const whiteKingCoordsTemp = this._whiteKingCoords;
+    const blackKingCoordsTemp = this._blackKingCoords;
+
     if (movedPiece === whiteKing) {
       this._whiteKingCoords = to;
     } else if (movedPiece === blackKing) {
@@ -101,6 +104,7 @@ class Chess {
 
     this._calculateAttackedTiles();
     //check whether you checked your king or failed to defend existing check
+    //if cond is true then revert last move
     if (
       (playerColor === "WHITE" && this._isWhiteKingChecked) ||
       (playerColor === "BLACK" && this._isBlackKingChecked)
@@ -112,6 +116,22 @@ class Chess {
       this._tilesAttackedByBlack = tilesAttackedByBlackTemp;
       this._isWhiteKingChecked = whiteKingCheckedTemp;
       this._isBlackKingChecked = blackKingCheckedTemp;
+      this._whiteKingCoords = whiteKingCoordsTemp;
+      this._blackKingCoords = blackKingCoordsTemp;
+    }
+
+    this._pawnPossibleToEnPassant = null;
+
+    if (movedPiece.pieceType === "PAWN") {
+      if (this._movedPawns.has(from)) {
+        this._movedPawns.delete(from);
+      }
+
+      this._movedPawns.add(to);
+    
+      if(Math.abs(from.y - to.y) === 2) {
+        this._pawnPossibleToEnPassant = to;
+      }
     }
 
     //check whether checkmate has occured
@@ -127,9 +147,9 @@ class Chess {
         ).possibleMoves.length === 0
       ) {
         this._gameResult = {
-            winner: playerColor,
-            reason: "MATE"
-        }
+          winner: playerColor,
+          reason: "MATE",
+        };
       }
     }
 
@@ -340,23 +360,24 @@ class Chess {
       color,
       includeDefendedPieces
     );
+    possibleMoves.concat(attacks.possibleMoves);
+
     if (color === "WHITE") {
       coords = Coords.getInstance(position.x, position.y + 1);
     } else {
       coords = Coords.getInstance(position.x, position.y - 1);
     }
 
-    //checking only y because x is the same as moved position and is guaranteed to be correct
-    if (coords && this._currentBoard[coords.y]![coords.x] === null) {
+    if(!coords) {
+        return attacks;
+    }
+
+    if (this._currentBoard[coords.y]![coords.x] === null) {
       possibleMoves.push(coords);
       canMoveOneTile = true;
     }
 
-    if (
-      this._movedPawns.find(
-        (coords) => coords?.x === position.x && coords?.y === position.y
-      ) !== undefined
-    ) {
+    if (this._movedPawns.has(coords)) {
       return {
         possibleMoves: possibleMoves.concat(attacks.possibleMoves),
         isKingAttacked: attacks.isKingAttacked,
@@ -379,7 +400,7 @@ class Chess {
     }
 
     return {
-      possibleMoves: possibleMoves.concat(attacks.possibleMoves),
+      possibleMoves: possibleMoves,
       isKingAttacked: attacks.isKingAttacked,
     };
   }
@@ -424,7 +445,7 @@ class Chess {
         return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
       }
       if (
-        this._pawnsPossibleToEnPassant.includes(enPassantCoords) &&
+        this._pawnPossibleToEnPassant == enPassantCoords &&
         tilePossibleToEnPassant.pieceType === "PAWN" &&
         tilePossibleToEnPassant.color !== color
       ) {
