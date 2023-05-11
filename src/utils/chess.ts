@@ -35,6 +35,8 @@ class Chess {
   private _pawnPossibleToEnPassant: Coords | null = null;
   private _tilesAttackedByWhite = new Set<Coords>();
   private _tilesAttackedByBlack = new Set<Coords>();
+  private _defendedPiecesOfWhite = new Set<Coords>();
+  private _defendedPiecesOfBlack = new Set<Coords>();
   private _isWhiteKingChecked = false;
   private _isBlackKingChecked = false;
   private _whiteKingCoords: Coords;
@@ -48,23 +50,39 @@ class Chess {
     }
 
     let x;
-    let y = this._currentBoard.findIndex(
-      (row) =>
-        (x =
-          row.findIndex((piece) => piece != null && piece === whiteKing) !== -1)
-    );
+    let y;
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        if (this._currentBoard[i]![j]! === whiteKing) {
+          y = i;
+          x = j;
+        }
+      }
+    }
+
     let tempKingCoords;
-    if (!x || !y || !(tempKingCoords = Coords.getInstance(x, y))) {
+    if (
+      x === undefined ||
+      y === undefined ||
+      (tempKingCoords = Coords.getInstance(x, y)) === undefined
+    ) {
       throw new Error("board is missing a king");
     }
     this._whiteKingCoords = tempKingCoords;
 
-    y = this._currentBoard.findIndex(
-      (row) =>
-        (x =
-          row.findIndex((piece) => piece != null && piece === blackKing) !== -1)
-    );
-    if (!x || !y || !(tempKingCoords = Coords.getInstance(x, y))) {
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        if (this._currentBoard[i]![j]! === blackKing) {
+          y = i;
+          x = j;
+        }
+      }
+    }
+    if (
+      x === undefined ||
+      y === undefined ||
+      (tempKingCoords = Coords.getInstance(x, y)) === undefined
+    ) {
       throw new Error("board is missing a king");
     }
     this._blackKingCoords = tempKingCoords;
@@ -184,8 +202,8 @@ class Chess {
         );
         possibleAttacks.defendedTiles.forEach((coords) => {
           tile.color === "WHITE"
-            ? this._tilesAttackedByWhite.add(coords)
-            : this._tilesAttackedByBlack.add(coords);
+            ? this._defendedPiecesOfWhite.add(coords)
+            : this._defendedPiecesOfBlack.add(coords);
         });
 
         if (possibleAttacks.isKingAttacked) {
@@ -351,12 +369,11 @@ class Chess {
   }
 
   private _getPossiblePawnMoves(position: Coords, color: PlayerColor) {
-    const possibleMoves = [] as Coords[];
     let coords;
     let canMoveOneTile = false;
 
     const attacks = this._getPossiblePawnAttacks(position, color);
-    possibleMoves.concat(attacks.possibleMoves);
+    const possibleMoves = attacks.possibleMoves;
 
     if (color === "WHITE") {
       coords = Coords.getInstance(position.x, position.y + 1);
@@ -387,7 +404,6 @@ class Chess {
       coords = Coords.getInstance(position.x, position.y - 2);
     }
 
-    //checking only y because x is the same as moved position and is guaranteed to be correct
     if (
       coords &&
       canMoveOneTile &&
@@ -607,8 +623,8 @@ class Chess {
           if (tile_color !== color) {
             if (
               color === "WHITE"
-                ? !this._tilesAttackedByBlack.has(coords)
-                : !this._tilesAttackedByWhite.has(coords)
+                ? !this._defendedPiecesOfBlack.has(coords)
+                : !this._defendedPiecesOfWhite.has(coords)
             )
               possibleMoves.push(coords);
           } else {
