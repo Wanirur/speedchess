@@ -31,6 +31,23 @@ export const whitePawn = { pieceType: "Pawn", color: "white" } as Piece;
 export const blackPawn = { ...whitePawn, color: "black" } as Piece;
 
 export type Tile = Piece | null;
+export type Board = Tile[][];
+
+const finishReason = [
+  "RESIGNATION",
+  "MATE",
+  "TIMEOUT",
+  "ABANDONMENT",
+  "AGREEMENT",
+  "STALEMATE",
+  "REPETITION",
+  "FIFTY_MOVE"
+] as const;
+
+export type GameResult = {
+  winner: PlayerColor | "draw";
+  reason: (typeof finishReason)[number];
+}; 
 
 const pieces = new Map<string, string>();
 pieces.set(JSON.stringify(whiteRook), "/white_rook.svg");
