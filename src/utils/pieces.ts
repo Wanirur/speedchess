@@ -2,33 +2,33 @@ import { type Coords } from "./coords";
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 export const PieceTypes = [
-  "Pawn",
-  "Knight",
-  "Bishop",
-  "Rook",
-  "Queen",
-  "King",
+  "PAWN",
+  "KNIGHT",
+  "BISHOP",
+  "ROOK",
+  "QUEEN",
+  "KING",
 ] as const;
 
-export type PlayerColor = "white" | "black";
+export type PlayerColor = "WHITE" | "BLACK";
 
 export type Piece = {
   color: PlayerColor;
   pieceType: (typeof PieceTypes)[number];
 };
 
-export const whiteRook = { pieceType: "Rook", color: "white" } as Piece;
-export const blackRook = { ...whiteRook, color: "black" } as Piece;
-export const whiteBishop = { pieceType: "Bishop", color: "white" } as Piece;
-export const blackBishop = { ...whiteBishop, color: "black" } as Piece;
-export const whiteKnight = { pieceType: "Knight", color: "white" } as Piece;
-export const blackKnight = { ...whiteKnight, color: "black" } as Piece;
-export const whiteKing = { pieceType: "King", color: "white" } as Piece;
-export const blackKing = { ...whiteKing, color: "black" } as Piece;
-export const whiteQueen = { pieceType: "Queen", color: "white" } as Piece;
-export const blackQueen = { ...whiteQueen, color: "black" } as Piece;
-export const whitePawn = { pieceType: "Pawn", color: "white" } as Piece;
-export const blackPawn = { ...whitePawn, color: "black" } as Piece;
+export const whiteRook = { pieceType: "ROOK", color: "WHITE" } as Piece;
+export const blackRook = { ...whiteRook, color: "BLACK" } as Piece;
+export const whiteBishop = { pieceType: "BISHOP", color: "WHITE" } as Piece;
+export const blackBishop = { ...whiteBishop, color: "BLACK" } as Piece;
+export const whiteKnight = { pieceType: "KNIGHT", color: "WHITE" } as Piece;
+export const blackKnight = { ...whiteKnight, color: "BLACK" } as Piece;
+export const whiteKing = { pieceType: "KING", color: "WHITE" } as Piece;
+export const blackKing = { ...whiteKing, color: "BLACK" } as Piece;
+export const whiteQueen = { pieceType: "QUEEN", color: "WHITE" } as Piece;
+export const blackQueen = { ...whiteQueen, color: "BLACK" } as Piece;
+export const whitePawn = { pieceType: "PAWN", color: "WHITE" } as Piece;
+export const blackPawn = { ...whitePawn, color: "BLACK" } as Piece;
 
 export type Tile = Piece | null;
 export type Board = Tile[][];
@@ -41,13 +41,13 @@ const finishReason = [
   "AGREEMENT",
   "STALEMATE",
   "REPETITION",
-  "FIFTY_MOVE"
+  "FIFTY_MOVE",
 ] as const;
 
 export type GameResult = {
-  winner: PlayerColor | "draw";
+  winner: PlayerColor | "DRAW";
   reason: (typeof finishReason)[number];
-}; 
+};
 
 const pieces = new Map<string, string>();
 pieces.set(JSON.stringify(whiteRook), "/white_rook.svg");
@@ -69,23 +69,27 @@ export const resolvePieceToImage = (piece: Piece) => {
 
 export const testBoard = () => {
   const board = new Array<Tile[]>(8);
-  for(let i = 0; i < 8; i++) {
+  for (let i = 0; i < 8; i++) {
     board[i] = new Array<Tile>(8).fill(null);
   }
   return board;
-}
+};
 
-export const addToTestBoard = (board: Tile[][], piece: Piece, coords: Coords | undefined) => {
-  if(!coords) {
+export const addToTestBoard = (
+  board: Tile[][],
+  piece: Piece,
+  coords: Coords | undefined
+) => {
+  if (!coords) {
     return board;
   }
   board[coords.y]![coords.x] = piece;
   return board;
-}
+};
 
 export const initBoard = () => {
   const board = new Array<Tile[]>(8);
-  for(let i = 0; i < 8; i++) {
+  for (let i = 0; i < 8; i++) {
     board[i] = new Array<Tile>(8).fill(null);
   }
   const white_row = board[0]!;

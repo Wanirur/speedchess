@@ -41,7 +41,7 @@ const Test: NextPage = () => {
     <div className="flex h-screen items-center justify-center bg-neutral-900">
       <Chessboard
         uuid={"test"}
-        color={"white"}
+        color={"WHITE"}
         isYourTurn={true}
         board={board}
       ></Chessboard>

@@ -48,7 +48,7 @@ const Play: NextPage = () => {
             return {
               ...old,
               board: movePiece(old.board, move.fromTile, move.toTile),
-              turn: old.turn === "white" ? "black" : "white",
+              turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
             };
           });
         };
@@ -104,7 +104,7 @@ const Play: NextPage = () => {
   }, [router.isReady, uuid]);
 
   const opponentsColor =
-    isSuccess && gameState.color === "white" ? "black" : "white";
+    isSuccess && gameState.color === "WHITE" ? "BLACK" : "WHITE";
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
@@ -147,7 +147,7 @@ const Play: NextPage = () => {
             channel={channelRef.current}
             color={gameState.color}
             initial={
-              gameState.color === "white"
+              gameState.color === "WHITE"
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }

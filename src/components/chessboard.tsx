@@ -30,7 +30,7 @@ const Chessboard: React.FC<{
       {chessRef.current !== null && (
         <div
           className={`container flex h-max w-max ${
-            color === "white" ? "flex-col-reverse" : "flex-col"
+            color === "WHITE" ? "flex-col-reverse" : "flex-col"
           } gap-0`}
         >
           {board.map((row, row_index) => (
@@ -45,7 +45,7 @@ const Chessboard: React.FC<{
                   isWhite = !isWhite;
                 }
 
-                if (color === "white") {
+                if (color === "WHITE") {
                   isWhite = !isWhite;
                 }
 

@@ -107,8 +107,8 @@ export const chessgameRouter = createTRPCRouter({
         board: match.board,
         whiteMilisLeft: whiteTime,
         blackMilisLeft: blackTime,
-        color: (user.id === match.white.id ? "white" : "black") as PlayerColor,
-        turn: (match.turn === match.white ? "white" : "black") as PlayerColor,
+        color: (user.id === match.white.id ? "WHITE" : "BLACK") as PlayerColor,
+        turn: (match.turn === match.white ? "WHITE" : "BLACK") as PlayerColor,
       };
     }),
   movePiece: protectedProcedure

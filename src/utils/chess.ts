@@ -102,8 +102,8 @@ class Chess {
     this._calculateAttackedTiles();
     //check whether you checked your king or failed to defend existing check
     if (
-      (playerColor === "white" && this._isWhiteKingChecked) ||
-      (playerColor === "black" && this._isBlackKingChecked)
+      (playerColor === "WHITE" && this._isWhiteKingChecked) ||
+      (playerColor === "BLACK" && this._isBlackKingChecked)
     ) {
       //history cannot be empty - first element is assigned in the constructor and no elements are removed
       // - non-null assertion allowed
@@ -116,12 +116,12 @@ class Chess {
 
     //check whether checkmate has occured
     if (
-      (playerColor === "white" && this._isBlackKingChecked) ||
-      (playerColor === "black" && this._isWhiteKingChecked)
+      (playerColor === "WHITE" && this._isBlackKingChecked) ||
+      (playerColor === "BLACK" && this._isWhiteKingChecked)
     ) {
       if (
         this.getPossibleMoves(
-          playerColor === "white"
+          playerColor === "WHITE"
             ? this._whiteKingCoords
             : this._blackKingCoords
         ).possibleMoves.length === 0
@@ -146,35 +146,35 @@ class Chess {
       return { possibleMoves: possibleMoves, isKingAttacked: false };
     }
 
-    if (piece.pieceType === "Rook") {
+    if (piece.pieceType === "ROOK") {
       return this._getPossibleRookMoves(
         position,
         piece.color,
         includeDefendedPieces
       );
     }
-    if (piece.pieceType === "Pawn") {
+    if (piece.pieceType === "PAWN") {
       return this._getPossiblePawnMoves(
         position,
         piece.color,
         includeDefendedPieces
       );
     }
-    if (piece.pieceType === "Bishop") {
+    if (piece.pieceType === "BISHOP") {
       return this._getPossibleBishopMoves(
         position,
         piece.color,
         includeDefendedPieces
       );
     }
-    if (piece.pieceType === "Queen") {
+    if (piece.pieceType === "QUEEN") {
       return this._getPossibleQueenMoves(
         position,
         piece.color,
         includeDefendedPieces
       );
     }
-    if (piece.pieceType === "King") {
+    if (piece.pieceType === "KING") {
       return {
         possibleMoves: this._getPossibleKingMoves(
           position,
@@ -184,7 +184,7 @@ class Chess {
         isKingAttacked: false,
       };
     }
-    if (piece.pieceType === "Knight") {
+    if (piece.pieceType === "KNIGHT") {
       return this._getPossibleKnightMoves(
         position,
         piece.color,
@@ -213,17 +213,17 @@ class Chess {
           continue;
         }
         const possibleAttacks =
-          tile.pieceType === "Pawn"
+          tile.pieceType === "PAWN"
             ? this._getPossiblePawnAttacks(coords, tile.color, true)
             : this.getPossibleMoves(coords);
         possibleAttacks.possibleMoves.forEach((coords) =>
-          tile.color === "white"
+          tile.color === "WHITE"
             ? this._tilesAttackedByWhite.add(coords)
             : this._tilesAttackedByBlack.add(coords)
         );
 
         if (possibleAttacks.isKingAttacked) {
-          if (tile.color === "white") {
+          if (tile.color === "WHITE") {
             isBlackKingCheckedThisTurn = true;
           } else {
             isWhiteKingCheckedThisTurn = true;
@@ -256,7 +256,7 @@ class Chess {
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "King" && tile.color !== color) {
+          if (tile?.pieceType === "KING" && tile.color !== color) {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
@@ -275,7 +275,7 @@ class Chess {
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "King" && tile.color !== color) {
+          if (tile?.pieceType === "KING" && tile.color !== color) {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
@@ -295,7 +295,7 @@ class Chess {
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "King" && tile.color !== color) {
+          if (tile?.pieceType === "KING" && tile.color !== color) {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
@@ -313,7 +313,7 @@ class Chess {
       const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
       if (tile !== null) {
         if (includeDefendedPieces || tile?.color !== color) {
-          if (tile?.pieceType === "King" && tile.color !== color) {
+          if (tile?.pieceType === "KING" && tile.color !== color) {
             isKingAttacked = true;
           }
           possibleMoves.push(currentCoords);
@@ -340,7 +340,7 @@ class Chess {
       color,
       includeDefendedPieces
     );
-    if (color === "white") {
+    if (color === "WHITE") {
       coords = Coords.getInstance(position.x, position.y + 1);
     } else {
       coords = Coords.getInstance(position.x, position.y - 1);
@@ -363,7 +363,7 @@ class Chess {
       };
     }
 
-    if (color === "white") {
+    if (color === "WHITE") {
       coords = Coords.getInstance(position.x, position.y + 2);
     } else {
       coords = Coords.getInstance(position.x, position.y - 2);
@@ -393,7 +393,7 @@ class Chess {
       const possibleMoves = [] as Coords[];
       let isKingAttacked = false;
       let coords;
-      if (color === "white") {
+      if (color === "WHITE") {
         coords = Coords.getInstance(position.x + xDiff, position.y + 1);
       } else {
         coords = Coords.getInstance(position.x + xDiff, position.y - 1);
@@ -407,7 +407,7 @@ class Chess {
         return { possibleMoves: possibleMoves, isKingAttacked: isKingAttacked };
       }
       if (coords && (includeDefendedPieces || tile.color !== color)) {
-        if (tile.pieceType === "King" && tile.color !== color) {
+        if (tile.pieceType === "KING" && tile.color !== color) {
           isKingAttacked = true;
         }
         possibleMoves.push(coords);
@@ -425,7 +425,7 @@ class Chess {
       }
       if (
         this._pawnsPossibleToEnPassant.includes(enPassantCoords) &&
-        tilePossibleToEnPassant.pieceType === "Pawn" &&
+        tilePossibleToEnPassant.pieceType === "PAWN" &&
         tilePossibleToEnPassant.color !== color
       ) {
         possibleMoves.push(enPassantCoords);
@@ -473,7 +473,7 @@ class Chess {
         const tile = this._currentBoard[coords.y]![coords.x];
         if (tile !== null) {
           if (includeDefendedPieces || tile?.color !== color) {
-            if (tile?.pieceType === "King" && tile.color !== color) {
+            if (tile?.pieceType === "KING" && tile.color !== color) {
               isKingAttacked = true;
             }
             possibleMoves.push(coords);
@@ -539,7 +539,7 @@ class Chess {
       } else {
         if (includeDefendedPieces || tile.color !== color) {
           possibleMoves.push(coords);
-          if (tile.pieceType == "King" && tile.color !== color) {
+          if (tile.pieceType == "KING" && tile.color !== color) {
             isKingAttacked = true;
           }
         }
@@ -570,7 +570,7 @@ class Chess {
           const tile_color = tile.color;
           if (
             !includeDefendedPieces &&
-            (tile_color === color || color === "white"
+            (tile_color === color || color === "WHITE"
               ? this._tilesAttackedByBlack.has(coords)
               : this._tilesAttackedByWhite.has(coords))
           ) {
@@ -581,7 +581,7 @@ class Chess {
         }
 
         if (
-          color === "white"
+          color === "WHITE"
             ? !this._tilesAttackedByBlack.has(coords)
             : !this._tilesAttackedByWhite.has(coords)
         ) {
