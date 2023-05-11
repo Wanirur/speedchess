@@ -170,6 +170,13 @@ class Chess {
         };
       }
     }
+    //check stalemates
+    if (
+      (playerColor === "WHITE" && this._tilesAttackedByWhite.size === 0) ||
+      (playerColor === "BLACK" && this._tilesAttackedByBlack.size === 0)
+    ) {
+      this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
+    }
 
     return this.board;
   }
@@ -271,6 +278,7 @@ class Chess {
 
   private _getPossibleRookMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
+    const possibleCaptures = [] as Coords[];
     const defendedTiles = [] as Coords[];
     let isKingAttacked = false;
     let start = position.x;
@@ -280,13 +288,13 @@ class Chess {
       if (!currentCoords) {
         break;
       }
-      const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
+      const tile = this._currentBoard[currentCoords.y]![currentCoords.x]!;
       if (tile !== null) {
         if (tile?.color !== color) {
           if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
-          possibleMoves.push(currentCoords);
+          possibleCaptures.push(currentCoords);
         } else {
           defendedTiles.push(currentCoords);
         }
@@ -307,7 +315,7 @@ class Chess {
           if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
-          possibleMoves.push(currentCoords);
+          possibleCaptures.push(currentCoords);
         } else {
           defendedTiles.push(currentCoords);
         }
@@ -330,7 +338,7 @@ class Chess {
           if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
-          possibleMoves.push(currentCoords);
+          possibleCaptures.push(currentCoords);
         } else {
           defendedTiles.push(currentCoords);
         }
@@ -351,7 +359,7 @@ class Chess {
           if (tile?.pieceType === "KING") {
             isKingAttacked = true;
           }
-          possibleMoves.push(currentCoords);
+          possibleCaptures.push(currentCoords);
         } else {
           defendedTiles.push(currentCoords);
         }
@@ -363,6 +371,7 @@ class Chess {
 
     return {
       possibleMoves: possibleMoves,
+      possibleCaptures: possibleCaptures,
       defendedTiles: defendedTiles,
       isKingAttacked: isKingAttacked,
     };
@@ -373,7 +382,8 @@ class Chess {
     let canMoveOneTile = false;
 
     const attacks = this._getPossiblePawnAttacks(position, color);
-    const possibleMoves = attacks.possibleMoves;
+    const possibleMoves = [] as Coords[];
+    const possibleCaptures = attacks.possibleMoves;
 
     if (color === "WHITE") {
       coords = Coords.getInstance(position.x, position.y + 1);
@@ -382,7 +392,12 @@ class Chess {
     }
 
     if (!coords) {
-      return attacks;
+      return {
+        possibleMoves: possibleMoves,
+        possibleCaptures: possibleCaptures,
+        defendedTiles: attacks.defendedTiles,
+        isKingAttacked: attacks.isKingAttacked,
+      };
     }
 
     if (this._currentBoard[coords.y]![coords.x] === null) {
@@ -393,6 +408,7 @@ class Chess {
     if (this._movedPawns.has(coords)) {
       return {
         possibleMoves: possibleMoves,
+        possibleCaptures: possibleCaptures,
         defendedTiles: attacks.defendedTiles,
         isKingAttacked: attacks.isKingAttacked,
       };
@@ -414,6 +430,7 @@ class Chess {
 
     return {
       possibleMoves: possibleMoves,
+      possibleCaptures: possibleCaptures,
       defendedTiles: attacks.defendedTiles,
       isKingAttacked: attacks.isKingAttacked,
     };
@@ -504,6 +521,7 @@ class Chess {
 
   private _getPossibleBishopMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
+    const possibleCaptures = [] as Coords[];
     const defendedTiles = [] as Coords[];
     let isKingAttacked = false;
     const breaks = [false, false, false, false];
@@ -530,7 +548,7 @@ class Chess {
             if (tile?.pieceType === "KING" && tile.color !== color) {
               isKingAttacked = true;
             }
-            possibleMoves.push(coords);
+            possibleCaptures.push(coords);
           } else {
             defendedTiles.push(coords);
           }
@@ -544,6 +562,7 @@ class Chess {
 
     return {
       possibleMoves: possibleMoves,
+      possibleCaptures: possibleCaptures,
       defendedTiles: defendedTiles,
       isKingAttacked: isKingAttacked,
     };
@@ -559,9 +578,13 @@ class Chess {
     const defendedTiles = rookResult.defendedTiles.concat(
       bishopResult.defendedTiles
     );
+    const possibleCaptures = rookResult.possibleCaptures.concat(
+      bishopResult.possibleCaptures
+    );
 
     return {
       possibleMoves: possibleMoves,
+      possibleCaptures: possibleCaptures,
       defendedTiles: defendedTiles,
       isKingAttacked: rookResult.isKingAttacked || bishopResult.isKingAttacked,
     };
@@ -571,6 +594,7 @@ class Chess {
     let isKingAttacked = false;
     const possibleMoves = [] as Coords[];
     const defendedTiles = [] as Coords[];
+    const possibleCaptures = [] as Coords[];
     const xDiff = [1, 1, -1, -1, 2, 2, -2, -2];
     const yDiff = [2, -2, 2, -2, 1, -1, 1, -1];
     for (let i = 0; i < 8; i++) {
@@ -587,7 +611,7 @@ class Chess {
         possibleMoves.push(coords);
       } else {
         if (tile.color !== color) {
-          possibleMoves.push(coords);
+          possibleCaptures.push(coords);
           if (tile.pieceType == "KING") {
             isKingAttacked = true;
           }
@@ -599,6 +623,7 @@ class Chess {
 
     return {
       possibleMoves: possibleMoves,
+      possibleCaptures: possibleCaptures,
       defendedTiles: defendedTiles,
       isKingAttacked: isKingAttacked,
     };
@@ -607,6 +632,8 @@ class Chess {
   private _getPossibleKingMoves(position: Coords, color: PlayerColor) {
     const possibleMoves = [] as Coords[];
     const defendedTiles = [] as Coords[];
+    const possibleCaptures = [] as Coords[];
+
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
         if (i === 0 && j === 0) {
@@ -626,7 +653,7 @@ class Chess {
                 ? !this._defendedPiecesOfBlack.has(coords)
                 : !this._defendedPiecesOfWhite.has(coords)
             )
-              possibleMoves.push(coords);
+              possibleCaptures.push(coords);
           } else {
             defendedTiles.push(coords);
           }
@@ -642,7 +669,11 @@ class Chess {
       }
     }
 
-    return { possibleMoves: possibleMoves, defendedTiles: defendedTiles };
+    return {
+      possibleMoves: possibleMoves,
+      possibleCaptures: possibleCaptures,
+      defendedTiles: defendedTiles,
+    };
   }
 }
 
