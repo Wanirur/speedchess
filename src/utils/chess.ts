@@ -14,6 +14,11 @@ type KingCheck = {
   possibleBlocks: Coords[];
 };
 
+type Pin = {
+  attackingPiece: Coords;
+  pinnedPiece: Coords;
+};
+
 type PieceMoves = {
   possibleMoves: Coords[];
   possibleCaptures: Coords[];
@@ -53,8 +58,10 @@ class Chess {
   private _possibleCapturesOfBlack = new Set<Coords>();
   private _isWhiteKingChecked = false;
   private _isBlackKingChecked = false;
-  private _whiteKingChecks = new Set<KingCheck>();
-  private _blackKingChecks = new Set<KingCheck>();
+  private _kingChecksByWhite = new Set<KingCheck>();
+  private _kingChecksByBlack = new Set<KingCheck>();
+  private _pinsByWhite = new Set<Pin>();
+  private _pinsByBlack = new Set<Pin>();
   private _whiteKingCoords: Coords;
   private _blackKingCoords: Coords;
 
@@ -170,23 +177,11 @@ class Chess {
 
     //check whether checkmate has occured
     if (
-      (playerColor === "WHITE" && this._isBlackKingChecked) ||
-      (playerColor === "BLACK" && this._isWhiteKingChecked)
+      this._hasCheckmateOccured(playerColor === "WHITE" ? "BLACK" : "WHITE")
     ) {
-      if (
-        this.getPossibleMoves(
-          playerColor === "WHITE"
-            ? this._whiteKingCoords
-            : this._blackKingCoords
-        ).possibleMoves.length === 0
-      ) {
-        this._gameResult = {
-          winner: playerColor,
-          reason: "MATE",
-        };
-      }
+      this._gameResult = { winner: playerColor, reason: "MATE" };
     }
-    //check stalemates
+
     if (
       (playerColor === "WHITE" &&
         this._tilesAttackedByWhite.size === 0 &&
@@ -195,6 +190,7 @@ class Chess {
         this._tilesAttackedByBlack.size === 0 &&
         this._possibleCapturesOfBlack.size === 0)
     ) {
+      //check stalemates
       this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
     }
 
@@ -241,8 +237,10 @@ class Chess {
         if (possibleAttacks.kingCheck) {
           if (tile.color === "WHITE") {
             isBlackKingCheckedThisTurn = true;
+            this._kingChecksByWhite.add(possibleAttacks.kingCheck);
           } else {
             isWhiteKingCheckedThisTurn = true;
+            this._kingChecksByBlack.add(possibleAttacks.kingCheck);
           }
         }
         x++;
@@ -253,6 +251,70 @@ class Chess {
 
     this._isWhiteKingChecked = isWhiteKingCheckedThisTurn;
     this._isBlackKingChecked = isBlackKingCheckedThisTurn;
+  }
+
+  private _hasCheckmateOccured(kingColor: PlayerColor) {
+    if (
+      (kingColor === "BLACK" && !this._isBlackKingChecked) ||
+      (kingColor === "WHITE" && !this._isWhiteKingChecked)
+    ) {
+      return false;
+    }
+
+    let kingMoves: PieceMoves,
+      checks: Set<KingCheck>,
+      captures: Set<Coords>,
+      attacks: Set<Coords>;
+    if (kingColor === "WHITE") {
+      kingMoves = this.getPossibleMoves(this._whiteKingCoords);
+      checks = this._kingChecksByBlack;
+      captures = this._possibleCapturesOfWhite;
+      attacks = this._tilesAttackedByWhite;
+    } else {
+      kingMoves = this.getPossibleMoves(this._blackKingCoords);
+      checks = this._kingChecksByWhite;
+      captures = this._possibleCapturesOfBlack;
+      attacks = this._tilesAttackedByBlack;
+    }
+
+    if (
+      kingMoves.possibleMoves.length !== 0 ||
+      kingMoves.possibleCaptures.length !== 0
+    ) {
+      return false;
+    }
+
+    const defendingMoves = new Array<Coords[]>(checks.size);
+    for (let i = 0; i < checks.size; i++) {
+      defendingMoves[i] = [];
+    }
+
+    let index = 0;
+    checks.forEach((check) => {
+      if (captures.has(check.attackingPieceCoords)) {
+        defendingMoves[index]!.push(check.attackingPieceCoords);
+      }
+
+      const blocks = check.possibleBlocks.filter(
+        (block) => attacks.has(block) || captures.has(block)
+      );
+      blocks.forEach((block) => {
+        defendingMoves[index]!.push(block);
+      });
+      index++;
+    });
+
+    const reduceResult = defendingMoves.reduce((prev, curr) =>
+      prev.filter((x) => curr.includes(x))
+    );
+
+    if (reduceResult.length === 0) {
+      return true;
+    }
+
+    //check whether pieces that can defend the mate are pinned to the king
+    //TODO: do it!
+    return;
   }
 
   public getPossibleMoves(position: Coords): PieceMoves {
