@@ -15,15 +15,16 @@ type KingCheck = {
 };
 
 type Pin = {
-  attackingPiece: Coords;
   pinnedPiece: Coords;
+  possibleMoves: Coords[];
 };
 
-type PieceMoves = {
+type PieceInteractions = {
   possibleMoves: Coords[];
   possibleCaptures: Coords[];
   defendedPieces: Coords[];
   kingCheck: KingCheck | undefined;
+  pin: Pin | undefined;
 };
 
 class Chess {
@@ -60,8 +61,8 @@ class Chess {
   private _isBlackKingChecked = false;
   private _kingChecksByWhite = new Set<KingCheck>();
   private _kingChecksByBlack = new Set<KingCheck>();
-  private _pinsByWhite = new Set<Pin>();
-  private _pinsByBlack = new Set<Pin>();
+  private _pinsByWhite = new Map<Coords, Pin>();
+  private _pinsByBlack = new Map<Coords, Pin>();
   private _whiteKingCoords: Coords;
   private _blackKingCoords: Coords;
 
@@ -209,29 +210,62 @@ class Chess {
           x++;
           continue;
         }
-        const coords = Coords.getInstance(x, y);
-        if (!coords) {
+        const pieceCoords = Coords.getInstance(x, y);
+        if (!pieceCoords) {
           x++;
           continue;
         }
         const possibleAttacks =
           tile.pieceType === "PAWN"
-            ? this._getPossiblePawnAttacks(coords, tile.color)
-            : this.getPossibleMoves(coords);
-        possibleAttacks.possibleMoves.forEach((coords) =>
-          tile.color === "WHITE"
-            ? this._tilesAttackedByWhite.add(coords)
-            : this._tilesAttackedByBlack.add(coords)
-        );
-        possibleAttacks.defendedPieces.forEach((coords) => {
-          tile.color === "WHITE"
-            ? this._defendedPiecesOfWhite.add(coords)
-            : this._defendedPiecesOfBlack.add(coords);
+            ? this._getPossiblePawnAttacks(pieceCoords, tile.color)
+            : this.getPossibleMoves(pieceCoords);
+        possibleAttacks.possibleMoves.forEach((possibleAttack) => {
+          if (tile.color === "WHITE") {
+            const pin = this._pinsByBlack.get(pieceCoords);
+            if (pin && !pin.possibleMoves.includes(possibleAttack)) {
+              return;
+            }
+
+            this._tilesAttackedByWhite.add(possibleAttack);
+          } else {
+            const pin = this._pinsByWhite.get(pieceCoords);
+            if (pin && !pin.possibleMoves.includes(possibleAttack)) {
+              return;
+            }
+            this._tilesAttackedByBlack.add(possibleAttack);
+          }
         });
-        possibleAttacks.possibleCaptures.forEach((coords) => {
-          tile.color === "WHITE"
-            ? this._possibleCapturesOfWhite.add(coords)
-            : this._possibleCapturesOfWhite.add(coords);
+        possibleAttacks.defendedPieces.forEach((defendedPiece) => {
+          if (tile.color === "WHITE") {
+            const pin = this._pinsByBlack.get(pieceCoords);
+            if (pin && !pin.possibleMoves.includes(defendedPiece)) {
+              return;
+            }
+
+            this._defendedPiecesOfWhite.add(defendedPiece);
+          } else {
+            const pin = this._pinsByWhite.get(pieceCoords);
+            if (pin && !pin.possibleMoves.includes(defendedPiece)) {
+              return;
+            }
+            this._defendedPiecesOfBlack.add(defendedPiece);
+          }
+        });
+        possibleAttacks.possibleCaptures.forEach((possibleCapture) => {
+          if (tile.color === "WHITE") {
+            const pin = this._pinsByBlack.get(pieceCoords);
+            if (pin && !pin.possibleMoves.includes(possibleCapture)) {
+              return;
+            }
+
+            this._possibleCapturesOfWhite.add(possibleCapture);
+          } else {
+            const pin = this._pinsByWhite.get(pieceCoords);
+            if (pin && !pin.possibleMoves.includes(possibleCapture)) {
+              return;
+            }
+            this._possibleCapturesOfBlack.add(possibleCapture);
+          }
         });
 
         if (possibleAttacks.kingCheck) {
@@ -241,6 +275,20 @@ class Chess {
           } else {
             isWhiteKingCheckedThisTurn = true;
             this._kingChecksByBlack.add(possibleAttacks.kingCheck);
+          }
+        }
+
+        if (possibleAttacks.pin) {
+          if (tile.color === "WHITE") {
+            this._pinsByWhite.set(
+              possibleAttacks.pin.pinnedPiece,
+              possibleAttacks.pin
+            );
+          } else {
+            this._pinsByBlack.set(
+              possibleAttacks.pin.pinnedPiece,
+              possibleAttacks.pin
+            );
           }
         }
         x++;
@@ -261,7 +309,7 @@ class Chess {
       return false;
     }
 
-    let kingMoves: PieceMoves,
+    let kingMoves: PieceInteractions,
       checks: Set<KingCheck>,
       captures: Set<Coords>,
       attacks: Set<Coords>;
@@ -317,23 +365,22 @@ class Chess {
     return;
   }
 
-  public getPossibleMoves(position: Coords): PieceMoves {
+  public getPossibleMoves(position: Coords): PieceInteractions {
+    const emptyMoves = {
+      possibleMoves: [] as Coords[],
+      possibleCaptures: [] as Coords[],
+      defendedPieces: [] as Coords[],
+      kingCheck: undefined,
+      pin: undefined,
+    };
+
     if (!position) {
-      return {
-        possibleMoves: [] as Coords[],
-        possibleCaptures: [] as Coords[],
-        defendedPieces: [] as Coords[],
-        kingCheck: undefined,
-      };
+      return emptyMoves;
     }
+
     const piece = this._currentBoard[position.y]![position.x]!;
     if (piece === null) {
-      return {
-        possibleMoves: [] as Coords[],
-        possibleCaptures: [] as Coords[],
-        defendedPieces: [] as Coords[],
-        kingCheck: undefined,
-      };
+      return emptyMoves;
     }
 
     if (piece.pieceType === "ROOK") {
@@ -355,141 +402,146 @@ class Chess {
       return this._getPossibleKnightMoves(position, piece.color);
     }
 
-    return {
-      possibleMoves: [] as Coords[],
-      possibleCaptures: [] as Coords[],
-      defendedPieces: [] as Coords[],
-      kingCheck: undefined,
-    };
+    return emptyMoves;
   }
 
   private _getPossibleRookMoves(
     position: Coords,
     color: PlayerColor
-  ): PieceMoves {
-    const possibleMoves = [] as Coords[];
-    const possibleCaptures = [] as Coords[];
-    const defendedTiles = [] as Coords[];
+  ): PieceInteractions {
+    const checkLine = (xDiff: number, yDiff: number) => {
+      const possibleMoves = [] as Coords[];
+      const possibleCaptures = [] as Coords[];
+      const defendedTiles = [] as Coords[];
+      let kingCheck: KingCheck | undefined = undefined;
+      let pin: Pin | undefined = undefined;
+      let hasPinOccured = false;
+
+      for (let i = 0; i < 8; i++) {
+        const currentCoords = Coords.getInstance(
+          position.x + xDiff * i,
+          position.y + yDiff * i
+        );
+        if (!currentCoords) {
+          break;
+        }
+        const tile = this._currentBoard[currentCoords.y]![currentCoords.x]!;
+        if (tile === null) {
+          if (pin) {
+            pin.possibleMoves.push(currentCoords);
+          } else {
+            possibleMoves.push(currentCoords);
+          }
+        }
+
+        if (tile.color === color) {
+          defendedTiles.push(currentCoords);
+          break;
+        }
+
+        possibleCaptures.push(currentCoords);
+        if (tile.pieceType === "KING") {
+          if (pin) {
+            hasPinOccured = true;
+          } else {
+            kingCheck = {
+              attackingPieceCoords: position,
+              possibleBlocks: [...possibleMoves],
+            };
+          }
+
+          break;
+        }
+
+        if (pin) {
+          break;
+        }
+
+        pin = {
+          pinnedPiece: currentCoords,
+          possibleMoves: [...possibleMoves],
+        };
+      }
+
+      return {
+        possibleMoves: possibleMoves,
+        possibleCaptures: possibleCaptures,
+        defendedPieces: defendedTiles,
+        kingCheck: kingCheck,
+        pin: hasPinOccured ? pin : undefined,
+      };
+    };
+
+    const left = checkLine(-1, 0);
+    const right = checkLine(1, 0);
+    const down = checkLine(0, -1);
+    const up = checkLine(0, 1);
+
+    const possibleMoves = [
+      ...left.possibleMoves,
+      ...right.possibleMoves,
+      ...down.possibleMoves,
+      ...up.possibleMoves,
+    ];
+    const possibleCaptures = [
+      ...left.possibleCaptures,
+      ...right.possibleCaptures,
+      ...down.possibleCaptures,
+      ...up.possibleCaptures,
+    ];
+    const defendedPieces = [
+      ...left.defendedPieces,
+      ...right.defendedPieces,
+      ...down.defendedPieces,
+      ...up.defendedPieces,
+    ];
     let kingCheck: KingCheck | undefined = undefined;
-    let start = position.x;
-
-    for (let i = start + 1; i < 8; i++) {
-      const currentCoords = Coords.getInstance(i, position.y);
-      if (!currentCoords) {
-        break;
-      }
-      const tile = this._currentBoard[currentCoords.y]![currentCoords.x]!;
-      if (tile !== null) {
-        if (tile?.color !== color) {
-          if (tile?.pieceType === "KING") {
-            kingCheck = {
-              attackingPieceCoords: position,
-              possibleBlocks: possibleMoves.slice(start + 1 - i),
-            };
-          }
-          possibleCaptures.push(currentCoords);
-        } else {
-          defendedTiles.push(currentCoords);
-        }
-
-        break;
-      }
-      possibleMoves.push(currentCoords);
+    if (left.kingCheck) {
+      kingCheck = left.kingCheck;
+    } else if (right.kingCheck) {
+      kingCheck = right.kingCheck;
+    } else if (down.kingCheck) {
+      kingCheck = down.kingCheck;
+    } else if (up.kingCheck) {
+      kingCheck = up.kingCheck;
     }
 
-    for (let i = start - 1; i >= 0; i--) {
-      const currentCoords = Coords.getInstance(i, position.y);
-      if (!currentCoords) {
-        break;
-      }
-      const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
-      if (tile !== null) {
-        if (tile?.color !== color) {
-          if (tile?.pieceType === "KING") {
-            kingCheck = {
-              attackingPieceCoords: position,
-              possibleBlocks: possibleMoves.slice(start + 1 - i),
-            };
-          }
-          possibleCaptures.push(currentCoords);
-        } else {
-          defendedTiles.push(currentCoords);
-        }
-
-        break;
-      }
-      possibleMoves.push(currentCoords);
+    let pin: Pin | undefined = undefined;
+    if (left.pin) {
+      pin = left.pin;
+    } else if (right.pin) {
+      pin = right.pin;
+    } else if (down.pin) {
+      pin = down.pin;
+    } else if (up.pin) {
+      pin = up.pin;
     }
-
-    start = position.y;
-
-    for (let i = start + 1; i < 8; i++) {
-      const currentCoords = Coords.getInstance(position.x, i);
-      if (!currentCoords) {
-        break;
-      }
-      const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
-      if (tile !== null) {
-        if (tile?.color !== color) {
-          if (tile?.pieceType === "KING") {
-            kingCheck = {
-              attackingPieceCoords: position,
-              possibleBlocks: possibleMoves.slice(start + 1 - i),
-            };
-          }
-          possibleCaptures.push(currentCoords);
-        } else {
-          defendedTiles.push(currentCoords);
-        }
-
-        break;
-      }
-      possibleMoves.push(currentCoords);
-    }
-
-    for (let i = start - 1; i >= 0; i--) {
-      const currentCoords = Coords.getInstance(position.x, i);
-      if (!currentCoords) {
-        break;
-      }
-      const tile = this._currentBoard[currentCoords.y]?.[currentCoords.x];
-      if (tile !== null) {
-        if (tile?.color !== color) {
-          if (tile?.pieceType === "KING") {
-            kingCheck = {
-              attackingPieceCoords: position,
-              possibleBlocks: possibleMoves.slice(start + 1 - i),
-            };
-          }
-          possibleCaptures.push(currentCoords);
-        } else {
-          defendedTiles.push(currentCoords);
-        }
-
-        break;
-      }
-      possibleMoves.push(currentCoords);
-    }
-
     return {
       possibleMoves: possibleMoves,
       possibleCaptures: possibleCaptures,
-      defendedPieces: defendedTiles,
+      defendedPieces: defendedPieces,
       kingCheck: kingCheck,
+      pin: pin,
     };
   }
 
   private _getPossiblePawnMoves(
     position: Coords,
     color: PlayerColor
-  ): PieceMoves {
+  ): PieceInteractions {
     let coords;
     let canMoveOneTile = false;
 
     const attacks = this._getPossiblePawnAttacks(position, color);
     const possibleMoves = [] as Coords[];
     const possibleCaptures = attacks.possibleCaptures;
-
+    const toReturn = {
+      possibleMoves: possibleMoves,
+      possibleCaptures: possibleCaptures,
+      defendedPieces: attacks.defendedPieces,
+      kingCheck: attacks.kingCheck,
+      pin: undefined,
+    };
     if (color === "WHITE") {
       coords = Coords.getInstance(position.x, position.y + 1);
     } else {
@@ -497,12 +549,7 @@ class Chess {
     }
 
     if (!coords) {
-      return {
-        possibleMoves: possibleMoves,
-        possibleCaptures: possibleCaptures,
-        defendedPieces: attacks.defendedPieces,
-        kingCheck: attacks.kingCheck,
-      };
+      return toReturn;
     }
 
     if (this._currentBoard[coords.y]![coords.x] === null) {
@@ -511,12 +558,7 @@ class Chess {
     }
 
     if (this._movedPawns.has(coords)) {
-      return {
-        possibleMoves: possibleMoves,
-        possibleCaptures: possibleCaptures,
-        defendedPieces: attacks.defendedPieces,
-        kingCheck: attacks.kingCheck,
-      };
+      return toReturn;
     }
 
     if (color === "WHITE") {
@@ -533,24 +575,25 @@ class Chess {
       possibleMoves.push(coords);
     }
 
-    return {
-      possibleMoves: possibleMoves,
-      possibleCaptures: possibleCaptures,
-      defendedPieces: attacks.defendedPieces,
-      kingCheck: attacks.kingCheck,
-    };
+    return toReturn;
   }
 
   private _getPossiblePawnAttacks(
     position: Coords,
     color: PlayerColor
-  ): PieceMoves {
-    const getCaptures = (xDiff: number): PieceMoves => {
+  ): PieceInteractions {
+    const getCaptures = (xDiff: number): PieceInteractions => {
       const possibleCaptures = [] as Coords[];
       const defendedPieces = [] as Coords[];
       const possibleMoves = [] as Coords[];
       let kingCheck: KingCheck | undefined = undefined;
-
+      const toReturn = {
+        possibleMoves: possibleMoves,
+        possibleCaptures: possibleCaptures,
+        defendedPieces: defendedPieces,
+        kingCheck: kingCheck,
+        pin: undefined,
+      };
       let coords;
       if (color === "WHITE") {
         coords = Coords.getInstance(position.x + xDiff, position.y + 1);
@@ -558,22 +601,12 @@ class Chess {
         coords = Coords.getInstance(position.x + xDiff, position.y - 1);
       }
       if (!coords) {
-        return {
-          possibleMoves: possibleMoves,
-          possibleCaptures: possibleCaptures,
-          defendedPieces: defendedPieces,
-          kingCheck: kingCheck,
-        };
+        return toReturn;
       }
 
       const tile = this._currentBoard[coords.y]![coords.x]!;
       if (tile === null) {
-        return {
-          possibleMoves: possibleMoves,
-          possibleCaptures: possibleCaptures,
-          defendedPieces: defendedPieces,
-          kingCheck: kingCheck,
-        };
+        return toReturn;
       }
       if (tile.color !== color) {
         if (tile.pieceType === "KING") {
@@ -589,23 +622,13 @@ class Chess {
 
       const enPassantCoords = Coords.getInstance(coords.x, position.y);
       if (!enPassantCoords) {
-        return {
-          possibleMoves: possibleMoves,
-          possibleCaptures: possibleCaptures,
-          defendedPieces: defendedPieces,
-          kingCheck: kingCheck,
-        };
+        return toReturn;
       }
 
       const tilePossibleToEnPassant =
         this._currentBoard[enPassantCoords.y]![enPassantCoords.x]!;
       if (tile === null) {
-        return {
-          possibleMoves: possibleMoves,
-          possibleCaptures: possibleCaptures,
-          defendedPieces: defendedPieces,
-          kingCheck: kingCheck,
-        };
+        return toReturn;
       }
       if (
         this._pawnPossibleToEnPassant == enPassantCoords &&
@@ -614,12 +637,7 @@ class Chess {
       ) {
         possibleCaptures.push(enPassantCoords);
       }
-      return {
-        possibleMoves: possibleMoves,
-        possibleCaptures: possibleCaptures,
-        defendedPieces: defendedPieces,
-        kingCheck: kingCheck,
-      };
+      return toReturn;
     };
 
     const leftCaptures = getCaptures(-1);
@@ -634,25 +652,31 @@ class Chess {
     return {
       possibleMoves: [] as Coords[],
 
-      possibleCaptures: leftCaptures.possibleCaptures.concat(
-        rightCaptures.possibleCaptures
-      ),
-      defendedPieces: leftCaptures.defendedPieces.concat(
-        rightCaptures.defendedPieces
-      ),
+      possibleCaptures: [
+        ...leftCaptures.possibleCaptures,
+        ...rightCaptures.possibleCaptures,
+      ],
+      defendedPieces: [
+        ...leftCaptures.defendedPieces,
+        ...rightCaptures.defendedPieces,
+      ],
       kingCheck: kingCheck,
+      pin: undefined,
     };
   }
 
   private _getPossibleBishopMoves(
     position: Coords,
     color: PlayerColor
-  ): PieceMoves {
+  ): PieceInteractions {
     const possibleMoves = [[], [], [], []] as Coords[][];
     const possibleCaptures = [[], [], [], []] as Coords[][];
     const defendedPieces = [[], [], [], []] as Coords[][];
     let kingCheck: KingCheck | undefined = undefined;
-    const breaks = [false, false, false, false];
+    const potentialPins = [] as Pin[];
+    let hasPinOccured = false;
+    const isDiagonalPotentialPin = [false, false, false, false];
+    const isDiagonalBlocked = [false, false, false, false];
 
     for (let i = 1; i < 8; i++) {
       const currentCoords = [
@@ -666,7 +690,7 @@ class Chess {
           return;
         }
 
-        if (breaks[index]) {
+        if (isDiagonalBlocked[index]) {
           return;
         }
 
@@ -674,29 +698,52 @@ class Chess {
         if (tile !== null) {
           if (tile?.color !== color) {
             if (tile?.pieceType === "KING" && tile.color !== color) {
+              if (isDiagonalPotentialPin[index]) {
+                hasPinOccured = true;
+              } else {
+                isDiagonalBlocked[index] = true;
+              }
               kingCheck = {
                 attackingPieceCoords: position,
                 possibleBlocks: possibleMoves[index]!,
               };
+            } else if (isDiagonalPotentialPin[index]) {
+              isDiagonalPotentialPin[index] = false;
+              isDiagonalBlocked[index] = true;
             }
+
             possibleCaptures[index]!.push(coords);
+            isDiagonalPotentialPin[index] = true;
+            potentialPins[index] = {
+              pinnedPiece: coords,
+              possibleMoves: [...possibleMoves[index]!],
+            };
           } else {
             defendedPieces[index]!.push(coords);
+            isDiagonalBlocked[index] = true;
           }
 
-          breaks[index] = true;
           return;
         }
-        possibleMoves[index]!.push(coords);
+        if (isDiagonalPotentialPin) {
+          potentialPins[index]?.possibleMoves.push(coords);
+        } else {
+          possibleMoves[index]!.push(coords);
+        }
       });
     }
 
+    const pinDiagonalIndex = hasPinOccured
+      ? isDiagonalPotentialPin.findIndex((pinOccured) => pinOccured)
+      : undefined;
+    const pin = pinDiagonalIndex ? potentialPins[pinDiagonalIndex] : undefined;
     return {
       possibleMoves: possibleMoves.reduce((prev, cur) => prev.concat(cur)),
       possibleCaptures: possibleCaptures.reduce((prev, cur) =>
         prev.concat(cur)
       ),
       defendedPieces: defendedPieces.reduce((prev, cur) => prev.concat(cur)),
+      pin: pin,
       kingCheck: kingCheck,
     };
   }
@@ -704,19 +751,9 @@ class Chess {
   private _getPossibleQueenMoves(
     position: Coords,
     color: PlayerColor
-  ): PieceMoves {
+  ): PieceInteractions {
     const rookResult = this._getPossibleRookMoves(position, color);
-
     const bishopResult = this._getPossibleBishopMoves(position, color);
-    const possibleMoves = rookResult.possibleMoves.concat(
-      bishopResult.possibleMoves
-    );
-    const defendedPieces = rookResult.defendedPieces.concat(
-      bishopResult.defendedPieces
-    );
-    const possibleCaptures = rookResult.possibleCaptures.concat(
-      bishopResult.possibleCaptures
-    );
 
     let kingCheck = undefined;
     //there is only 1 king to check so max 1 result can have defined kingCheck
@@ -725,10 +762,28 @@ class Chess {
     } else if (rookResult.kingCheck) {
       kingCheck = rookResult.kingCheck;
     }
+
+    let pin = undefined;
+    if (bishopResult.pin) {
+      pin = bishopResult.pin;
+    } else if (rookResult.pin) {
+      pin = rookResult.pin;
+    }
+
     return {
-      possibleMoves: possibleMoves,
-      possibleCaptures: possibleCaptures,
-      defendedPieces: defendedPieces,
+      possibleMoves: [
+        ...bishopResult.possibleMoves,
+        ...rookResult.possibleMoves,
+      ],
+      possibleCaptures: [
+        ...bishopResult.possibleCaptures,
+        ...rookResult.possibleCaptures,
+      ],
+      defendedPieces: [
+        ...bishopResult.defendedPieces,
+        ...rookResult.defendedPieces,
+      ],
+      pin: pin,
       kingCheck: kingCheck,
     };
   }
@@ -736,7 +791,7 @@ class Chess {
   private _getPossibleKnightMoves(
     position: Coords,
     color: PlayerColor
-  ): PieceMoves {
+  ): PieceInteractions {
     const possibleMoves = [] as Coords[];
     const defendedPieces = [] as Coords[];
     const possibleCaptures = [] as Coords[];
@@ -776,13 +831,14 @@ class Chess {
       possibleCaptures: possibleCaptures,
       defendedPieces: defendedPieces,
       kingCheck: kingCheck,
+      pin: undefined,
     };
   }
 
   private _getPossibleKingMoves(
     position: Coords,
     color: PlayerColor
-  ): PieceMoves {
+  ): PieceInteractions {
     const possibleMoves = [] as Coords[];
     const defendedPieces = [] as Coords[];
     const possibleCaptures = [] as Coords[];
@@ -827,6 +883,7 @@ class Chess {
       possibleCaptures: possibleCaptures,
       defendedPieces: defendedPieces,
       kingCheck: undefined,
+      pin: undefined,
     };
   }
 }
