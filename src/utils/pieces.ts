@@ -110,17 +110,6 @@ export const initBoard = () => {
   return board;
 };
 
-export const movePiece = (board: Tile[][], from: Coords, to: Coords) => {
-  if (!board) {
-    return board;
-  }
-
-  const movedPiece = board[from.y]![from.x];
-  if (!movedPiece) {
-    return board;
-  }
-
-  board[from.y]![from.x] = null;
-  board[to.y]![to.x] = movedPiece;
-  return board;
+export const copyBoard = (board: Board) => {
+  return board.map((row) => [...row]);
 };

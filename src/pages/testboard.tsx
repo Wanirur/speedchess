@@ -1,6 +1,5 @@
 import { type NextPage } from "next";
 import Chessboard from "~/components/chessboard";
-import { chessgameRouter } from "~/server/api/routers/chess";
 import { Coords } from "~/utils/coords";
 import {
   addToTestBoard,
@@ -11,7 +10,6 @@ import {
   blackQueen,
   blackRook,
   testBoard,
-  whiteBishop,
   whiteKing,
   whiteKnight,
   whitePawn,

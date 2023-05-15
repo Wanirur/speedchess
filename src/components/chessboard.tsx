@@ -33,7 +33,7 @@ const Chessboard: React.FC<{
             color === "WHITE" ? "flex-col-reverse" : "flex-col"
           } gap-0`}
         >
-          {board.map((row, row_index) => (
+          {chessRef.current.board.map((row, row_index) => (
             <div key={-row_index} className="flex flex-row">
               {row.map((tile, index) => {
                 let isWhite = true;
@@ -80,7 +80,7 @@ const Chessboard: React.FC<{
                         return;
                       }
 
-                      if (!board[index]) {
+                      if (!chessRef.current?.board[index]) {
                         return;
                       }
                       const coords = Coords.getInstance(index, row_index);
@@ -93,7 +93,13 @@ const Chessboard: React.FC<{
                       if (draggedPiece === null) {
                         return;
                       }
+
+                      const moveTo = Coords.getInstance(index, row_index);
+                      if (!moveTo) {
+                        return;
+                      }
                       if (!mutate) {
+                        chessRef.current?.move(draggedPiece, moveTo, color);
                         return;
                       }
                       moveMutation.mutate({
@@ -124,8 +130,19 @@ const Chessboard: React.FC<{
 
                       if (highlightedTile !== null) {
                         if (!mutate) {
+                          const moveTo = Coords.getInstance(index, row_index);
+                          if (!moveTo) {
+                            return;
+                          }
+
+                          chessRef.current?.move(
+                            highlightedTile,
+                            moveTo,
+                            color
+                          );
                           setHighlightedTile(null);
                           setPossibleMoves(null);
+
                           return;
                         }
                         moveMutation.mutate({

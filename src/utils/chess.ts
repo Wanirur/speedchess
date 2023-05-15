@@ -7,11 +7,13 @@ import {
   testBoard,
   whiteKing,
   blackKing,
+  copyBoard,
 } from "./pieces";
 
 type KingCheck = {
   attackingPieceCoords: Coords;
   possibleBlocks: Coords[];
+  cannotEscapeTo: Coords[];
 };
 
 type Pin = {
@@ -113,7 +115,7 @@ class Chess {
 
     this._calculateAttackedTiles();
 
-    this._history = [this._currentBoard];
+    this._history = [copyBoard(this._currentBoard)];
   }
 
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {
@@ -123,7 +125,10 @@ class Chess {
     }
 
     const possibleMoves = this.getPossibleMoves(from);
-    if (!possibleMoves.possibleMoves.includes(to)) {
+    if (
+      !possibleMoves.possibleMoves.includes(to) &&
+      !possibleMoves.possibleCaptures.includes(to)
+    ) {
       return this.board;
     }
 
@@ -141,6 +146,14 @@ class Chess {
 
     const tilesAttackedByWhiteTemp = this._tilesAttackedByWhite;
     const tilesAttackedByBlackTemp = this._tilesAttackedByBlack;
+    const possibleCapturesOfWhiteTemp = this._possibleCapturesOfWhite;
+    const possibleCapturesOfBlackTemp = this._possibleCapturesOfBlack;
+    const defendedPiecesOfWhiteTemp = this._defendedPiecesOfWhite;
+    const defendedPiecesOfBlackTemp = this._defendedPiecesOfBlack;
+    const kingChecksByWhiteTemp = this._kingChecksByWhite;
+    const kingChecksByBlackTemp = this._kingChecksByBlack;
+    const pinsByWhiteTemp = this._pinsByWhite;
+    const pinsByBlackTemp = this._pinsByBlack;
     const whiteKingCheckedTemp = this._isWhiteKingChecked;
     const blackKingCheckedTemp = this._isBlackKingChecked;
 
@@ -153,13 +166,23 @@ class Chess {
     ) {
       //history cannot be empty - first element is assigned in the constructor and no elements are removed
       // - non-null assertion allowed
-      this._currentBoard = this._history.at(-1)!;
+      this._currentBoard = copyBoard(this._history.at(-1)!);
       this._tilesAttackedByWhite = tilesAttackedByWhiteTemp;
       this._tilesAttackedByBlack = tilesAttackedByBlackTemp;
       this._isWhiteKingChecked = whiteKingCheckedTemp;
       this._isBlackKingChecked = blackKingCheckedTemp;
       this._whiteKingCoords = whiteKingCoordsTemp;
       this._blackKingCoords = blackKingCoordsTemp;
+      this._possibleCapturesOfWhite = possibleCapturesOfWhiteTemp;
+      this._possibleCapturesOfBlack = possibleCapturesOfBlackTemp;
+      this._defendedPiecesOfWhite = defendedPiecesOfWhiteTemp;
+      this._defendedPiecesOfBlack = defendedPiecesOfBlackTemp;
+      this._kingChecksByWhite = kingChecksByWhiteTemp;
+      this._kingChecksByBlack = kingChecksByBlackTemp;
+      this._pinsByWhite = pinsByWhiteTemp;
+      this._pinsByBlack = pinsByBlackTemp;
+
+      return this._currentBoard;
     }
 
     this._pawnPossibleToEnPassant = null;
@@ -181,6 +204,7 @@ class Chess {
       this._hasCheckmateOccured(playerColor === "WHITE" ? "BLACK" : "WHITE")
     ) {
       this._gameResult = { winner: playerColor, reason: "MATE" };
+      return this._currentBoard;
     }
 
     if (
@@ -357,7 +381,6 @@ class Chess {
     );
 
     if (reduceResult.length === 0) {
-      console.log("checkmate!");
       return true;
     }
 
@@ -442,10 +465,12 @@ class Chess {
           }
 
           possibleCaptures.push(currentCoords);
-          pin = {
-            pinnedPiece: currentCoords,
-            possibleMoves: [...possibleMoves],
-          };
+          if (tile.pieceType !== "KING") {
+            pin = {
+              pinnedPiece: currentCoords,
+              possibleMoves: [...possibleMoves],
+            };
+          }
         }
 
         if (tile.pieceType === "KING") {
@@ -455,7 +480,33 @@ class Chess {
             kingCheck = {
               attackingPieceCoords: position,
               possibleBlocks: [...possibleMoves],
+              cannotEscapeTo: [],
             };
+            if (xDiff === 0) {
+              let temp = Coords.getInstance(
+                currentCoords.x,
+                currentCoords.y - 1
+              );
+              if (temp) {
+                kingCheck.cannotEscapeTo.push(temp);
+              }
+              temp = Coords.getInstance(currentCoords.x, currentCoords.y + 1);
+              if (temp) {
+                kingCheck.cannotEscapeTo.push(temp);
+              }
+            } else {
+              let temp = Coords.getInstance(
+                currentCoords.x - 1,
+                currentCoords.y
+              );
+              if (temp) {
+                kingCheck.cannotEscapeTo.push(temp);
+              }
+              temp = Coords.getInstance(currentCoords.x + 1, currentCoords.y);
+              if (temp) {
+                kingCheck.cannotEscapeTo.push(temp);
+              }
+            }
           }
 
           break;
@@ -613,6 +664,7 @@ class Chess {
           kingCheck = {
             attackingPieceCoords: position,
             possibleBlocks: [] as Coords[],
+            cannotEscapeTo: [],
           };
         }
         possibleCaptures.push(coords);
@@ -706,7 +758,34 @@ class Chess {
               kingCheck = {
                 attackingPieceCoords: position,
                 possibleBlocks: possibleMoves[index]!,
+                cannotEscapeTo: [],
               };
+
+              if (index === 0 || index === 2) {
+                let coords = Coords.getInstance(
+                  currentCoords[index]!.x - 1,
+                  currentCoords[index]!.y - 1
+                );
+                if (coords) {
+                  kingCheck.cannotEscapeTo.push(coords);
+                }
+                coords = Coords.getInstance(
+                  currentCoords[index]!.x + 1,
+                  currentCoords[index]!.y + 1
+                );
+              } else {
+                let coords = Coords.getInstance(
+                  currentCoords[index]!.x + 1,
+                  currentCoords[index]!.y - 1
+                );
+                if (coords) {
+                  kingCheck.cannotEscapeTo.push(coords);
+                }
+                coords = Coords.getInstance(
+                  currentCoords[index]!.x - 1,
+                  currentCoords[index]!.y + 1
+                );
+              }
             } else if (isDiagonalPotentialPin[index]) {
               isDiagonalPotentialPin[index] = false;
               isDiagonalBlocked[index] = true;
@@ -734,7 +813,6 @@ class Chess {
         }
       });
     }
-    ``;
 
     const pinDiagonalIndex = hasPinOccured
       ? isDiagonalPotentialPin.findIndex((pinOccured) => pinOccured)
@@ -822,6 +900,7 @@ class Chess {
             kingCheck = {
               attackingPieceCoords: position,
               possibleBlocks: [] as Coords[],
+              cannotEscapeTo: [],
             };
           }
         } else {
@@ -843,9 +922,9 @@ class Chess {
     position: Coords,
     color: PlayerColor
   ): PieceInteractions {
-    const possibleMoves = [] as Coords[];
+    let possibleMoves = [] as Coords[];
     const defendedPieces = [] as Coords[];
-    const possibleCaptures = [] as Coords[];
+    let possibleCaptures = [] as Coords[];
 
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
@@ -881,6 +960,26 @@ class Chess {
           defendedPieces.push(coords);
         }
       }
+    }
+
+    if (color === "WHITE" && this._isWhiteKingChecked) {
+      this._kingChecksByBlack.forEach((check) => {
+        possibleMoves = possibleMoves.filter(
+          (move) => !check.cannotEscapeTo.includes(move)
+        );
+        possibleCaptures = possibleMoves.filter(
+          (capture) => !check.cannotEscapeTo.includes(capture)
+        );
+      });
+    } else if (color === "BLACK" && this._isBlackKingChecked) {
+      this._kingChecksByWhite.forEach((check) => {
+        possibleMoves = possibleMoves.filter(
+          (move) => !check.cannotEscapeTo.includes(move)
+        );
+        possibleCaptures = possibleMoves.filter(
+          (capture) => !check.cannotEscapeTo.includes(capture)
+        );
+      });
     }
 
     return {
