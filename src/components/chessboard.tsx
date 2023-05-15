@@ -149,10 +149,12 @@ const Chessboard: React.FC<{
                         return;
                       }
                       setHighlightedTile(coords);
-                      setPossibleMoves(
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        chessRef.current!.getPossibleMoves(coords).possibleMoves
-                      );
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      const moves = chessRef.current!.getPossibleMoves(coords);
+                      setPossibleMoves([
+                        ...moves.possibleMoves,
+                        ...moves.possibleCaptures,
+                      ]);
                     }}
                   >
                     {tile && (

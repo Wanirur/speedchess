@@ -357,12 +357,11 @@ class Chess {
     );
 
     if (reduceResult.length === 0) {
+      console.log("checkmate!");
       return true;
     }
 
-    //check whether pieces that can defend the mate are pinned to the king
-    //TODO: do it!
-    return;
+    return false;
   }
 
   public getPossibleMoves(position: Coords): PieceInteractions {
@@ -417,7 +416,7 @@ class Chess {
       let pin: Pin | undefined = undefined;
       let hasPinOccured = false;
 
-      for (let i = 0; i < 8; i++) {
+      for (let i = 1; i < 8; i++) {
         const currentCoords = Coords.getInstance(
           position.x + xDiff * i,
           position.y + yDiff * i
@@ -432,14 +431,23 @@ class Chess {
           } else {
             possibleMoves.push(currentCoords);
           }
+
+          continue;
         }
 
-        if (tile.color === color) {
-          defendedTiles.push(currentCoords);
-          break;
+        if (!pin) {
+          if (tile.color === color) {
+            defendedTiles.push(currentCoords);
+            break;
+          }
+
+          possibleCaptures.push(currentCoords);
+          pin = {
+            pinnedPiece: currentCoords,
+            possibleMoves: [...possibleMoves],
+          };
         }
 
-        possibleCaptures.push(currentCoords);
         if (tile.pieceType === "KING") {
           if (pin) {
             hasPinOccured = true;
@@ -452,15 +460,6 @@ class Chess {
 
           break;
         }
-
-        if (pin) {
-          break;
-        }
-
-        pin = {
-          pinnedPiece: currentCoords,
-          possibleMoves: [...possibleMoves],
-        };
       }
 
       return {
@@ -516,6 +515,7 @@ class Chess {
     } else if (up.pin) {
       pin = up.pin;
     }
+
     return {
       possibleMoves: possibleMoves,
       possibleCaptures: possibleCaptures,
@@ -710,6 +710,7 @@ class Chess {
             } else if (isDiagonalPotentialPin[index]) {
               isDiagonalPotentialPin[index] = false;
               isDiagonalBlocked[index] = true;
+              return;
             }
 
             possibleCaptures[index]!.push(coords);
@@ -725,17 +726,20 @@ class Chess {
 
           return;
         }
-        if (isDiagonalPotentialPin) {
+
+        if (isDiagonalPotentialPin[index]) {
           potentialPins[index]?.possibleMoves.push(coords);
         } else {
           possibleMoves[index]!.push(coords);
         }
       });
     }
+    ``;
 
     const pinDiagonalIndex = hasPinOccured
       ? isDiagonalPotentialPin.findIndex((pinOccured) => pinOccured)
       : undefined;
+
     const pin = pinDiagonalIndex ? potentialPins[pinDiagonalIndex] : undefined;
     return {
       possibleMoves: possibleMoves.reduce((prev, cur) => prev.concat(cur)),
@@ -854,26 +858,27 @@ class Chess {
           continue;
         }
         const tile = this._currentBoard[coords.y]![coords.x]!;
-        if (tile !== null) {
-          const tile_color = tile.color;
-          if (tile_color !== color) {
-            if (
-              color === "WHITE"
-                ? !this._defendedPiecesOfBlack.has(coords)
-                : !this._defendedPiecesOfWhite.has(coords)
-            )
-              possibleCaptures.push(coords);
-          } else {
-            defendedPieces.push(coords);
+        if (tile === null) {
+          if (
+            color === "WHITE"
+              ? !this._tilesAttackedByBlack.has(coords)
+              : !this._tilesAttackedByWhite.has(coords)
+          ) {
+            possibleMoves.push(coords);
           }
+          continue;
         }
 
-        if (
-          color === "WHITE"
-            ? !this._tilesAttackedByBlack.has(coords)
-            : !this._tilesAttackedByWhite.has(coords)
-        ) {
-          possibleMoves.push(coords);
+        if (tile.color !== color) {
+          if (
+            color === "WHITE"
+              ? !this._defendedPiecesOfBlack.has(coords)
+              : !this._defendedPiecesOfWhite.has(coords)
+          ) {
+            possibleCaptures.push(coords);
+          }
+        } else {
+          defendedPieces.push(coords);
         }
       }
     }
