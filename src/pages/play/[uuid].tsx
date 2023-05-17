@@ -55,6 +55,12 @@ const Play: NextPage = () => {
                   return old;
                 }
 
+                if (old.turn === old.color) {
+                  return {
+                    ...old,
+                    turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
+                  };
+                }
                 return {
                   ...old,
                   board: copyBoard(chessRef.current.move(from, to, old.turn)),

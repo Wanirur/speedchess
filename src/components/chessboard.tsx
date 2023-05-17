@@ -94,8 +94,13 @@ const Chessboard: React.FC<{
                       if (!moveTo) {
                         return;
                       }
-                      if (!mutate) {
+                      try {
                         chess.move(draggedPiece, moveTo, color);
+                      } catch (e) {
+                        if (e instanceof Error) {
+                          console.log(e);
+                        }
+
                         return;
                       }
                       moveMutation.mutate({
@@ -125,18 +130,21 @@ const Chessboard: React.FC<{
                       }
 
                       if (highlightedTile !== null) {
-                        if (!mutate) {
-                          const moveTo = Coords.getInstance(index, row_index);
-                          if (!moveTo) {
-                            return;
-                          }
+                        const moveTo = Coords.getInstance(index, row_index);
+                        if (!moveTo) {
+                          return;
+                        }
 
+                        try {
                           chess.move(highlightedTile, moveTo, color);
-                          setHighlightedTile(null);
-                          setPossibleMoves(null);
+                        } catch (e) {
+                          if (e instanceof Error) {
+                            console.log(e);
+                          }
 
                           return;
                         }
+
                         moveMutation.mutate({
                           uuid: uuid,
                           fromTile: {
@@ -168,7 +176,7 @@ const Chessboard: React.FC<{
                   >
                     {tile && (
                       <Image
-                        src={resolvePieceToImage(tile) as string}
+                        src={resolvePieceToImage(tile)}
                         alt={tile.pieceType}
                         width={80}
                         height={80}

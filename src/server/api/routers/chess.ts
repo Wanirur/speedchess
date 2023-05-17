@@ -149,10 +149,23 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      const time = match.move(
-        Coords.getInstance(input.fromTile.x, input.fromTile.y),
-        Coords.getInstance(input.toTile.x, input.toTile.y)
-      );
+      let time;
+      try {
+        time = match.move(
+          Coords.getInstance(input.fromTile.x, input.fromTile.y),
+          Coords.getInstance(input.toTile.x, input.toTile.y)
+        );
+      } catch (e) {
+        if (e instanceof Error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: e.message,
+          });
+        }
+
+        return;
+      }
+
       if (time <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",

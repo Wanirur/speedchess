@@ -1,5 +1,7 @@
 import { type NextPage } from "next";
+import { useRef } from "react";
 import Chessboard from "~/components/chessboard";
+import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import {
   addToTestBoard,
@@ -29,14 +31,22 @@ const Test: NextPage = () => {
   addToTestBoard(board, blackKing, Coords.getInstance(1, 6));
   addToTestBoard(board, whiteKnight, Coords.getInstance(2, 2));
 
+  const chessRef = useRef<Chess | null>(null);
+  if (chessRef.current === null) {
+    chessRef.current = new Chess(board);
+  }
+
   return (
     <div className="flex h-screen items-center justify-center bg-neutral-900">
-      <Chessboard
-        uuid={"test"}
-        color={"WHITE"}
-        isYourTurn={true}
-        board={board}
-      ></Chessboard>
+      {chessRef.current && (
+        <Chessboard
+          uuid={"test"}
+          color={"WHITE"}
+          isYourTurn={true}
+          board={board}
+          chess={chessRef.current}
+        ></Chessboard>
+      )}
     </div>
   );
 };

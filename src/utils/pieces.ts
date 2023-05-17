@@ -64,7 +64,11 @@ pieces.set(JSON.stringify(whitePawn), "/white_pawn.svg");
 pieces.set(JSON.stringify(blackPawn), "/black_pawn.svg");
 
 export const resolvePieceToImage = (piece: Piece) => {
-  return pieces.get(JSON.stringify(piece));
+  const image = pieces.get(JSON.stringify(piece));
+  if (!image) {
+    throw new Error("incorrect image");
+  }
+  return image;
 };
 
 export const testBoard = () => {
