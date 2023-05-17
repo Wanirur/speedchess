@@ -1,7 +1,8 @@
-import { initBoard, movePiece } from "~/utils/pieces";
+import { initBoard } from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { matches } from "./matchmaking";
 import { type Coords } from "~/utils/coords";
+import Chess from "~/utils/chess";
 
 export type Player = {
   id: string;
@@ -29,9 +30,9 @@ export class Game {
   public set black(value: Player) {
     this._black = value;
   }
-  private _board = initBoard();
-  public get board() {
-    return this._board;
+  private _chess = new Chess(initBoard());
+  public get chess() {
+    return this._chess;
   }
   private _turn: Player;
   public get turn() {
@@ -67,7 +68,7 @@ export class Game {
   }
 
   move(from: Coords | undefined, to: Coords | undefined) {
-    if(!from || !to) {
+    if (!from || !to) {
       throw new Error();
     }
     const moveEnd = Date.now();
@@ -75,13 +76,13 @@ export class Game {
     this._lastMoveTime = moveEnd;
     this._turn.timeLeftInMilis -= duration;
     const timeLeft = this._turn.timeLeftInMilis;
-    if(timeLeft <= 0) {
+    if (timeLeft <= 0) {
       this._gameResult = this._turn === this._white ? "black" : "white";
       this.finishGame();
       return timeLeft;
     }
 
-    movePiece(this.board, from, to);
+    this._chess.move(from, to, this._turn === this._white ? "WHITE" : "BLACK");
 
     if (this._turn === this._white) {
       this._turn = this._black;
@@ -90,9 +91,9 @@ export class Game {
     }
 
     return timeLeft;
-}
+  }
 
-  offerDraw(color: "white" | "black") :Result | null {
+  offerDraw(color: "white" | "black"): Result | null {
     if (color === "white") {
       if (this._drawOfferedBy === this._white) {
         return null;
@@ -126,9 +127,9 @@ export class Game {
     this._drawOfferedBy = null;
   }
 
-  private finishGame() { 
-    if(this._gameResult) {
-      matches.delete(this._id)
+  private finishGame() {
+    if (this._gameResult) {
+      matches.delete(this._id);
     }
   }
 }

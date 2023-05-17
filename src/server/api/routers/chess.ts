@@ -104,7 +104,7 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       return {
-        board: match.board,
+        board: match.chess.board,
         whiteMilisLeft: whiteTime,
         blackMilisLeft: blackTime,
         color: (user.id === match.white.id ? "WHITE" : "BLACK") as PlayerColor,

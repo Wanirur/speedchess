@@ -79,7 +79,11 @@ class Chess {
     let y;
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        if (this._currentBoard[i]![j]! === whiteKing) {
+        if (
+          this._currentBoard[i]![j] &&
+          this._currentBoard[i]![j]!.pieceType === "KING" &&
+          this._currentBoard[i]![j]!.color === "WHITE"
+        ) {
           y = i;
           x = j;
         }
@@ -98,7 +102,11 @@ class Chess {
 
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
-        if (this._currentBoard[i]![j]! === blackKing) {
+        if (
+          this._currentBoard[i]![j] &&
+          this._currentBoard[i]![j]!.pieceType === "KING" &&
+          this._currentBoard[i]![j]!.color === "BLACK"
+        ) {
           y = i;
           x = j;
         }
@@ -121,15 +129,18 @@ class Chess {
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {
     const movedPiece = this._currentBoard[from.y]![from.x]!;
     if (movedPiece === null || movedPiece.color !== playerColor) {
-      return this.board;
+      throw new Error("you tried to move empty file");
     }
+
+    console.log(from);
+    console.log(to);
 
     const possibleMoves = this.getPossibleMoves(from);
     if (
       !possibleMoves.possibleMoves.includes(to) &&
       !possibleMoves.possibleCaptures.includes(to)
     ) {
-      return this.board;
+      throw new Error("incorrect move");
     }
 
     this.board[from.y]![from.x] = null;
@@ -182,7 +193,7 @@ class Chess {
       this._pinsByWhite = pinsByWhiteTemp;
       this._pinsByBlack = pinsByBlackTemp;
 
-      return this._currentBoard;
+      throw new Error("failed to defend check");
     }
 
     this._pawnPossibleToEnPassant = null;
@@ -207,15 +218,16 @@ class Chess {
       return this._currentBoard;
     }
 
+    //check stalemates
     if (
-      (playerColor === "WHITE" &&
+      (playerColor === "BLACK" &&
         this._tilesAttackedByWhite.size === 0 &&
         this._possibleCapturesOfWhite.size === 0) ||
-      (playerColor === "BLACK" &&
+      (playerColor === "WHITE" &&
         this._tilesAttackedByBlack.size === 0 &&
         this._possibleCapturesOfBlack.size === 0)
     ) {
-      //check stalemates
+      console.log("stalemate");
       this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
     }
 
@@ -228,6 +240,17 @@ class Chess {
     let isWhiteKingCheckedThisTurn = false;
     let isBlackKingCheckedThisTurn = false;
 
+    const tilesAttackedByWhite = new Set<Coords>();
+    const tilesAttackedByBlack = new Set<Coords>();
+    const defendedPiecesOfWhite = new Set<Coords>();
+    const defendedPiecesOfBlack = new Set<Coords>();
+    const possibleCapturesOfWhite = new Set<Coords>();
+    const possibleCapturesOfBlack = new Set<Coords>();
+    const checksByWhite = new Set<KingCheck>();
+    const checksByBlack = new Set<KingCheck>();
+    const pinsByWhite = new Map<Coords, Pin>();
+    const pinsByBlack = new Map<Coords, Pin>();
+
     for (const row of this._currentBoard) {
       for (const tile of row) {
         if (tile === null) {
@@ -237,6 +260,9 @@ class Chess {
         const pieceCoords = Coords.getInstance(x, y);
         if (!pieceCoords) {
           x++;
+          continue;
+        }
+        if (tile.pieceType === "KING") {
           continue;
         }
         const possibleAttacks =
@@ -250,13 +276,13 @@ class Chess {
               return;
             }
 
-            this._tilesAttackedByWhite.add(possibleAttack);
+            tilesAttackedByWhite.add(possibleAttack);
           } else {
             const pin = this._pinsByWhite.get(pieceCoords);
             if (pin && !pin.possibleMoves.includes(possibleAttack)) {
               return;
             }
-            this._tilesAttackedByBlack.add(possibleAttack);
+            tilesAttackedByBlack.add(possibleAttack);
           }
         });
         possibleAttacks.defendedPieces.forEach((defendedPiece) => {
@@ -266,13 +292,13 @@ class Chess {
               return;
             }
 
-            this._defendedPiecesOfWhite.add(defendedPiece);
+            defendedPiecesOfWhite.add(defendedPiece);
           } else {
             const pin = this._pinsByWhite.get(pieceCoords);
             if (pin && !pin.possibleMoves.includes(defendedPiece)) {
               return;
             }
-            this._defendedPiecesOfBlack.add(defendedPiece);
+            defendedPiecesOfBlack.add(defendedPiece);
           }
         });
         possibleAttacks.possibleCaptures.forEach((possibleCapture) => {
@@ -282,34 +308,34 @@ class Chess {
               return;
             }
 
-            this._possibleCapturesOfWhite.add(possibleCapture);
+            possibleCapturesOfWhite.add(possibleCapture);
           } else {
             const pin = this._pinsByWhite.get(pieceCoords);
             if (pin && !pin.possibleMoves.includes(possibleCapture)) {
               return;
             }
-            this._possibleCapturesOfBlack.add(possibleCapture);
+            possibleCapturesOfBlack.add(possibleCapture);
           }
         });
 
         if (possibleAttacks.kingCheck) {
           if (tile.color === "WHITE") {
             isBlackKingCheckedThisTurn = true;
-            this._kingChecksByWhite.add(possibleAttacks.kingCheck);
+            checksByWhite.add(possibleAttacks.kingCheck);
           } else {
             isWhiteKingCheckedThisTurn = true;
-            this._kingChecksByBlack.add(possibleAttacks.kingCheck);
+            checksByBlack.add(possibleAttacks.kingCheck);
           }
         }
 
         if (possibleAttacks.pin) {
           if (tile.color === "WHITE") {
-            this._pinsByWhite.set(
+            pinsByWhite.set(
               possibleAttacks.pin.pinnedPiece,
               possibleAttacks.pin
             );
           } else {
-            this._pinsByBlack.set(
+            pinsByBlack.set(
               possibleAttacks.pin.pinnedPiece,
               possibleAttacks.pin
             );
@@ -323,6 +349,37 @@ class Chess {
 
     this._isWhiteKingChecked = isWhiteKingCheckedThisTurn;
     this._isBlackKingChecked = isBlackKingCheckedThisTurn;
+    this._tilesAttackedByWhite = tilesAttackedByWhite;
+    this._tilesAttackedByBlack = tilesAttackedByBlack;
+    this._possibleCapturesOfWhite = possibleCapturesOfWhite;
+    this._possibleCapturesOfBlack = possibleCapturesOfBlack;
+    this._defendedPiecesOfWhite = defendedPiecesOfWhite;
+    this._defendedPiecesOfBlack = defendedPiecesOfBlack;
+    this._kingChecksByWhite = checksByWhite;
+    this._kingChecksByBlack = checksByBlack;
+    this._pinsByWhite = pinsByWhite;
+    this._pinsByBlack = pinsByBlack;
+
+    const whiteKingInteractions = this.getPossibleMoves(this._whiteKingCoords);
+    whiteKingInteractions.possibleMoves.forEach((move) => {
+      this._tilesAttackedByWhite.add(move);
+    });
+    whiteKingInteractions.possibleCaptures.forEach((move) => {
+      this._possibleCapturesOfWhite.add(move);
+    });
+    whiteKingInteractions.defendedPieces.forEach((move) => {
+      this._defendedPiecesOfWhite.add(move);
+    });
+    const blackKingInteractions = this.getPossibleMoves(this._blackKingCoords);
+    blackKingInteractions.possibleMoves.forEach((move) => {
+      this._tilesAttackedByBlack.add(move);
+    });
+    blackKingInteractions.possibleCaptures.forEach((move) => {
+      this._possibleCapturesOfBlack.add(move);
+    });
+    blackKingInteractions.defendedPieces.forEach((move) => {
+      this._defendedPiecesOfBlack.add(move);
+    });
   }
 
   private _hasCheckmateOccured(kingColor: PlayerColor) {

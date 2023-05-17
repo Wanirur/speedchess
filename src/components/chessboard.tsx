@@ -1,39 +1,35 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   resolvePieceToImage,
   type PlayerColor,
-  type Tile,
+  type Board,
 } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
-import Chess from "~/utils/chess";
+import type Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 
 const Chessboard: React.FC<{
   uuid: string;
   color: PlayerColor;
   isYourTurn: boolean;
-  board: Tile[][];
+  chess: Chess;
+  board: Board;
   mutate?: boolean;
-}> = ({ uuid, color, isYourTurn, board, mutate = false }) => {
+}> = ({ uuid, color, isYourTurn, chess, board, mutate = false }) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const moveMutation = api.chess.movePiece.useMutation();
-  const chessRef = useRef<Chess | null>(null);
-  if (chessRef.current === null) {
-    chessRef.current = new Chess(board);
-  }
-
   return (
     <>
-      {chessRef.current !== null && (
+      {
         <div
           className={`container flex h-max w-max ${
             color === "WHITE" ? "flex-col-reverse" : "flex-col"
           } gap-0`}
         >
-          {chessRef.current.board.map((row, row_index) => (
+          {board.map((row, row_index) => (
             <div key={-row_index} className="flex flex-row">
               {row.map((tile, index) => {
                 let isWhite = true;
@@ -80,7 +76,7 @@ const Chessboard: React.FC<{
                         return;
                       }
 
-                      if (!chessRef.current?.board[index]) {
+                      if (!chess.board[index]) {
                         return;
                       }
                       const coords = Coords.getInstance(index, row_index);
@@ -99,7 +95,7 @@ const Chessboard: React.FC<{
                         return;
                       }
                       if (!mutate) {
-                        chessRef.current?.move(draggedPiece, moveTo, color);
+                        chess.move(draggedPiece, moveTo, color);
                         return;
                       }
                       moveMutation.mutate({
@@ -135,11 +131,7 @@ const Chessboard: React.FC<{
                             return;
                           }
 
-                          chessRef.current?.move(
-                            highlightedTile,
-                            moveTo,
-                            color
-                          );
+                          chess.move(highlightedTile, moveTo, color);
                           setHighlightedTile(null);
                           setPossibleMoves(null);
 
@@ -167,7 +159,7 @@ const Chessboard: React.FC<{
                       }
                       setHighlightedTile(coords);
                       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                      const moves = chessRef.current!.getPossibleMoves(coords);
+                      const moves = chess.getPossibleMoves(coords);
                       setPossibleMoves([
                         ...moves.possibleMoves,
                         ...moves.possibleCaptures,
@@ -189,7 +181,7 @@ const Chessboard: React.FC<{
             </div>
           ))}
         </div>
-      )}{" "}
+      }{" "}
     </>
   );
 };
