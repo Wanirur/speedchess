@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Coords } from "./coords";
+import { FEN } from "./fen";
 import {
   type PlayerColor,
   type Board,
   type GameResult,
-  testBoard,
+  buildEmptyBoard,
   whiteKing,
   blackKing,
   copyBoard,
@@ -30,8 +31,8 @@ type PieceInteractions = {
 };
 
 class Chess {
-  private _history: Board[];
-  public get history(): Board[] {
+  private _history: FEN[];
+  public get history(): FEN[] {
     return this._history;
   }
 
@@ -81,7 +82,7 @@ class Chess {
     if (board) {
       this._currentBoard = board;
     } else {
-      this._currentBoard = testBoard();
+      this._currentBoard = buildEmptyBoard();
     }
 
     let x;
@@ -290,6 +291,8 @@ class Chess {
 
     if (toTile === null && movedPiece.pieceType != "PAWN") {
       this._halfMovesSinceLastCaptureOrPawnMove += 1;
+    } else {
+      this._halfMovesSinceLastCaptureOrPawnMove = 0;
     }
 
     if (this._halfMovesSinceLastCaptureOrPawnMove === 100) {
@@ -300,6 +303,46 @@ class Chess {
     }
 
     return this.board;
+  }
+
+  public getPossibleMoves(position: Coords): PieceInteractions {
+    const emptyMoves = {
+      possibleMoves: [] as Coords[],
+      possibleCaptures: [] as Coords[],
+      defendedPieces: [] as Coords[],
+      kingCheck: undefined,
+      pin: undefined,
+    };
+
+    if (!position) {
+      return emptyMoves;
+    }
+
+    const piece = this._currentBoard[position.y]![position.x]!;
+    if (piece === null) {
+      return emptyMoves;
+    }
+
+    if (piece.pieceType === "ROOK") {
+      return this._getPossibleRookMoves(position, piece.color);
+    }
+    if (piece.pieceType === "PAWN") {
+      return this._getPossiblePawnMoves(position, piece.color);
+    }
+    if (piece.pieceType === "BISHOP") {
+      return this._getPossibleBishopMoves(position, piece.color);
+    }
+    if (piece.pieceType === "QUEEN") {
+      return this._getPossibleQueenMoves(position, piece.color);
+    }
+    if (piece.pieceType === "KING") {
+      return this._getPossibleKingMoves(position, piece.color);
+    }
+    if (piece.pieceType === "KNIGHT") {
+      return this._getPossibleKnightMoves(position, piece.color);
+    }
+
+    return emptyMoves;
   }
 
   private _calculateAttackedTiles() {
@@ -510,46 +553,6 @@ class Chess {
     }
 
     return false;
-  }
-
-  public getPossibleMoves(position: Coords): PieceInteractions {
-    const emptyMoves = {
-      possibleMoves: [] as Coords[],
-      possibleCaptures: [] as Coords[],
-      defendedPieces: [] as Coords[],
-      kingCheck: undefined,
-      pin: undefined,
-    };
-
-    if (!position) {
-      return emptyMoves;
-    }
-
-    const piece = this._currentBoard[position.y]![position.x]!;
-    if (piece === null) {
-      return emptyMoves;
-    }
-
-    if (piece.pieceType === "ROOK") {
-      return this._getPossibleRookMoves(position, piece.color);
-    }
-    if (piece.pieceType === "PAWN") {
-      return this._getPossiblePawnMoves(position, piece.color);
-    }
-    if (piece.pieceType === "BISHOP") {
-      return this._getPossibleBishopMoves(position, piece.color);
-    }
-    if (piece.pieceType === "QUEEN") {
-      return this._getPossibleQueenMoves(position, piece.color);
-    }
-    if (piece.pieceType === "KING") {
-      return this._getPossibleKingMoves(position, piece.color);
-    }
-    if (piece.pieceType === "KNIGHT") {
-      return this._getPossibleKnightMoves(position, piece.color);
-    }
-
-    return emptyMoves;
   }
 
   private _getPossibleRookMoves(

@@ -71,7 +71,7 @@ export const resolvePieceToImage = (piece: Piece) => {
   return image;
 };
 
-export const testBoard = () => {
+export const buildEmptyBoard = () => {
   const board = new Array<Tile[]>(8);
   for (let i = 0; i < 8; i++) {
     board[i] = new Array<Tile>(8).fill(null);
@@ -79,7 +79,7 @@ export const testBoard = () => {
   return board;
 };
 
-export const addToTestBoard = (
+export const addPieceToBoard = (
   board: Tile[][],
   piece: Piece,
   coords: Coords | undefined

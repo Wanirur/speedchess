@@ -4,7 +4,7 @@ import Chessboard from "~/components/chessboard";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import {
-  addToTestBoard,
+  addPieceToBoard,
   blackBishop,
   blackKing,
   blackKnight,
@@ -12,7 +12,7 @@ import {
   blackQueen,
   blackRook,
   initBoard,
-  testBoard,
+  buildEmptyBoard,
   whiteKing,
   whiteKnight,
   whitePawn,
