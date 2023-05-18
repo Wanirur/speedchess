@@ -108,8 +108,8 @@ export const initBoard = () => {
   black_row[0] = black_row[7] = blackRook;
   black_row[1] = black_row[6] = blackKnight;
   black_row[2] = black_row[5] = blackBishop;
-  black_row[3] = blackKing;
-  black_row[4] = blackQueen;
+  black_row[3] = blackQueen;
+  black_row[4] = blackKing;
   board[6]?.fill(blackPawn);
   return board;
 };
