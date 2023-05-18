@@ -217,9 +217,9 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      const color = match.white.id === user.id ? "white" : "black";
+      const color = match.white.id === user.id ? "WHITE" : "BLACK";
       const result = match.offerDraw(color);
-      if (result === "draw") {
+      if (result) {
         await pusher.trigger(match.id, "draw", {});
       } else {
         await pusher.trigger(match.id, "draw_offer", { color: color });
