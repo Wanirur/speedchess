@@ -53,20 +53,27 @@ class Chess {
 
   private _movedPawns = new Set<Coords>();
   private _pawnPossibleToEnPassant: Coords | null = null;
+
   private _tilesAttackedByWhite = new Set<Coords>();
   private _tilesAttackedByBlack = new Set<Coords>();
   private _defendedPiecesOfWhite = new Set<Coords>();
   private _defendedPiecesOfBlack = new Set<Coords>();
   private _possibleCapturesOfWhite = new Set<Coords>();
   private _possibleCapturesOfBlack = new Set<Coords>();
+
   private _isWhiteKingChecked = false;
   private _isBlackKingChecked = false;
   private _kingChecksByWhite = new Set<KingCheck>();
   private _kingChecksByBlack = new Set<KingCheck>();
   private _pinsByWhite = new Map<Coords, Pin>();
   private _pinsByBlack = new Map<Coords, Pin>();
+
   private _whiteKingCoords: Coords;
   private _blackKingCoords: Coords;
+  private _isWhiteShortCastlingPossible = true;
+  private _isBlackShortCastlingPossible = true;
+  private _isWhiteLongCastlingPossible = true;
+  private _isBlackLongCastlingPossible = true;
 
   constructor(board?: Board) {
     if (board) {
@@ -146,6 +153,19 @@ class Chess {
     this.board[from.y]![from.x] = null;
     this.board[to.y]![to.x] = movedPiece;
 
+    //check whether the move is castling in order to change rook position
+    if (movedPiece.pieceType === "KING" && Math.abs(from.x - to.x) === 2) {
+      if (from.x - to.x < 0) {
+        const rook = this.board[from.y]![7]!;
+        this.board[from.y]![7] = null;
+        this.board[from.y]![5] = rook;
+      } else {
+        const rook = this.board[from.y]![0]!;
+        this.board[from.y]![0] = null;
+        this.board[from.y]![2] = rook;
+      }
+    }
+
     const whiteKingCoordsTemp = this._whiteKingCoords;
     const blackKingCoordsTemp = this._blackKingCoords;
 
@@ -210,10 +230,40 @@ class Chess {
       }
     }
 
-    //check whether checkmate has occured
+    if (
+      playerColor === "WHITE" &&
+      (this._isWhiteShortCastlingPossible || this._isWhiteLongCastlingPossible)
+    ) {
+      if (movedPiece.pieceType === "KING") {
+        this._isWhiteShortCastlingPossible = false;
+        this._isWhiteLongCastlingPossible = false;
+      } else if (movedPiece.pieceType === "ROOK") {
+        if (from.x === 0 && from.y === 0) {
+          this._isWhiteLongCastlingPossible = false;
+        } else if (from.x === 7 && from.y === 0) {
+          this._isWhiteShortCastlingPossible = false;
+        }
+      }
+    } else if (
+      playerColor === "BLACK" &&
+      (this._isBlackShortCastlingPossible || this._isBlackLongCastlingPossible)
+    ) {
+      if (movedPiece.pieceType === "KING") {
+        this._isBlackShortCastlingPossible = false;
+        this._isBlackLongCastlingPossible = false;
+      } else if (movedPiece.pieceType === "ROOK") {
+        if (from.x === 0 && from.y === 7) {
+          this._isBlackLongCastlingPossible = false;
+        } else if (from.x === 7 && from.y === 7) {
+          this._isBlackShortCastlingPossible = false;
+        }
+      }
+    }
+
     if (
       this._hasCheckmateOccured(playerColor === "WHITE" ? "BLACK" : "WHITE")
     ) {
+      //check whether checkmate has occured
       this._gameResult = { winner: playerColor, reason: "MATE" };
       return this._currentBoard;
     }
@@ -1037,6 +1087,111 @@ class Chess {
           (capture) => !check.cannotEscapeTo.includes(capture)
         );
       });
+    }
+
+    //short castling
+    if (
+      color === "WHITE" &&
+      this._isWhiteShortCastlingPossible &&
+      !this._isWhiteKingChecked
+    ) {
+      //hardcoded coords cannot be undefined so non-null assertion allowed
+      const rookCoordsAfterCastling = Coords.getInstance(5, 0)!;
+      const kingCoordsAfterCastling = Coords.getInstance(6, 0)!;
+
+      const rookTileAfterCastling =
+        this._currentBoard[rookCoordsAfterCastling.y]![
+          rookCoordsAfterCastling.x
+        ];
+      const kingTileAfterCastling =
+        this._currentBoard[kingCoordsAfterCastling.y]![
+          kingCoordsAfterCastling.x
+        ];
+      if (
+        rookTileAfterCastling === null &&
+        !this._tilesAttackedByBlack.has(rookCoordsAfterCastling) &&
+        kingTileAfterCastling === null &&
+        !this._tilesAttackedByBlack.has(kingCoordsAfterCastling)
+      ) {
+        possibleMoves.push(kingCoordsAfterCastling);
+      }
+    } else if (
+      color === "BLACK" &&
+      this._isBlackShortCastlingPossible &&
+      !this._isBlackKingChecked
+    ) {
+      //hardcoded coords cannot be undefined so non-null assertion allowed
+      const rookCoordsAfterCastling = Coords.getInstance(5, 7)!;
+      const kingCoordsAfterCastling = Coords.getInstance(6, 7)!;
+
+      const rookTileAfterCastling =
+        this._currentBoard[rookCoordsAfterCastling.y]![
+          rookCoordsAfterCastling.x
+        ];
+      const kingTileAfterCastling =
+        this._currentBoard[kingCoordsAfterCastling.y]![
+          kingCoordsAfterCastling.x
+        ];
+      if (
+        rookTileAfterCastling === null &&
+        !this._tilesAttackedByWhite.has(rookCoordsAfterCastling) &&
+        kingTileAfterCastling === null &&
+        !this._tilesAttackedByWhite.has(kingCoordsAfterCastling)
+      ) {
+        possibleMoves.push(kingCoordsAfterCastling);
+      }
+    }
+    //long castling
+    if (
+      color === "WHITE" &&
+      this._isWhiteLongCastlingPossible &&
+      !this._isWhiteKingChecked
+    ) {
+      //hardcoded coords cannot be undefined so non-null assertion allowed
+      const rookCoordsAfterCastling = Coords.getInstance(2, 0)!;
+      const kingCoordsAfterCastling = Coords.getInstance(1, 0)!;
+
+      const rookTileAfterCastling =
+        this._currentBoard[rookCoordsAfterCastling.y]![
+          rookCoordsAfterCastling.x
+        ];
+      const kingTileAfterCastling =
+        this._currentBoard[kingCoordsAfterCastling.y]![
+          kingCoordsAfterCastling.x
+        ];
+      if (
+        rookTileAfterCastling === null &&
+        !this._tilesAttackedByBlack.has(rookCoordsAfterCastling) &&
+        kingTileAfterCastling === null &&
+        !this._tilesAttackedByBlack.has(kingCoordsAfterCastling)
+      ) {
+        possibleMoves.push(kingCoordsAfterCastling);
+      }
+    } else if (
+      color === "BLACK" &&
+      this._isBlackLongCastlingPossible &&
+      !this._isBlackKingChecked
+    ) {
+      //hardcoded coords cannot be undefined so non-null assertion allowed
+      const rookCoordsAfterCastling = Coords.getInstance(2, 7)!;
+      const kingCoordsAfterCastling = Coords.getInstance(1, 7)!;
+
+      const rookTileAfterCastling =
+        this._currentBoard[rookCoordsAfterCastling.y]![
+          rookCoordsAfterCastling.x
+        ];
+      const kingTileAfterCastling =
+        this._currentBoard[kingCoordsAfterCastling.y]![
+          kingCoordsAfterCastling.x
+        ];
+      if (
+        rookTileAfterCastling === null &&
+        !this._tilesAttackedByWhite.has(rookCoordsAfterCastling) &&
+        kingTileAfterCastling === null &&
+        !this._tilesAttackedByWhite.has(kingCoordsAfterCastling)
+      ) {
+        possibleMoves.push(kingCoordsAfterCastling);
+      }
     }
 
     return {
