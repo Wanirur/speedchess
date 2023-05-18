@@ -36,6 +36,8 @@ class Chess {
     return this._history;
   }
 
+  private _repetitions = new Map<FEN, number>();
+
   private _currentBoard: Board;
   public get board(): Board {
     return this._currentBoard;
@@ -133,7 +135,18 @@ class Chess {
 
     this._calculateAttackedTiles();
 
-    this._history = [copyBoard(this._currentBoard)];
+    this._history = [
+      new FEN(
+        this._currentBoard,
+        "BLACK",
+        true,
+        true,
+        true,
+        true,
+        undefined,
+        0
+      ),
+    ];
   }
 
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {
@@ -206,7 +219,7 @@ class Chess {
     ) {
       //history cannot be empty - first element is assigned in the constructor and no elements are removed
       // - non-null assertion allowed
-      this._currentBoard = copyBoard(this._history.at(-1)!);
+      this._currentBoard = copyBoard(this._history.at(-1)!.buildBoard());
       this._tilesAttackedByWhite = tilesAttackedByWhiteTemp;
       this._tilesAttackedByBlack = tilesAttackedByBlackTemp;
       this._isWhiteKingChecked = whiteKingCheckedTemp;
@@ -300,6 +313,36 @@ class Chess {
         winner: "DRAW",
         reason: "FIFTY_MOVE",
       };
+    }
+
+    const currentBoardFEN = new FEN(
+      this._currentBoard,
+      playerColor === "WHITE" ? "BLACK" : "WHITE",
+      this._isWhiteShortCastlingPossible,
+      this._isWhiteLongCastlingPossible,
+      this._isBlackShortCastlingPossible,
+      this._isBlackLongCastlingPossible,
+      this._pawnPossibleToEnPassant
+        ? Coords.getInstance(
+            this._pawnPossibleToEnPassant.x,
+            this._pawnPossibleToEnPassant.y
+          )
+        : undefined,
+      this._halfMovesSinceLastCaptureOrPawnMove
+    );
+
+    if (this._repetitions.has(this._history[-1]!)) {
+      const count = this._repetitions.get(this.history[-1]!)! + 1;
+      if (count === 3) {
+        this._gameResult = {
+          winner: "DRAW",
+          reason: "REPETITION",
+        };
+      } else {
+        this._repetitions.set(this.history[-1]!, count);
+      }
+    } else {
+      this._repetitions.set(this.history[-1]!, 1);
     }
 
     return this.board;

@@ -34,4 +34,10 @@ export class Coords {
   public static getInstance(x: number, y: number) {
     return Coords._pool[y]?.[x];
   }
+
+  public toNotation() {
+    return (
+      String.fromCharCode("a".charCodeAt(0) + this._x) + this._y.toString()
+    );
+  }
 }

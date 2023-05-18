@@ -19,7 +19,7 @@ import {
   whiteKing,
 } from "./pieces";
 
-//fen notation type used for enforcing threefold repetition rule
+//fen notation
 //https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 export class FEN {
   private _piecePlacement: string;
@@ -96,7 +96,7 @@ export class FEN {
     this._fullMoveCount = Math.floor(halfMoves / 2);
   }
 
-  public buildBoardFromFEN() {
+  public buildBoard() {
     const board = buildEmptyBoard();
 
     const rows = this._piecePlacement.split("/");
