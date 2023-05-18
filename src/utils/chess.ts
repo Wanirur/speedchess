@@ -856,9 +856,10 @@ class Chess {
         const tile = this._currentBoard[coords.y]![coords.x];
         if (tile !== null) {
           if (tile?.color !== color) {
-            if (tile?.pieceType === "KING" && tile.color !== color) {
+            if (tile?.pieceType === "KING") {
               if (isDiagonalPotentialPin[index]) {
                 hasPinOccured = true;
+                return;
               } else {
                 isDiagonalBlocked[index] = true;
               }
