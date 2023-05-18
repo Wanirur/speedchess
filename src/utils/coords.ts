@@ -1,7 +1,7 @@
 export class Coords {
   /*
   Object pool created in order to avoid unecessary temporary objects 
-  which happened when chess methods accepted any CoordsType args
+  which happened when chess methods accepted any { x: number, y: number } args
   - avoids gc issues.
   It also allows to find coords in sets which is used when looking for checkmates
   */

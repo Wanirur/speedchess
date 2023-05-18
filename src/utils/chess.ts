@@ -75,6 +75,8 @@ class Chess {
   private _isWhiteLongCastlingPossible = true;
   private _isBlackLongCastlingPossible = true;
 
+  private _halfMovesSinceLastCaptureOrPawnMove = 0;
+
   constructor(board?: Board) {
     if (board) {
       this._currentBoard = board;
@@ -134,13 +136,19 @@ class Chess {
   }
 
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {
-    const movedPiece = this._currentBoard[from.y]![from.x]!;
-    if (movedPiece === null || movedPiece.color !== playerColor) {
+    const movedPiece = this._currentBoard[from.y]![from.x];
+    if (!movedPiece) {
       throw new Error("you tried to move empty file");
     }
 
-    console.log(from);
-    console.log(to);
+    if (movedPiece.color !== playerColor) {
+      throw new Error("you tried moving opponent's piece");
+    }
+
+    const toTile = this._currentBoard[from.y]![from.x];
+    if (toTile === undefined) {
+      throw new Error("incorrect coordinates");
+    }
 
     const possibleMoves = this.getPossibleMoves(from);
     if (
@@ -277,8 +285,18 @@ class Chess {
         this._tilesAttackedByBlack.size === 0 &&
         this._possibleCapturesOfBlack.size === 0)
     ) {
-      console.log("stalemate");
       this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
+    }
+
+    if (toTile === null && movedPiece.pieceType != "PAWN") {
+      this._halfMovesSinceLastCaptureOrPawnMove += 1;
+    }
+
+    if (this._halfMovesSinceLastCaptureOrPawnMove === 100) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "FIFTY_MOVE",
+      };
     }
 
     return this.board;
