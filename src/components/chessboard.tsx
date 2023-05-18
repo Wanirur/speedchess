@@ -30,18 +30,20 @@ const Chessboard: React.FC<{
           } gap-0`}
         >
           {board.map((row, row_index) => (
-            <div key={-row_index} className="flex flex-row">
+            <div
+              key={-row_index}
+              className={`flex ${
+                color === "WHITE" ? "flex-row" : "flex-row-reverse"
+              }`}
+            >
               {row.map((tile, index) => {
-                let isWhite = true;
-                if (row_index % 2) {
-                  isWhite = false;
-                }
+                let isWhite = false;
 
-                if (index % 2) {
+                if (row_index % 2) {
                   isWhite = !isWhite;
                 }
 
-                if (color === "WHITE") {
+                if (index % 2) {
                   isWhite = !isWhite;
                 }
 

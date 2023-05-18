@@ -11,6 +11,7 @@ import {
   blackPawn,
   blackQueen,
   blackRook,
+  initBoard,
   testBoard,
   whiteKing,
   whiteKnight,
@@ -20,16 +21,16 @@ import {
 } from "~/utils/pieces";
 
 const Test: NextPage = () => {
-  const board = testBoard();
+  const board = initBoard();
 
-  addToTestBoard(board, whiteRook, Coords.getInstance(5, 5));
-  addToTestBoard(board, whiteRook, Coords.getInstance(2, 5));
-  addToTestBoard(board, whitePawn, Coords.getInstance(3, 3));
-  addToTestBoard(board, whitePawn, Coords.getInstance(3, 4));
-  addToTestBoard(board, whiteQueen, Coords.getInstance(0, 3));
-  addToTestBoard(board, whiteKing, Coords.getInstance(2, 0));
-  addToTestBoard(board, blackKing, Coords.getInstance(1, 6));
-  addToTestBoard(board, whiteKnight, Coords.getInstance(2, 2));
+  // addToTestBoard(board, whiteRook, Coords.getInstance(5, 5));
+  // addToTestBoard(board, whiteRook, Coords.getInstance(2, 5));
+  // addToTestBoard(board, whitePawn, Coords.getInstance(3, 3));
+  // addToTestBoard(board, whitePawn, Coords.getInstance(3, 4));
+  // addToTestBoard(board, whiteQueen, Coords.getInstance(0, 3));
+  // addToTestBoard(board, whiteKing, Coords.getInstance(2, 0));
+  // addToTestBoard(board, blackKing, Coords.getInstance(1, 6));
+  // addToTestBoard(board, whiteKnight, Coords.getInstance(2, 2));
 
   const chessRef = useRef<Chess | null>(null);
   if (chessRef.current === null) {
