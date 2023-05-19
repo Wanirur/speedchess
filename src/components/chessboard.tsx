@@ -3,6 +3,14 @@ import {
   resolvePieceToImage,
   type PlayerColor,
   type Board,
+  whiteQueen,
+  blackQueen,
+  whiteKnight,
+  blackKnight,
+  whiteRook,
+  whiteBishop,
+  blackRook,
+  blackBishop,
 } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
@@ -20,6 +28,7 @@ const Chessboard: React.FC<{
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
+  const [promotedPawn, setPromotedPawn] = useState<Coords | null>(null);
   const moveMutation = api.chess.movePiece.useMutation();
   return (
     <>
@@ -176,15 +185,25 @@ const Chessboard: React.FC<{
                       ]);
                     }}
                   >
-                    {tile && (
-                      <Image
-                        src={resolvePieceToImage(tile)}
-                        alt={tile.pieceType}
-                        width={80}
-                        height={80}
-                        className="cursor-pointer"
-                      ></Image>
-                    )}
+                    {!(
+                      promotedPawn &&
+                      index === promotedPawn.x &&
+                      row_index === promotedPawn.y
+                    ) &&
+                      tile && (
+                        <Image
+                          src={resolvePieceToImage(tile)}
+                          alt={tile.pieceType}
+                          width={80}
+                          height={80}
+                          className="cursor-pointer"
+                        ></Image>
+                      )}
+                    {promotedPawn &&
+                      index === promotedPawn.x &&
+                      row_index === promotedPawn.y && (
+                        <PromotionPieceList color={color}></PromotionPieceList>
+                      )}
                   </div>
                 );
               })}
@@ -193,6 +212,78 @@ const Chessboard: React.FC<{
         </div>
       }{" "}
     </>
+  );
+};
+
+const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
+  return (
+    <div className="absolute z-10 h-80 w-20 bg-neutral-700">
+      {color === "WHITE" && (
+        <>
+          <Image
+            src={resolvePieceToImage(whiteQueen)}
+            alt={whiteQueen.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+          <Image
+            src={resolvePieceToImage(whiteKnight)}
+            alt={whiteKnight.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+          <Image
+            src={resolvePieceToImage(whiteRook)}
+            alt={whiteRook.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+          <Image
+            src={resolvePieceToImage(whiteBishop)}
+            alt={whiteBishop.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+        </>
+      )}
+
+      {color === "BLACK" && (
+        <>
+          <Image
+            src={resolvePieceToImage(blackQueen)}
+            alt={blackQueen.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+          <Image
+            src={resolvePieceToImage(blackKnight)}
+            alt={blackKnight.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+          <Image
+            src={resolvePieceToImage(blackRook)}
+            alt={blackRook.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+          <Image
+            src={resolvePieceToImage(blackBishop)}
+            alt={blackBishop.pieceType}
+            width={80}
+            height={80}
+            className="cursor-pointer"
+          ></Image>
+        </>
+      )}
+    </div>
   );
 };
 
