@@ -11,10 +11,18 @@ export const PieceTypes = [
 ] as const;
 
 export type PlayerColor = "WHITE" | "BLACK";
+export type PieceType = (typeof PieceTypes)[number];
+export const PossiblePromotions = [
+  "QUEEN",
+  "KNIGHT",
+  "ROOK",
+  "BISHOP",
+] as const;
 
+export type PromotedPieceType = (typeof PossiblePromotions)[number];
 export type Piece = {
   color: PlayerColor;
-  pieceType: (typeof PieceTypes)[number];
+  pieceType: PieceType;
 };
 
 export const whiteRook = { pieceType: "ROOK", color: "WHITE" } as Piece;

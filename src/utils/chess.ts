@@ -9,6 +9,9 @@ import {
   whiteKing,
   blackKing,
   copyBoard,
+  PieceType,
+  PossiblePromotions,
+  PromotedPieceType,
 } from "./pieces";
 
 type KingCheck = {
@@ -56,6 +59,10 @@ class Chess {
 
   private _movedPawns = new Set<Coords>();
   private _pawnPossibleToEnPassant: Coords | null = null;
+  private _pawnReadyToPromote: Coords | null = null;
+  public get pawnReadyToPromote(): Coords | null {
+    return this._pawnReadyToPromote;
+  }
 
   private _tilesAttackedByWhite = new Set<Coords>();
   private _tilesAttackedByBlack = new Set<Coords>();
@@ -136,16 +143,7 @@ class Chess {
     this._calculateAttackedTiles();
 
     this._history = [
-      new FEN(
-        this._currentBoard,
-        "BLACK",
-        true,
-        true,
-        true,
-        true,
-        undefined,
-        0
-      ),
+      new FEN(this._currentBoard, "BLACK", true, true, true, true, null, 0),
     ];
   }
 
@@ -250,6 +248,13 @@ class Chess {
       if (Math.abs(from.y - to.y) === 2) {
         this._pawnPossibleToEnPassant = to;
       }
+
+      if (
+        (playerColor === "WHITE" && to.y === 7) ||
+        (playerColor === "BLACK" && to.y === 0)
+      ) {
+        this._pawnReadyToPromote = to;
+      }
     }
 
     if (
@@ -285,7 +290,6 @@ class Chess {
     if (
       this._hasCheckmateOccured(playerColor === "WHITE" ? "BLACK" : "WHITE")
     ) {
-      //check whether checkmate has occured
       this._gameResult = { winner: playerColor, reason: "MATE" };
       return this._currentBoard;
     }
@@ -322,14 +326,10 @@ class Chess {
       this._isWhiteLongCastlingPossible,
       this._isBlackShortCastlingPossible,
       this._isBlackLongCastlingPossible,
-      this._pawnPossibleToEnPassant
-        ? Coords.getInstance(
-            this._pawnPossibleToEnPassant.x,
-            this._pawnPossibleToEnPassant.y
-          )
-        : undefined,
+      this._pawnPossibleToEnPassant,
       this._halfMovesSinceLastCaptureOrPawnMove
     );
+    this._history.push(currentBoardFEN);
 
     if (this._repetitions.has(this._history[-1]!)) {
       const count = this._repetitions.get(this.history[-1]!)! + 1;
@@ -346,6 +346,51 @@ class Chess {
     }
 
     return this.board;
+  }
+
+  public promote(
+    coords: Coords,
+    promoteTo: PromotedPieceType,
+    playerColor: PlayerColor
+  ) {
+    const tile = this.board[coords.y]![coords.x];
+    if (!tile || tile.pieceType !== "PAWN" || tile.color !== playerColor) {
+      throw new Error("incorrect promotion target");
+    }
+
+    this.board[coords.y]![coords.x] = {
+      pieceType: promoteTo,
+      color: playerColor,
+    };
+
+    this._calculateAttackedTiles();
+    this._history[-1] = new FEN(
+      this.board,
+      playerColor === "WHITE" ? "BLACK" : "WHITE",
+      this._isWhiteShortCastlingPossible,
+      this._isWhiteLongCastlingPossible,
+      this._isBlackShortCastlingPossible,
+      this._isBlackLongCastlingPossible,
+      this._pawnPossibleToEnPassant,
+      this._halfMovesSinceLastCaptureOrPawnMove
+    );
+
+    this._pawnReadyToPromote = null;
+    if (
+      this._hasCheckmateOccured(playerColor === "WHITE" ? "BLACK" : "WHITE")
+    ) {
+      this._gameResult = { winner: playerColor, reason: "MATE" };
+    }
+    if (
+      (playerColor === "BLACK" &&
+        this._tilesAttackedByWhite.size === 0 &&
+        this._possibleCapturesOfWhite.size === 0) ||
+      (playerColor === "WHITE" &&
+        this._tilesAttackedByBlack.size === 0 &&
+        this._possibleCapturesOfBlack.size === 0)
+    ) {
+      this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
+    }
   }
 
   public getPossibleMoves(position: Coords): PieceInteractions {

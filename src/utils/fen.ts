@@ -36,7 +36,7 @@ export class FEN {
     whiteLongCastling: boolean,
     blackShortCastling: boolean,
     blackLongCastling: boolean,
-    lastEnPassant: Coords | undefined,
+    lastEnPassant: Coords | null,
     halfMoves: number
   ) {
     let piecePlacement = "";
