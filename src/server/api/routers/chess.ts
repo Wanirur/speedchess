@@ -157,11 +157,22 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       let time;
+      const from = Coords.getInstance(input.fromTile.x, input.fromTile.y);
+      if (!from) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Incorrect coordinates of moved piece",
+        });
+      }
+      const to = Coords.getInstance(input.toTile.x, input.toTile.y);
+      if (!to) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Incorrect coordinates of piece's destination",
+        });
+      }
       try {
-        time = match.move(
-          Coords.getInstance(input.fromTile.x, input.fromTile.y),
-          Coords.getInstance(input.toTile.x, input.toTile.y)
-        );
+        time = match.move(from, to);
       } catch (e) {
         if (e instanceof Error) {
           throw new TRPCError({

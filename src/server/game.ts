@@ -70,10 +70,7 @@ export class Game {
     this._lastMoveTime = Date.now();
   }
 
-  move(from: Coords | undefined, to: Coords | undefined) {
-    if (!from || !to) {
-      throw new Error();
-    }
+  move(from: Coords, to: Coords) {
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
