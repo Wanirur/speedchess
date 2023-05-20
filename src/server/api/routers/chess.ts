@@ -9,7 +9,14 @@ import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { type PlayerColor } from "~/utils/pieces";
+import {
+  Piece,
+  PieceType,
+  PieceTypes,
+  PossiblePromotions,
+  type PlayerColor,
+  PromotedPieceType,
+} from "~/utils/pieces";
 import { Coords } from "~/utils/coords";
 
 export const chessgameRouter = createTRPCRouter({
@@ -177,6 +184,68 @@ export const chessgameRouter = createTRPCRouter({
         fromTile: input.fromTile,
         toTile: input.toTile,
         timeLeftInMilis: time,
+      });
+    }),
+  promoteTo: protectedProcedure
+    .input(
+      z.object({
+        uuid: z.string().uuid(),
+        promoteTo: z.string(),
+        coords: z.object({
+          x: z.number(),
+          y: z.number(),
+        }),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      if (!PossiblePromotions.includes(input.promoteTo as PromotedPieceType)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You tried to promote pawn to incorrect piece type",
+        });
+      }
+      const promotionCoords = Coords.getInstance(
+        input.coords.x,
+        input.coords.y
+      );
+      if (!promotionCoords) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Incorrect pawn coordinates",
+        });
+      }
+
+      try {
+        match.chess.promote(
+          promotionCoords,
+          input.promoteTo as PromotedPieceType,
+          match.turn === match.white ? "WHITE" : "BLACK"
+        );
+      } catch (e) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: (e as Error).message,
+        });
+      }
+
+      await pusher.trigger(match.id, "promoted_piece", {
+        promotedTo: input.promoteTo,
+        coords: input.coords,
       });
     }),
   resign: protectedProcedure

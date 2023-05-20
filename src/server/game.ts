@@ -1,4 +1,9 @@
-import { type GameResult, type PlayerColor, initBoard } from "~/utils/pieces";
+import {
+  type GameResult,
+  type PlayerColor,
+  initBoard,
+  PromotedPieceType,
+} from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { matches } from "./matchmaking";
 import { type Coords } from "~/utils/coords";
@@ -84,6 +89,40 @@ export class Game {
     }
 
     this._chess.move(from, to, this._turn === this._white ? "WHITE" : "BLACK");
+    if (this._chess.pawnReadyToPromote) {
+      return timeLeft;
+    }
+
+    if (this._turn === this._white) {
+      this._turn = this._black;
+    } else {
+      this._turn = this._white;
+    }
+
+    return timeLeft;
+  }
+
+  promote(coords: Coords, promoteTo: PromotedPieceType) {
+    const moveEnd = Date.now();
+    const duration = moveEnd - this._lastMoveTime;
+    this._lastMoveTime = moveEnd;
+    this._turn.timeLeftInMilis -= duration;
+    const timeLeft = this._turn.timeLeftInMilis;
+
+    if (timeLeft <= 0) {
+      this._gameResult = {
+        winner: this._turn === this._white ? "BLACK" : "WHITE",
+        reason: "TIMEOUT",
+      };
+      this.finishGame();
+      return timeLeft;
+    }
+
+    this._chess.promote(
+      coords,
+      promoteTo,
+      this._turn === this._white ? "WHITE" : "BLACK"
+    );
 
     if (this._turn === this._white) {
       this._turn = this._black;
