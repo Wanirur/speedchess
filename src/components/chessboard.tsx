@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import {
   resolvePieceToImage,
   type PlayerColor,
@@ -11,6 +11,7 @@ import {
   whiteBishop,
   blackRook,
   blackBishop,
+  type PromotedPieceType,
 } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
@@ -96,17 +97,19 @@ const Chessboard: React.FC<{
                       }
                       setDraggedPiece(coords);
                     }}
-                    onDrop={() => {
+                    onDrop={async () => {
                       if (draggedPiece === null) {
                         return;
                       }
 
+                      const coords = draggedPiece;
+                      setDraggedPiece(null);
                       const moveTo = Coords.getInstance(index, row_index);
                       if (!moveTo) {
                         return;
                       }
                       try {
-                        chess.move(draggedPiece, moveTo, color);
+                        chess.move(coords, moveTo, color);
                       } catch (e) {
                         if (e instanceof Error) {
                           console.log(e);
@@ -114,23 +117,39 @@ const Chessboard: React.FC<{
 
                         return;
                       }
-                      moveMutation.mutate({
-                        uuid: uuid,
-                        fromTile: {
-                          x: draggedPiece.x,
-                          y: draggedPiece.y,
-                        },
-                        toTile: {
-                          x: index,
-                          y: row_index,
-                        },
-                      });
-                      setDraggedPiece(null);
+                      if (
+                        board[moveTo.y]![moveTo.x]?.pieceType === "PAWN" &&
+                        ((color === "WHITE" && moveTo.y === 7) ||
+                          (color === "BLACK" && moveTo.y === 0))
+                      ) {
+                        setPromotedPawn(moveTo);
+                      }
+
+                      try {
+                        await moveMutation.mutateAsync({
+                          uuid: uuid,
+                          fromTile: {
+                            x: coords.x,
+                            y: coords.y,
+                          },
+                          toTile: {
+                            x: index,
+                            y: row_index,
+                          },
+                        });
+                      } catch (e) {
+                        chess.revertLastMove();
+                      }
                     }}
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       if (!isYourTurn) {
                         return;
                       }
+
+                      if (promotedPawn !== null) {
+                        return;
+                      }
+
                       const tileElement = e.target;
                       if (!(tileElement instanceof Element)) {
                         return;
@@ -145,9 +164,12 @@ const Chessboard: React.FC<{
                         if (!moveTo) {
                           return;
                         }
+                        const moveFrom = highlightedTile;
+                        setHighlightedTile(null);
+                        setPossibleMoves(null);
 
                         try {
-                          chess.move(highlightedTile, moveTo, color);
+                          chess.move(moveFrom, moveTo, color);
                         } catch (e) {
                           if (e instanceof Error) {
                             console.log(e);
@@ -156,19 +178,31 @@ const Chessboard: React.FC<{
                           return;
                         }
 
-                        moveMutation.mutate({
-                          uuid: uuid,
-                          fromTile: {
-                            x: highlightedTile.x,
-                            y: highlightedTile.y,
-                          },
-                          toTile: {
-                            x: index,
-                            y: row_index,
-                          },
-                        });
-                        setHighlightedTile(null);
-                        setPossibleMoves(null);
+                        if (
+                          board[moveTo.y]![moveTo.x]?.pieceType === "PAWN" &&
+                          ((color === "WHITE" && moveTo.y === 7) ||
+                            (color === "BLACK" && moveTo.y === 0))
+                        ) {
+                          setPromotedPawn(moveTo);
+                        }
+
+                        try {
+                          await moveMutation.mutateAsync({
+                            uuid: uuid,
+                            fromTile: {
+                              x: highlightedTile.x,
+                              y: highlightedTile.y,
+                            },
+                            toTile: {
+                              x: index,
+                              y: row_index,
+                            },
+                          });
+                        } catch (e) {
+                          console.log("reverting...");
+                          chess.revertLastMove();
+                        }
+
                         return;
                       }
 
@@ -177,6 +211,7 @@ const Chessboard: React.FC<{
                         return;
                       }
                       setHighlightedTile(coords);
+
                       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                       const moves = chess.getPossibleMoves(coords);
                       setPossibleMoves([
@@ -189,7 +224,7 @@ const Chessboard: React.FC<{
                       promotedPawn &&
                       index === promotedPawn.x &&
                       row_index === promotedPawn.y
-                    ) &&
+                    ) ? (
                       tile && (
                         <Image
                           src={resolvePieceToImage(tile)}
@@ -198,12 +233,15 @@ const Chessboard: React.FC<{
                           height={80}
                           className="cursor-pointer"
                         ></Image>
-                      )}
-                    {promotedPawn &&
-                      index === promotedPawn.x &&
-                      row_index === promotedPawn.y && (
-                        <PromotionPieceList color={color}></PromotionPieceList>
-                      )}
+                      )
+                    ) : (
+                      <PromotionPieceList
+                        color={color}
+                        uuid={uuid}
+                        chess={chess}
+                        setPromotedPawn={setPromotedPawn}
+                      ></PromotionPieceList>
+                    )}
                   </div>
                 );
               })}
@@ -215,7 +253,18 @@ const Chessboard: React.FC<{
   );
 };
 
-const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
+const PromotionPieceList: React.FC<{
+  color: PlayerColor;
+  uuid: string;
+  chess: Chess;
+  setPromotedPawn: Dispatch<SetStateAction<Coords | null>>;
+}> = ({ color, uuid, chess, setPromotedPawn }) => {
+  const promoteMutation = api.chess.promoteTo.useMutation();
+  const promote = (pieceType: PromotedPieceType) => {
+    chess.promote(pieceType, color);
+    promoteMutation.mutate({ uuid: uuid, promoteTo: pieceType });
+    setPromotedPawn(null);
+  };
   return (
     <div className="absolute z-10 h-80 w-20 bg-neutral-700">
       {color === "WHITE" && (
@@ -226,6 +275,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("QUEEN")}
           ></Image>
           <Image
             src={resolvePieceToImage(whiteKnight)}
@@ -233,6 +283,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("KNIGHT")}
           ></Image>
           <Image
             src={resolvePieceToImage(whiteRook)}
@@ -240,6 +291,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("ROOK")}
           ></Image>
           <Image
             src={resolvePieceToImage(whiteBishop)}
@@ -247,6 +299,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("BISHOP")}
           ></Image>
         </>
       )}
@@ -259,6 +312,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("QUEEN")}
           ></Image>
           <Image
             src={resolvePieceToImage(blackKnight)}
@@ -266,6 +320,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("KNIGHT")}
           ></Image>
           <Image
             src={resolvePieceToImage(blackRook)}
@@ -273,6 +328,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("ROOK")}
           ></Image>
           <Image
             src={resolvePieceToImage(blackBishop)}
@@ -280,6 +336,7 @@ const PromotionPieceList: React.FC<{ color: PlayerColor }> = ({ color }) => {
             width={80}
             height={80}
             className="cursor-pointer"
+            onClick={() => promote("BISHOP")}
           ></Image>
         </>
       )}

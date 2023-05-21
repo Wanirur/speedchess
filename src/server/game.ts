@@ -86,7 +86,7 @@ export class Game {
     }
 
     this._chess.move(from, to, this._turn === this._white ? "WHITE" : "BLACK");
-    if (this._chess.pawnReadyToPromote) {
+    if (this._chess.pawnReadyToPromote !== null) {
       return timeLeft;
     }
 
@@ -99,7 +99,7 @@ export class Game {
     return timeLeft;
   }
 
-  promote(coords: Coords, promoteTo: PromotedPieceType) {
+  promote(promoteTo: PromotedPieceType) {
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
@@ -115,11 +115,7 @@ export class Game {
       return timeLeft;
     }
 
-    this._chess.promote(
-      coords,
-      promoteTo,
-      this._turn === this._white ? "WHITE" : "BLACK"
-    );
+    this._chess.promote(promoteTo, this._turn === this._white ? "WHITE" : "BLACK");
 
     if (this._turn === this._white) {
       this._turn = this._black;

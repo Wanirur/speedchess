@@ -8,7 +8,7 @@ import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
-import { copyBoard } from "~/utils/pieces";
+import { type PromotedPieceType, copyBoard } from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -48,6 +48,56 @@ const Play: NextPage = () => {
             if (!from || !to) {
               return;
             }
+
+            utils.chess.getGameState.setData(
+              { uuid: uuid as string },
+              (old) => {
+                if (!old || !chessRef.current?.board) {
+                  return old;
+                }
+
+                if (old.turn === old.color) {
+                  let nextTurn = old.turn;
+                  if (!chessRef.current.pawnReadyToPromote) {
+                    nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
+                  }
+                  return {
+                    ...old,
+                    turn: nextTurn,
+                  };
+                }
+
+                const newBoard = copyBoard(
+                  chessRef.current.move(from, to, old.turn)
+                );
+
+                let nextTurn = old.turn;
+                if (!chessRef.current.pawnReadyToPromote) {
+                  nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
+                }
+                return {
+                  ...old,
+                  board: newBoard,
+                  turn: nextTurn,
+                };
+              }
+            );
+          } catch (e) {
+            console.log(e);
+          }
+        };
+        const onPromotion = (promotion: {
+          coords: { _x: number; _y: number };
+          promotedTo: PromotedPieceType;
+        }) => {
+          try {
+            const pawnCoords = Coords.getInstance(
+              promotion.coords._x,
+              promotion.coords._y
+            );
+            if (!pawnCoords) {
+              return;
+            }
             utils.chess.getGameState.setData(
               { uuid: uuid as string },
               (old) => {
@@ -63,7 +113,9 @@ const Play: NextPage = () => {
                 }
                 return {
                   ...old,
-                  board: copyBoard(chessRef.current.move(from, to, old.turn)),
+                  board: copyBoard(
+                    chessRef.current.promote(promotion.promotedTo, old.turn)
+                  ),
                   turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
                 };
               }
@@ -74,6 +126,7 @@ const Play: NextPage = () => {
         };
 
         channelRef.current?.bind("move_made", onMove);
+        channelRef.current?.bind("promoted_piece", onPromotion);
         console.log(board);
         chessRef.current = new Chess(board);
       },

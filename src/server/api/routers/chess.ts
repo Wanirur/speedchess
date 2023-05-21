@@ -10,12 +10,9 @@ import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
-  Piece,
-  PieceType,
-  PieceTypes,
   PossiblePromotions,
   type PlayerColor,
-  PromotedPieceType,
+  type PromotedPieceType,
 } from "~/utils/pieces";
 import { Coords } from "~/utils/coords";
 
@@ -171,6 +168,7 @@ export const chessgameRouter = createTRPCRouter({
           message: "Incorrect coordinates of piece's destination",
         });
       }
+
       try {
         time = match.move(from, to);
       } catch (e) {
@@ -202,10 +200,6 @@ export const chessgameRouter = createTRPCRouter({
       z.object({
         uuid: z.string().uuid(),
         promoteTo: z.string(),
-        coords: z.object({
-          x: z.number(),
-          y: z.number(),
-        }),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -230,23 +224,16 @@ export const chessgameRouter = createTRPCRouter({
           message: "You tried to promote pawn to incorrect piece type",
         });
       }
-      const promotionCoords = Coords.getInstance(
-        input.coords.x,
-        input.coords.y
-      );
+      const promotionCoords = match.chess.pawnReadyToPromote;
       if (!promotionCoords) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Incorrect pawn coordinates",
+          message: "No pawn possible to promote exists",
         });
       }
 
       try {
-        match.chess.promote(
-          promotionCoords,
-          input.promoteTo as PromotedPieceType,
-          match.turn === match.white ? "WHITE" : "BLACK"
-        );
+        match.promote(input.promoteTo as PromotedPieceType);
       } catch (e) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -256,7 +243,7 @@ export const chessgameRouter = createTRPCRouter({
 
       await pusher.trigger(match.id, "promoted_piece", {
         promotedTo: input.promoteTo,
-        coords: input.coords,
+        coords: promotionCoords,
       });
     }),
   resign: protectedProcedure

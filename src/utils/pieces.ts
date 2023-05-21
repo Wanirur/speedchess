@@ -84,7 +84,7 @@ export const buildEmptyBoard = () => {
   for (let i = 0; i < 8; i++) {
     board[i] = new Array<Tile>(8).fill(null);
   }
-  return board;
+  return board as Board;
 };
 
 export const addPieceToBoard = (
