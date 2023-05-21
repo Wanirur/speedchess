@@ -79,6 +79,10 @@ export class FEN {
         piecePlacement += symbol;
       }
 
+      if (longestSequence !== 0) {
+        piecePlacement += longestSequence.toString();
+      }
+
       piecePlacement += "/";
     }
 

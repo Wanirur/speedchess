@@ -125,3 +125,16 @@ export const initBoard = () => {
 export const copyBoard = (board: Board) => {
   return board.map((row) => [...row]);
 };
+
+export const copyIntoBoard = (source: Board, destination: Board) => {
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const src = source[i]![j];
+      if (src !== undefined) {
+        destination[i]![j] = src;
+      }
+    }
+  }
+
+  return destination;
+};

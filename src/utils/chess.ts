@@ -12,6 +12,7 @@ import {
   PieceType,
   PossiblePromotions,
   PromotedPieceType,
+  copyIntoBoard,
 } from "./pieces";
 
 type KingCheck = {
@@ -143,6 +144,19 @@ class Chess {
       }
     }
 
+    //check whether the move is en passant capture in order to remove the pawn behind
+    if (
+      this._pawnPossibleToEnPassant &&
+      movedPiece.pieceType === "PAWN" &&
+      to.x === this._pawnPossibleToEnPassant.x &&
+      Math.abs(to.y - this._pawnPossibleToEnPassant.y) === 1 &&
+      Math.abs(from.x - this._pawnPossibleToEnPassant.x) === 1
+    ) {
+      this.board[this._pawnPossibleToEnPassant.y]![
+        this._pawnPossibleToEnPassant.x
+      ] = null;
+    }
+
     const whiteKingCoordsTemp = this._whiteKingCoords;
     const blackKingCoordsTemp = this._blackKingCoords;
 
@@ -174,7 +188,8 @@ class Chess {
     ) {
       //history cannot be empty - first element is assigned in the constructor and no elements are removed
       // - non-null assertion allowed
-      this._currentBoard = copyBoard(this._history.at(-1)!.buildBoard());
+      const old_board = this._history.at(-1)!.buildBoard();
+      copyIntoBoard(old_board, this._currentBoard);
       this._tilesAttackedByWhite = tilesAttackedByWhiteTemp;
       this._tilesAttackedByBlack = tilesAttackedByBlackTemp;
       this._isWhiteKingChecked = whiteKingCheckedTemp;
@@ -191,27 +206,6 @@ class Chess {
       this._pinsByBlack = pinsByBlackTemp;
 
       throw new Error("failed to defend check");
-    }
-
-    this._pawnPossibleToEnPassant = null;
-
-    if (movedPiece.pieceType === "PAWN") {
-      if (this._movedPawns.has(from)) {
-        this._movedPawns.delete(from);
-      }
-
-      this._movedPawns.add(to);
-
-      if (Math.abs(from.y - to.y) === 2) {
-        this._pawnPossibleToEnPassant = to;
-      }
-
-      if (
-        (playerColor === "WHITE" && to.y === 7) ||
-        (playerColor === "BLACK" && to.y === 0)
-      ) {
-        this._pawnReadyToPromote = to;
-      }
     }
 
     if (
@@ -243,7 +237,26 @@ class Chess {
         }
       }
     }
+    this._pawnPossibleToEnPassant = null;
 
+    if (movedPiece.pieceType === "PAWN") {
+      if (this._movedPawns.has(from)) {
+        this._movedPawns.delete(from);
+      }
+
+      this._movedPawns.add(to);
+
+      if (Math.abs(from.y - to.y) === 2) {
+        this._pawnPossibleToEnPassant = to;
+      }
+
+      if (
+        (playerColor === "WHITE" && to.y === 7) ||
+        (playerColor === "BLACK" && to.y === 0)
+      ) {
+        this._pawnReadyToPromote = to;
+      }
+    }
     if (
       this._hasCheckmateOccured(playerColor === "WHITE" ? "BLACK" : "WHITE")
     ) {
@@ -288,18 +301,18 @@ class Chess {
     );
     this._history.push(currentBoardFEN);
 
-    if (this._repetitions.has(this._history[-1]!)) {
-      const count = this._repetitions.get(this.history[-1]!)! + 1;
+    if (this._repetitions.has(this._history.at(-1)!)) {
+      const count = this._repetitions.get(this.history.at(-1)!)! + 1;
       if (count === 3) {
         this._gameResult = {
           winner: "DRAW",
           reason: "REPETITION",
         };
       } else {
-        this._repetitions.set(this.history[-1]!, count);
+        this._repetitions.set(this.history.at(-1)!, count);
       }
     } else {
-      this._repetitions.set(this.history[-1]!, 1);
+      this._repetitions.set(this.history.at(-1)!, 1);
     }
 
     return this.board;
@@ -399,7 +412,7 @@ class Chess {
     }
 
     this.history.pop();
-    const fen = this.history[-1]!;
+    const fen = this.history.at(-1)!;
     this._currentBoard = fen.buildBoard();
     const castling = fen.castlingPrivilages;
     this._whiteKingCoords = this._findKing("WHITE");
@@ -803,7 +816,7 @@ class Chess {
       canMoveOneTile = true;
     }
 
-    if (this._movedPawns.has(coords)) {
+    if (this._movedPawns.has(position)) {
       return toReturn;
     }
 
@@ -852,6 +865,24 @@ class Chess {
 
       const tile = this._currentBoard[coords.y]![coords.x]!;
       if (tile === null) {
+        const enPassantCoords = Coords.getInstance(coords.x, position.y);
+        if (!enPassantCoords) {
+          return toReturn;
+        }
+
+        const tilePossibleToEnPassant =
+          this._currentBoard[enPassantCoords.y]![enPassantCoords.x];
+        if (!tilePossibleToEnPassant) {
+          return toReturn;
+        }
+
+        if (
+          this._pawnPossibleToEnPassant === enPassantCoords &&
+          tilePossibleToEnPassant.pieceType === "PAWN" &&
+          tilePossibleToEnPassant.color !== color
+        ) {
+          possibleCaptures.push(coords);
+        }
         return toReturn;
       }
       if (tile.color !== color) {
@@ -867,23 +898,6 @@ class Chess {
         defendedPieces.push(coords);
       }
 
-      const enPassantCoords = Coords.getInstance(coords.x, position.y);
-      if (!enPassantCoords) {
-        return toReturn;
-      }
-
-      const tilePossibleToEnPassant =
-        this._currentBoard[enPassantCoords.y]![enPassantCoords.x]!;
-      if (tile === null) {
-        return toReturn;
-      }
-      if (
-        this._pawnPossibleToEnPassant == enPassantCoords &&
-        tilePossibleToEnPassant.pieceType === "PAWN" &&
-        tilePossibleToEnPassant.color !== color
-      ) {
-        possibleCaptures.push(enPassantCoords);
-      }
       return toReturn;
     };
 
