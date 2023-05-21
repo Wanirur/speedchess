@@ -94,53 +94,10 @@ class Chess {
       this._currentBoard = buildEmptyBoard();
     }
 
-    let x;
-    let y;
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        if (
-          this._currentBoard[i]![j] &&
-          this._currentBoard[i]![j]!.pieceType === "KING" &&
-          this._currentBoard[i]![j]!.color === "WHITE"
-        ) {
-          y = i;
-          x = j;
-        }
-      }
-    }
-
-    let tempKingCoords;
-    if (
-      x === undefined ||
-      y === undefined ||
-      (tempKingCoords = Coords.getInstance(x, y)) === undefined
-    ) {
-      throw new Error("board is missing a king");
-    }
-    this._whiteKingCoords = tempKingCoords;
-
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        if (
-          this._currentBoard[i]![j] &&
-          this._currentBoard[i]![j]!.pieceType === "KING" &&
-          this._currentBoard[i]![j]!.color === "BLACK"
-        ) {
-          y = i;
-          x = j;
-        }
-      }
-    }
-    if (
-      x === undefined ||
-      y === undefined ||
-      (tempKingCoords = Coords.getInstance(x, y)) === undefined
-    ) {
-      throw new Error("board is missing a king");
-    }
-    this._blackKingCoords = tempKingCoords;
-
     this._calculateAttackedTiles();
+
+    this._whiteKingCoords = this._findKing("WHITE");
+    this._blackKingCoords = this._findKing("BLACK");
 
     this._history = [
       new FEN(this._currentBoard, "BLACK", true, true, true, true, null, 0),
@@ -348,11 +305,12 @@ class Chess {
     return this.board;
   }
 
-  public promote(
-    coords: Coords,
-    promoteTo: PromotedPieceType,
-    playerColor: PlayerColor
-  ) {
+  public promote(promoteTo: PromotedPieceType, playerColor: PlayerColor) {
+    const coords = this._pawnReadyToPromote;
+    if (!coords) {
+      throw new Error("no pawn ready for promotion");
+    }
+
     const tile = this.board[coords.y]![coords.x];
     if (!tile || tile.pieceType !== "PAWN" || tile.color !== playerColor) {
       throw new Error("incorrect promotion target");
@@ -391,6 +349,8 @@ class Chess {
     ) {
       this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
     }
+
+    return this.board;
   }
 
   public getPossibleMoves(position: Coords): PieceInteractions {
@@ -431,6 +391,25 @@ class Chess {
     }
 
     return emptyMoves;
+  }
+
+  public revertLastMove() {
+    if (this.history.length < 2) {
+      throw new Error("no moves to revert");
+    }
+
+    this.history.pop();
+    const fen = this.history[-1]!;
+    this._currentBoard = fen.buildBoard();
+    const castling = fen.castlingPrivilages;
+    this._whiteKingCoords = this._findKing("WHITE");
+    this._blackKingCoords = this._findKing("BLACK");
+    this._isWhiteShortCastlingPossible = castling.whiteShortCastling;
+    this._isWhiteLongCastlingPossible = castling.whiteLongCastling;
+    this._isBlackShortCastlingPossible = castling.blackShortCastling;
+    this._isBlackLongCastlingPossible = castling.blackLongCastling;
+
+    return this.board;
   }
 
   private _calculateAttackedTiles() {
@@ -1311,6 +1290,34 @@ class Chess {
       kingCheck: undefined,
       pin: undefined,
     };
+  }
+
+  private _findKing(color: PlayerColor) {
+    let x;
+    let y;
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        if (
+          this._currentBoard[i]![j] &&
+          this._currentBoard[i]![j]!.pieceType === "KING" &&
+          this._currentBoard[i]![j]!.color === color
+        ) {
+          y = i;
+          x = j;
+        }
+      }
+    }
+
+    let kingCoords;
+    if (
+      x === undefined ||
+      y === undefined ||
+      (kingCoords = Coords.getInstance(x, y)) === undefined
+    ) {
+      throw new Error("board is missing a king");
+    }
+
+    return kingCoords;
   }
 }
 
