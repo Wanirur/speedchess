@@ -25,7 +25,25 @@ export class FEN {
   private _piecePlacement: string;
   private _turn: PlayerColor;
   private _castlingPrivilages: string;
+  public get castlingPrivilages(): {
+    whiteShortCastling: boolean;
+    whiteLongCastling: boolean;
+    blackShortCastling: boolean;
+    blackLongCastling: boolean;
+  } {
+    return {
+      whiteShortCastling: this._castlingPrivilages.includes("K"),
+      whiteLongCastling: this._castlingPrivilages.includes("Q"),
+      blackShortCastling: this._castlingPrivilages.includes("k"),
+      blackLongCastling: this._castlingPrivilages.includes("q"),
+    };
+  }
+
   private _enPassantTarget: string;
+  public get enPassantTarget(): string {
+    return this._enPassantTarget;
+  }
+
   private _halfMoveCount: number;
   private _fullMoveCount: number;
 
@@ -120,17 +138,19 @@ export class FEN {
   }
 
   public toString() {
-    return this._piecePlacement + " " + this._turn === "WHITE"
-      ? "w"
-      : "b" +
-          " " +
-          this._castlingPrivilages +
-          " " +
-          this._enPassantTarget +
-          " " +
-          this._halfMoveCount +
-          " " +
-          this._fullMoveCount;
+    return (
+      this._piecePlacement +
+      " " +
+      (this._turn === "WHITE" ? "w" : "b") +
+      " " +
+      this._castlingPrivilages +
+      " " +
+      this._enPassantTarget +
+      " " +
+      this._halfMoveCount.toString() +
+      " " +
+      this._fullMoveCount.toString()
+    );
   }
 
   private _resolvePieceToFenSymbol(piece: Tile) {
