@@ -1,6 +1,7 @@
 import type { Channel } from "pusher-js";
 import { useEffect, useState } from "react";
-import type { Coords, PlayerColor } from "~/utils/pieces";
+import { type Coords } from "~/utils/coords";
+import type { PlayerColor } from "~/utils/pieces";
 
 const Timer: React.FC<{
   channel: Channel;

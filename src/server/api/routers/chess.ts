@@ -9,7 +9,12 @@ import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { type PlayerColor } from "~/utils/pieces";
+import {
+  PossiblePromotions,
+  type PlayerColor,
+  type PromotedPieceType,
+} from "~/utils/pieces";
+import { Coords } from "~/utils/coords";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
@@ -103,11 +108,11 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       return {
-        board: match.board,
+        board: match.chess.board,
         whiteMilisLeft: whiteTime,
         blackMilisLeft: blackTime,
-        color: (user.id === match.white.id ? "white" : "black") as PlayerColor,
-        turn: (match.turn === match.white ? "white" : "black") as PlayerColor,
+        color: (user.id === match.white.id ? "WHITE" : "BLACK") as PlayerColor,
+        turn: (match.turn === match.white ? "WHITE" : "BLACK") as PlayerColor,
       };
     }),
   movePiece: protectedProcedure
@@ -148,7 +153,35 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      const time = match.move(input.fromTile, input.toTile);
+      let time;
+      const from = Coords.getInstance(input.fromTile.x, input.fromTile.y);
+      if (!from) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Incorrect coordinates of moved piece",
+        });
+      }
+      const to = Coords.getInstance(input.toTile.x, input.toTile.y);
+      if (!to) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Incorrect coordinates of piece's destination",
+        });
+      }
+
+      try {
+        time = match.move(from, to);
+      } catch (e) {
+        if (e instanceof Error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: e.message,
+          });
+        }
+
+        return;
+      }
+
       if (time <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -160,6 +193,57 @@ export const chessgameRouter = createTRPCRouter({
         fromTile: input.fromTile,
         toTile: input.toTile,
         timeLeftInMilis: time,
+      });
+    }),
+  promoteTo: protectedProcedure
+    .input(
+      z.object({
+        uuid: z.string().uuid(),
+        promoteTo: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      if (!PossiblePromotions.includes(input.promoteTo as PromotedPieceType)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You tried to promote pawn to incorrect piece type",
+        });
+      }
+      const promotionCoords = match.chess.pawnReadyToPromote;
+      if (!promotionCoords) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No pawn possible to promote exists",
+        });
+      }
+
+      try {
+        match.promote(input.promoteTo as PromotedPieceType);
+      } catch (e) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: (e as Error).message,
+        });
+      }
+
+      await pusher.trigger(match.id, "promoted_piece", {
+        promotedTo: input.promoteTo,
+        coords: promotionCoords,
       });
     }),
   resign: protectedProcedure
@@ -200,9 +284,9 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      const color = match.white.id === user.id ? "white" : "black";
+      const color = match.white.id === user.id ? "WHITE" : "BLACK";
       const result = match.offerDraw(color);
-      if (result === "draw") {
+      if (result) {
         await pusher.trigger(match.id, "draw", {});
       } else {
         await pusher.trigger(match.id, "draw_offer", { color: color });

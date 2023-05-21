@@ -6,7 +6,9 @@ import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/drawresignpanel";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
-import { type Coords, movePiece } from "~/utils/pieces";
+import Chess from "~/utils/chess";
+import { Coords } from "~/utils/coords";
+import { type PromotedPieceType, copyBoard } from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -14,6 +16,7 @@ const Play: NextPage = () => {
   const { uuid } = router.query;
   const [gameFinished, setGameFinished] = useState<boolean>(false);
   const channelRef = useRef<Channel>();
+  const chessRef = useRef<Chess>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [isDrawOffered, setIsDrawOffered] = useState<boolean>(false);
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
@@ -33,26 +36,99 @@ const Play: NextPage = () => {
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      onSuccess: () => {
+      onSuccess: ({ board }) => {
         const onMove = (move: {
           fromTile: Coords;
           toTile: Coords;
           timeLeftinMilis: number;
         }) => {
-          utils.chess.getGameState.setData({ uuid: uuid as string }, (old) => {
-            if (!old) {
-              return old;
+          try {
+            const from = Coords.getInstance(move.fromTile.x, move.fromTile.y);
+            const to = Coords.getInstance(move.toTile.x, move.toTile.y);
+            if (!from || !to) {
+              return;
             }
 
-            return {
-              ...old,
-              board: movePiece(old.board, move.fromTile, move.toTile),
-              turn: old.turn === "white" ? "black" : "white",
-            };
-          });
+            utils.chess.getGameState.setData(
+              { uuid: uuid as string },
+              (old) => {
+                if (!old || !chessRef.current?.board) {
+                  return old;
+                }
+
+                if (old.turn === old.color) {
+                  let nextTurn = old.turn;
+                  if (!chessRef.current.pawnReadyToPromote) {
+                    nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
+                  }
+                  return {
+                    ...old,
+                    turn: nextTurn,
+                  };
+                }
+
+                const newBoard = copyBoard(
+                  chessRef.current.move(from, to, old.turn)
+                );
+
+                let nextTurn = old.turn;
+                if (!chessRef.current.pawnReadyToPromote) {
+                  nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
+                }
+                return {
+                  ...old,
+                  board: newBoard,
+                  turn: nextTurn,
+                };
+              }
+            );
+          } catch (e) {
+            console.log(e);
+          }
+        };
+        const onPromotion = (promotion: {
+          coords: { _x: number; _y: number };
+          promotedTo: PromotedPieceType;
+        }) => {
+          try {
+            const pawnCoords = Coords.getInstance(
+              promotion.coords._x,
+              promotion.coords._y
+            );
+            if (!pawnCoords) {
+              return;
+            }
+            utils.chess.getGameState.setData(
+              { uuid: uuid as string },
+              (old) => {
+                if (!old || !chessRef.current?.board) {
+                  return old;
+                }
+
+                if (old.turn === old.color) {
+                  return {
+                    ...old,
+                    turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
+                  };
+                }
+                return {
+                  ...old,
+                  board: copyBoard(
+                    chessRef.current.promote(promotion.promotedTo, old.turn)
+                  ),
+                  turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
+                };
+              }
+            );
+          } catch (e) {
+            console.log(e);
+          }
         };
 
         channelRef.current?.bind("move_made", onMove);
+        channelRef.current?.bind("promoted_piece", onPromotion);
+        console.log(board);
+        chessRef.current = new Chess(board);
       },
     }
   );
@@ -90,12 +166,12 @@ const Play: NextPage = () => {
 
     pusherClient.connection.bind(
       "state_change",
-      ({ previous, current }: { previous: string; current: string }) => {
+      ({ current }: { previous: string; current: string }) => {
         if (current === "connecting" || current === "unavailable") {
           setIsUserDisconnected(true);
         } else if (current === "connected") {
           setIsUserDisconnected(false);
-        } 
+        }
       }
     );
 
@@ -103,7 +179,7 @@ const Play: NextPage = () => {
   }, [router.isReady, uuid]);
 
   const opponentsColor =
-    isSuccess && gameState.color === "white" ? "black" : "white";
+    isSuccess && gameState.color === "WHITE" ? "BLACK" : "WHITE";
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
@@ -112,21 +188,27 @@ const Play: NextPage = () => {
       {isError && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
       )}
-      {isSuccess && !gameFinished && channelRef.current && subscribed && (
-        <Chessboard
-          uuid={uuid as string}
-          color={gameState.color}
-          isYourTurn={gameState.turn === gameState.color}
-          board={gameState.board}
-        ></Chessboard>
-      )}
+      {isSuccess &&
+        !gameFinished &&
+        channelRef.current &&
+        chessRef.current &&
+        subscribed && (
+          <Chessboard
+            uuid={uuid as string}
+            color={gameState.color}
+            isYourTurn={gameState.turn === gameState.color}
+            chess={chessRef.current}
+            board={gameState.board}
+            mutate
+          ></Chessboard>
+        )}
       {isSuccess && channelRef.current && (
         <div className="flex h-[640px] w-max flex-col justify-center px-4">
           <Timer
             channel={channelRef.current}
             color={opponentsColor}
             initial={
-              opponentsColor === "white"
+              opponentsColor === "WHITE"
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
@@ -145,7 +227,7 @@ const Play: NextPage = () => {
             channel={channelRef.current}
             color={gameState.color}
             initial={
-              gameState.color === "white"
+              gameState.color === "WHITE"
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }

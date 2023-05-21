@@ -1,13 +1,18 @@
-import { type Coords, initBoard, movePiece } from "~/utils/pieces";
+import {
+  type GameResult,
+  type PlayerColor,
+  initBoard,
+  PromotedPieceType,
+} from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { matches } from "./matchmaking";
+import { type Coords } from "~/utils/coords";
+import Chess from "~/utils/chess";
 
 export type Player = {
   id: string;
   timeLeftInMilis: number;
 };
-
-type Result = "white" | "black" | "draw";
 
 export class Game {
   private _id: string;
@@ -28,9 +33,9 @@ export class Game {
   public set black(value: Player) {
     this._black = value;
   }
-  private _board = initBoard();
-  public get board() {
-    return this._board;
+  private _chess = new Chess(initBoard());
+  public get chess() {
+    return this._chess;
   }
   private _turn: Player;
   public get turn() {
@@ -40,7 +45,7 @@ export class Game {
   public get drawOfferedBy() {
     return this._turn;
   }
-  private _gameResult: Result | null = null;
+  private _gameResult: GameResult | null = null;
   private get gameResult() {
     return this._gameResult;
   }
@@ -71,13 +76,19 @@ export class Game {
     this._lastMoveTime = moveEnd;
     this._turn.timeLeftInMilis -= duration;
     const timeLeft = this._turn.timeLeftInMilis;
-    if(timeLeft <= 0) {
-      this._gameResult = this._turn === this._white ? "black" : "white";
+    if (timeLeft <= 0) {
+      this._gameResult = {
+        winner: this._turn === this._white ? "BLACK" : "WHITE",
+        reason: "TIMEOUT",
+      };
       this.finishGame();
       return timeLeft;
     }
 
-    movePiece(this.board, from, to);
+    this._chess.move(from, to, this._turn === this._white ? "WHITE" : "BLACK");
+    if (this._chess.pawnReadyToPromote !== null) {
+      return timeLeft;
+    }
 
     if (this._turn === this._white) {
       this._turn = this._black;
@@ -86,18 +97,48 @@ export class Game {
     }
 
     return timeLeft;
-}
+  }
 
-  offerDraw(color: "white" | "black") :Result | null {
-    if (color === "white") {
+  promote(promoteTo: PromotedPieceType) {
+    const moveEnd = Date.now();
+    const duration = moveEnd - this._lastMoveTime;
+    this._lastMoveTime = moveEnd;
+    this._turn.timeLeftInMilis -= duration;
+    const timeLeft = this._turn.timeLeftInMilis;
+
+    if (timeLeft <= 0) {
+      this._gameResult = {
+        winner: this._turn === this._white ? "BLACK" : "WHITE",
+        reason: "TIMEOUT",
+      };
+      this.finishGame();
+      return timeLeft;
+    }
+
+    this._chess.promote(promoteTo, this._turn === this._white ? "WHITE" : "BLACK");
+
+    if (this._turn === this._white) {
+      this._turn = this._black;
+    } else {
+      this._turn = this._white;
+    }
+
+    return timeLeft;
+  }
+
+  offerDraw(color: PlayerColor): GameResult | null {
+    if (color === "WHITE") {
       if (this._drawOfferedBy === this._white) {
         return null;
       }
 
       if (this._drawOfferedBy === this._black) {
-        this._gameResult = "draw";
+        this._gameResult = {
+          winner: "DRAW",
+          reason: "AGREEMENT",
+        };
         this.finishGame();
-        return "draw";
+        return this._gameResult;
       }
 
       this._drawOfferedBy = this._white;
@@ -108,9 +149,12 @@ export class Game {
       }
 
       if (this._drawOfferedBy === this._white) {
-        this._gameResult = "draw";
+        this._gameResult = {
+          winner: "DRAW",
+          reason: "AGREEMENT",
+        };
         this.finishGame();
-        return "draw";
+        return this._gameResult;
       }
 
       this._drawOfferedBy = this._black;
@@ -122,9 +166,9 @@ export class Game {
     this._drawOfferedBy = null;
   }
 
-  private finishGame() { 
-    if(this._gameResult) {
-      matches.delete(this._id)
+  private finishGame() {
+    if (this._gameResult) {
+      matches.delete(this._id);
     }
   }
 }
