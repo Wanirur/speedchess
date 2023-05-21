@@ -35,6 +35,17 @@ export class Coords {
     return Coords._pool[y]?.[x];
   }
 
+  public static from(coords: { x: number; y: number }) {
+    return Coords._pool[coords.y]?.[coords.x];
+  }
+
+  public static fromNotation(notation: string) {
+    const x = notation.charCodeAt(0) - "a".charCodeAt(0);
+    const y = Number.parseInt(notation.charAt(1));
+
+    return Coords._pool[y]?.[x];
+  }
+
   public toNotation() {
     return (
       String.fromCharCode("a".charCodeAt(0) + this._x) + this._y.toString()
