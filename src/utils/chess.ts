@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Coords } from "./coords";
-import { FEN } from "./notations";
+import { AlgebraicNotation, FEN } from "./notations";
 import {
   type PlayerColor,
   type Board,
@@ -45,6 +45,11 @@ class Chess {
   }
   public set board(value: Board) {
     this._currentBoard = value;
+  }
+
+  private _algebraic: AlgebraicNotation[] = [];
+  public get algebraic() {
+    return this._algebraic;
   }
 
   private _gameResult: GameResult | undefined;
@@ -112,7 +117,7 @@ class Chess {
       throw new Error("you tried moving opponent's piece");
     }
 
-    const toTile = this._currentBoard[from.y]![from.x];
+    const toTile = this._currentBoard[to.y]![to.x];
     if (toTile === undefined) {
       throw new Error("incorrect coordinates");
     }
@@ -205,6 +210,17 @@ class Chess {
       throw new Error("failed to defend check");
     }
 
+    console.log(toTile);
+    this._algebraic.push(
+      new AlgebraicNotation(
+        from,
+        to,
+        movedPiece.pieceType,
+        toTile !== null,
+        true,
+        true
+      )
+    );
     if (
       playerColor === "WHITE" &&
       (this._isWhiteShortCastlingPossible || this._isWhiteLongCastlingPossible)

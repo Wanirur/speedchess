@@ -17,7 +17,7 @@ import {
   whiteQueen,
   blackKing,
   whiteKing,
-  PieceType,
+  type PieceType,
 } from "./pieces";
 
 //fen notation
@@ -219,35 +219,48 @@ export class FEN {
 //https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
 export class AlgebraicNotation {
   private _from: Coords;
+  public get from(): Coords {
+    return this._from;
+  }
+
   private _to: Coords;
+  public get to(): Coords {
+    return this._to;
+  }
   private _pieceType: PieceType;
   private _isCapturing: boolean;
-  private _isXDisambigious: boolean;
-  private _isYDisambigious: boolean;
+  private _isXDisambiguous: boolean;
+  private _isYDisambiguous: boolean;
   constructor(
     from: Coords,
     to: Coords,
     piece: PieceType,
     isCapturing: boolean,
-    isXDisambigious: boolean,
-    isYDisambigious: boolean
+    isXDisambiguous: boolean,
+    isYDisambiguous: boolean
   ) {
     this._from = from;
     this._to = to;
     this._pieceType = piece;
     this._isCapturing = isCapturing;
-    this._isXDisambigious = isXDisambigious;
-    this._isYDisambigious = isYDisambigious;
+    this._isXDisambiguous = isXDisambiguous;
+    this._isYDisambiguous = isYDisambiguous;
   }
 
   public toString() {
-    let result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
+    let result = "";
+    if (this._pieceType != "PAWN") {
+      result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
+    }
 
     const from = this._from.toNotation();
-    if (this._isXDisambigious) {
+    if (
+      !this._isXDisambiguous ||
+      (this._pieceType === "PAWN" && this._isCapturing)
+    ) {
       result += from.charAt(0);
     }
-    if (this._isYDisambigious) {
+    if (!this._isYDisambiguous) {
       result += from.charAt(1);
     }
     if (this._isCapturing) {

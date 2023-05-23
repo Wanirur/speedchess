@@ -4,6 +4,7 @@ import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/drawresignpanel";
+import MovesHistory from "~/components/moveshistory";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
@@ -214,7 +215,11 @@ const Play: NextPage = () => {
             }
             isLocked={gameState.turn === gameState.color}
           ></Timer>
-          <div className="h-full w-80 bg-neutral-700"></div>
+          <div className="h-full w-80 bg-neutral-700 font-os text-white">
+            {chessRef.current && (
+              <MovesHistory moves={chessRef.current.algebraic}></MovesHistory>
+            )}
+          </div>
 
           <DrawResignPanel
             isDrawOffered={isDrawOffered}
