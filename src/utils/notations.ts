@@ -17,6 +17,7 @@ import {
   whiteQueen,
   blackKing,
   whiteKing,
+  PieceType,
 } from "./pieces";
 
 //fen notation
@@ -212,5 +213,47 @@ export class FEN {
     } else {
       return symbol;
     }
+  }
+}
+
+//https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
+export class AlgebraicNotation {
+  private _from: Coords;
+  private _to: Coords;
+  private _pieceType: PieceType;
+  private _isCapturing: boolean;
+  private _isXDisambigious: boolean;
+  private _isYDisambigious: boolean;
+  constructor(
+    from: Coords,
+    to: Coords,
+    piece: PieceType,
+    isCapturing: boolean,
+    isXDisambigious: boolean,
+    isYDisambigious: boolean
+  ) {
+    this._from = from;
+    this._to = to;
+    this._pieceType = piece;
+    this._isCapturing = isCapturing;
+    this._isXDisambigious = isXDisambigious;
+    this._isYDisambigious = isYDisambigious;
+  }
+
+  public toString() {
+    let result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
+
+    const from = this._from.toNotation();
+    if (this._isXDisambigious) {
+      result += from.charAt(0);
+    }
+    if (this._isYDisambigious) {
+      result += from.charAt(1);
+    }
+    if (this._isCapturing) {
+      result += "x";
+    }
+    result += this._to.toNotation();
+    return result;
   }
 }

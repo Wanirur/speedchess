@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Coords } from "./coords";
-import { FEN } from "./fen";
+import { FEN } from "./notations";
 import {
   type PlayerColor,
   type Board,
@@ -8,10 +8,7 @@ import {
   buildEmptyBoard,
   whiteKing,
   blackKing,
-  copyBoard,
-  PieceType,
-  PossiblePromotions,
-  PromotedPieceType,
+  type PromotedPieceType,
   copyIntoBoard,
 } from "./pieces";
 
