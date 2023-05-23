@@ -30,7 +30,11 @@ const Chessboard: React.FC<{
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const [promotedPawn, setPromotedPawn] = useState<Coords | null>(null);
-  const moveMutation = api.chess.movePiece.useMutation();
+  const moveMutation = api.chess.movePiece.useMutation({
+    onError: () => {
+      chess.revertLastMove();
+    },
+  });
   return (
     <>
       {
@@ -97,7 +101,7 @@ const Chessboard: React.FC<{
                       }
                       setDraggedPiece(coords);
                     }}
-                    onDrop={async () => {
+                    onDrop={() => {
                       if (draggedPiece === null) {
                         return;
                       }
@@ -118,6 +122,7 @@ const Chessboard: React.FC<{
                         return;
                       }
                       if (
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                         board[moveTo.y]![moveTo.x]?.pieceType === "PAWN" &&
                         ((color === "WHITE" && moveTo.y === 7) ||
                           (color === "BLACK" && moveTo.y === 0))
@@ -125,23 +130,19 @@ const Chessboard: React.FC<{
                         setPromotedPawn(moveTo);
                       }
 
-                      try {
-                        await moveMutation.mutateAsync({
-                          uuid: uuid,
-                          fromTile: {
-                            x: coords.x,
-                            y: coords.y,
-                          },
-                          toTile: {
-                            x: index,
-                            y: row_index,
-                          },
-                        });
-                      } catch (e) {
-                        chess.revertLastMove();
-                      }
+                      moveMutation.mutate({
+                        uuid: uuid,
+                        fromTile: {
+                          x: coords.x,
+                          y: coords.y,
+                        },
+                        toTile: {
+                          x: index,
+                          y: row_index,
+                        },
+                      });
                     }}
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       if (!isYourTurn) {
                         return;
                       }
@@ -179,6 +180,7 @@ const Chessboard: React.FC<{
                         }
 
                         if (
+                          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                           board[moveTo.y]![moveTo.x]?.pieceType === "PAWN" &&
                           ((color === "WHITE" && moveTo.y === 7) ||
                             (color === "BLACK" && moveTo.y === 0))
@@ -186,22 +188,17 @@ const Chessboard: React.FC<{
                           setPromotedPawn(moveTo);
                         }
 
-                        try {
-                          await moveMutation.mutateAsync({
-                            uuid: uuid,
-                            fromTile: {
-                              x: highlightedTile.x,
-                              y: highlightedTile.y,
-                            },
-                            toTile: {
-                              x: index,
-                              y: row_index,
-                            },
-                          });
-                        } catch (e) {
-                          console.log("reverting...");
-                          chess.revertLastMove();
-                        }
+                        moveMutation.mutate({
+                          uuid: uuid,
+                          fromTile: {
+                            x: highlightedTile.x,
+                            y: highlightedTile.y,
+                          },
+                          toTile: {
+                            x: index,
+                            y: row_index,
+                          },
+                        });
 
                         return;
                       }
