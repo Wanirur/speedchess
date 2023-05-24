@@ -30,6 +30,7 @@ const Chessboard: React.FC<{
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const [promotedPawn, setPromotedPawn] = useState<Coords | null>(null);
+
   const moveMutation = api.chess.movePiece.useMutation({
     onError: () => {
       chess.revertLastMove();
@@ -130,17 +131,19 @@ const Chessboard: React.FC<{
                         setPromotedPawn(moveTo);
                       }
 
-                      moveMutation.mutate({
-                        uuid: uuid,
-                        fromTile: {
-                          x: coords.x,
-                          y: coords.y,
-                        },
-                        toTile: {
-                          x: index,
-                          y: row_index,
-                        },
-                      });
+                      if (mutate) {
+                        moveMutation.mutate({
+                          uuid: uuid,
+                          fromTile: {
+                            x: coords.x,
+                            y: coords.y,
+                          },
+                          toTile: {
+                            x: index,
+                            y: row_index,
+                          },
+                        });
+                      }
                     }}
                     onClick={(e) => {
                       if (!isYourTurn) {
@@ -188,17 +191,19 @@ const Chessboard: React.FC<{
                           setPromotedPawn(moveTo);
                         }
 
-                        moveMutation.mutate({
-                          uuid: uuid,
-                          fromTile: {
-                            x: highlightedTile.x,
-                            y: highlightedTile.y,
-                          },
-                          toTile: {
-                            x: index,
-                            y: row_index,
-                          },
-                        });
+                        if (mutate) {
+                          moveMutation.mutate({
+                            uuid: uuid,
+                            fromTile: {
+                              x: highlightedTile.x,
+                              y: highlightedTile.y,
+                            },
+                            toTile: {
+                              x: index,
+                              y: row_index,
+                            },
+                          });
+                        }
 
                         return;
                       }

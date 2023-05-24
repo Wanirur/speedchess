@@ -9,7 +9,7 @@ import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
-import { type PromotedPieceType, copyBoard } from "~/utils/pieces";
+import { type PromotedPieceType, copyBoard, type Board } from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -23,6 +23,7 @@ const Play: NextPage = () => {
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
+  const [boardToDisplay, setBoardToDisplay] = useState<Board | null>(null);
   const utils = api.useContext();
 
   const {
@@ -199,7 +200,7 @@ const Play: NextPage = () => {
             color={gameState.color}
             isYourTurn={gameState.turn === gameState.color}
             chess={chessRef.current}
-            board={gameState.board}
+            board={boardToDisplay ?? gameState.board}
             mutate
           ></Chessboard>
         )}
@@ -217,7 +218,10 @@ const Play: NextPage = () => {
           ></Timer>
           <div className="h-full w-80 bg-neutral-700 font-os text-white">
             {chessRef.current && (
-              <MovesHistory moves={chessRef.current.algebraic}></MovesHistory>
+              <MovesHistory
+                chess={chessRef.current}
+                setCurrentBoard={setBoardToDisplay}
+              ></MovesHistory>
             )}
           </div>
 
