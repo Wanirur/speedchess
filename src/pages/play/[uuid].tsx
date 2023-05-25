@@ -129,8 +129,8 @@ const Play: NextPage = () => {
 
         channelRef.current?.bind("move_made", onMove);
         channelRef.current?.bind("promoted_piece", onPromotion);
-        console.log(board);
         chessRef.current = new Chess(board);
+        console.log(chessRef.current);
       },
     }
   );
