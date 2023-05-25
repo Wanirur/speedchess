@@ -211,16 +211,7 @@ class Chess {
     }
 
     console.log(toTile);
-    this._algebraic.push(
-      new AlgebraicNotation(
-        from,
-        to,
-        movedPiece.pieceType,
-        toTile !== null,
-        true,
-        true
-      )
-    );
+
     if (
       playerColor === "WHITE" &&
       (this._isWhiteShortCastlingPossible || this._isWhiteLongCastlingPossible)
@@ -274,6 +265,7 @@ class Chess {
       this._hasCheckmateOccured(playerColor === "WHITE" ? "BLACK" : "WHITE")
     ) {
       this._gameResult = { winner: playerColor, reason: "MATE" };
+      console.log("mate");
       return this._currentBoard;
     }
 
@@ -301,6 +293,21 @@ class Chess {
         reason: "FIFTY_MOVE",
       };
     }
+
+    this._algebraic.push(
+      new AlgebraicNotation(
+        from,
+        to,
+        movedPiece.pieceType,
+        toTile !== null,
+        true,
+        true,
+        playerColor === "WHITE"
+          ? this._isBlackKingChecked
+          : this._isWhiteKingChecked,
+        !!this._gameResult
+      )
+    );
 
     const currentBoardFEN = new FEN(
       this._currentBoard,
@@ -614,6 +621,7 @@ class Chess {
       kingMoves.possibleMoves.length !== 0 ||
       kingMoves.possibleCaptures.length !== 0
     ) {
+      console.log("?");
       return false;
     }
 
@@ -1116,19 +1124,33 @@ class Chess {
       const tile = this._currentBoard[coords.y]![coords.x]!;
       if (tile === null) {
         possibleMoves.push(coords);
-      } else {
-        if (tile.color !== color) {
-          possibleCaptures.push(coords);
-          if (tile.pieceType == "KING") {
-            kingCheck = {
-              attackingPieceCoords: position,
-              possibleBlocks: [] as Coords[],
-              cannotEscapeTo: [],
-            };
-          }
-        } else {
-          defendedPieces.push(coords);
-        }
+        return {
+          possibleMoves: possibleMoves,
+          possibleCaptures: possibleCaptures,
+          defendedPieces: defendedPieces,
+          kingCheck: kingCheck,
+          pin: undefined,
+        };
+      }
+
+      if (tile.color === color) {
+        defendedPieces.push(coords);
+        return {
+          possibleMoves: possibleMoves,
+          possibleCaptures: possibleCaptures,
+          defendedPieces: defendedPieces,
+          kingCheck: kingCheck,
+          pin: undefined,
+        };
+      }
+
+      possibleCaptures.push(coords);
+      if (tile.pieceType == "KING") {
+        kingCheck = {
+          attackingPieceCoords: position,
+          possibleBlocks: [] as Coords[],
+          cannotEscapeTo: [],
+        };
       }
     }
 

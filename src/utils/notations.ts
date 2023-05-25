@@ -18,6 +18,7 @@ import {
   blackKing,
   whiteKing,
   type PieceType,
+  type GameResult,
 } from "./pieces";
 
 //fen notation
@@ -231,13 +232,24 @@ export class AlgebraicNotation {
   private _isCapturing: boolean;
   private _isXDisambiguous: boolean;
   private _isYDisambiguous: boolean;
+
+  private _isCheck: boolean;
+  private _isMate: boolean;
+
+  private _promotedTo: PieceType | undefined;
+  private _gameResult: GameResult | undefined;
+
   constructor(
     from: Coords,
     to: Coords,
     piece: PieceType,
     isCapturing: boolean,
     isXDisambiguous: boolean,
-    isYDisambiguous: boolean
+    isYDisambiguous: boolean,
+    isCheck: boolean,
+    isMate: boolean,
+    gameResult?: GameResult,
+    promotedTo?: PieceType
   ) {
     this._from = from;
     this._to = to;
@@ -245,9 +257,29 @@ export class AlgebraicNotation {
     this._isCapturing = isCapturing;
     this._isXDisambiguous = isXDisambiguous;
     this._isYDisambiguous = isYDisambiguous;
+    this._promotedTo = promotedTo;
+    this._gameResult = gameResult;
+    this._isCheck = isCheck;
+    this._isMate = isMate;
   }
 
   public toString() {
+    if (this._gameResult) {
+      if (this._gameResult.winner === "DRAW") {
+        return "1/2-1/2";
+      } else if (this._gameResult.winner === "WHITE") {
+        return "1-0";
+      } else {
+        return "0-1";
+      }
+    }
+
+    if (this._promotedTo) {
+      return this._to.toNotation() + "=" + this._promotedTo === "KNIGHT"
+        ? "N"
+        : this._promotedTo.charAt(0);
+    }
+
     let result = "";
     if (this._pieceType != "PAWN") {
       result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
@@ -267,6 +299,13 @@ export class AlgebraicNotation {
       result += "x";
     }
     result += this._to.toNotation();
+
+    if (this._isMate) {
+      result += "#";
+    } else if (this._isCheck) {
+      result += "+";
+    }
+
     return result;
   }
 }
