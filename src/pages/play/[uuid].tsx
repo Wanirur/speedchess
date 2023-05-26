@@ -4,11 +4,12 @@ import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/drawresignpanel";
+import MovesHistory from "~/components/moveshistory";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
-import { type PromotedPieceType, copyBoard } from "~/utils/pieces";
+import { type PromotedPieceType, copyBoard, type Board } from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -22,7 +23,11 @@ const Play: NextPage = () => {
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
+  const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const utils = api.useContext();
+
+  const isDisplayedBoardLatest =
+    indexOfBoardToDisplay === (chessRef.current?.algebraic.length ?? 1) - 1;
 
   const {
     isSuccess,
@@ -75,6 +80,7 @@ const Play: NextPage = () => {
                 if (!chessRef.current.pawnReadyToPromote) {
                   nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
                 }
+                setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
                 return {
                   ...old,
                   board: newBoard,
@@ -127,8 +133,8 @@ const Play: NextPage = () => {
 
         channelRef.current?.bind("move_made", onMove);
         channelRef.current?.bind("promoted_piece", onPromotion);
-        console.log(board);
         chessRef.current = new Chess(board);
+        console.log(chessRef.current);
       },
     }
   );
@@ -185,7 +191,7 @@ const Play: NextPage = () => {
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
       {gameFinished && <div className="text-white"> You lost</div>}
       {isLoading && <div className="text-white"> Loading... </div>}
-      {isError && (
+      {(isError || !channelRef) && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
       )}
       {isSuccess &&
@@ -198,7 +204,15 @@ const Play: NextPage = () => {
             color={gameState.color}
             isYourTurn={gameState.turn === gameState.color}
             chess={chessRef.current}
-            board={gameState.board}
+            board={
+              isDisplayedBoardLatest
+                ? gameState.board
+                : chessRef.current.history[
+                    indexOfBoardToDisplay
+                  ]?.buildBoard() ?? gameState.board
+            }
+            locked={!isDisplayedBoardLatest}
+            unlockFunction={setIndexOfBoardToDisplay}
             mutate
           ></Chessboard>
         )}
@@ -214,7 +228,15 @@ const Play: NextPage = () => {
             }
             isLocked={gameState.turn === gameState.color}
           ></Timer>
-          <div className="h-full w-80 bg-neutral-700"></div>
+          <div className="h-full w-80 bg-neutral-700 font-os text-white">
+            {chessRef.current && (
+              <MovesHistory
+                chess={chessRef.current}
+                index={indexOfBoardToDisplay}
+                setIndex={setIndexOfBoardToDisplay}
+              ></MovesHistory>
+            )}
+          </div>
 
           <DrawResignPanel
             isDrawOffered={isDrawOffered}

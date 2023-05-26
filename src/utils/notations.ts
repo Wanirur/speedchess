@@ -17,6 +17,8 @@ import {
   whiteQueen,
   blackKing,
   whiteKing,
+  type PieceType,
+  type GameResult,
 } from "./pieces";
 
 //fen notation
@@ -212,5 +214,98 @@ export class FEN {
     } else {
       return symbol;
     }
+  }
+}
+
+//https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
+export class AlgebraicNotation {
+  private _from: Coords;
+  public get from(): Coords {
+    return this._from;
+  }
+
+  private _to: Coords;
+  public get to(): Coords {
+    return this._to;
+  }
+  private _pieceType: PieceType;
+  private _isCapturing: boolean;
+  private _isXDisambiguous: boolean;
+  private _isYDisambiguous: boolean;
+
+  private _isCheck: boolean;
+  private _isMate: boolean;
+
+  private _promotedTo: PieceType | undefined;
+  private _gameResult: GameResult | undefined;
+
+  constructor(
+    from: Coords,
+    to: Coords,
+    piece: PieceType,
+    isCapturing: boolean,
+    isXDisambiguous: boolean,
+    isYDisambiguous: boolean,
+    isCheck: boolean,
+    isMate: boolean,
+    gameResult?: GameResult,
+    promotedTo?: PieceType
+  ) {
+    this._from = from;
+    this._to = to;
+    this._pieceType = piece;
+    this._isCapturing = isCapturing;
+    this._isXDisambiguous = isXDisambiguous;
+    this._isYDisambiguous = isYDisambiguous;
+    this._promotedTo = promotedTo;
+    this._gameResult = gameResult;
+    this._isCheck = isCheck;
+    this._isMate = isMate;
+  }
+
+  public toString() {
+    if (this._gameResult) {
+      if (this._gameResult.winner === "DRAW") {
+        return "1/2-1/2";
+      } else if (this._gameResult.winner === "WHITE") {
+        return "1-0";
+      } else {
+        return "0-1";
+      }
+    }
+
+    if (this._promotedTo) {
+      return this._to.toNotation() + "=" + this._promotedTo === "KNIGHT"
+        ? "N"
+        : this._promotedTo.charAt(0);
+    }
+
+    let result = "";
+    if (this._pieceType != "PAWN") {
+      result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
+    }
+
+    const from = this._from.toNotation();
+    if (
+      !this._isXDisambiguous ||
+      (this._pieceType === "PAWN" && this._isCapturing)
+    ) {
+      result += from.charAt(0);
+    }
+    if (!this._isYDisambiguous) {
+      result += from.charAt(1);
+    }
+    if (this._isCapturing) {
+      result += "x";
+    }
+    result += this._to.toNotation();
+
+    if (this._isMate) {
+      result += "#";
+    } else if (this._isCheck) {
+      result += "+";
+    }
+
+    return result;
   }
 }

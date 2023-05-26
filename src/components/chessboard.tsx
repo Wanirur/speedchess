@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import {
   resolvePieceToImage,
   type PlayerColor,
@@ -24,13 +24,29 @@ const Chessboard: React.FC<{
   isYourTurn: boolean;
   chess: Chess;
   board: Board;
+  locked: boolean;
+  unlockFunction: Dispatch<SetStateAction<number>>;
   mutate?: boolean;
-}> = ({ uuid, color, isYourTurn, chess, board, mutate = false }) => {
+}> = ({
+  uuid,
+  color,
+  isYourTurn,
+  chess,
+  board,
+  locked,
+  unlockFunction,
+  mutate = false,
+}) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const [promotedPawn, setPromotedPawn] = useState<Coords | null>(null);
-  const moveMutation = api.chess.movePiece.useMutation();
+
+  const moveMutation = api.chess.movePiece.useMutation({
+    onError: () => {
+      chess.revertLastMove();
+    },
+  });
   return (
     <>
       {
@@ -80,9 +96,14 @@ const Chessboard: React.FC<{
                       e.preventDefault();
                     }}
                     onDrag={(e) => {
+                      if (locked) {
+                        unlockFunction(chess.algebraic.length - 1);
+                        return;
+                      }
                       if (!isYourTurn) {
                         return;
                       }
+
                       const tile = e.target;
                       if (!(tile instanceof Element)) {
                         return;
@@ -97,7 +118,11 @@ const Chessboard: React.FC<{
                       }
                       setDraggedPiece(coords);
                     }}
-                    onDrop={async () => {
+                    onDrop={() => {
+                      if (locked) {
+                        unlockFunction(chess.algebraic.length - 1);
+                        return;
+                      }
                       if (draggedPiece === null) {
                         return;
                       }
@@ -118,6 +143,7 @@ const Chessboard: React.FC<{
                         return;
                       }
                       if (
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                         board[moveTo.y]![moveTo.x]?.pieceType === "PAWN" &&
                         ((color === "WHITE" && moveTo.y === 7) ||
                           (color === "BLACK" && moveTo.y === 0))
@@ -125,8 +151,8 @@ const Chessboard: React.FC<{
                         setPromotedPawn(moveTo);
                       }
 
-                      try {
-                        await moveMutation.mutateAsync({
+                      if (mutate) {
+                        moveMutation.mutate({
                           uuid: uuid,
                           fromTile: {
                             x: coords.x,
@@ -137,11 +163,15 @@ const Chessboard: React.FC<{
                             y: row_index,
                           },
                         });
-                      } catch (e) {
-                        chess.revertLastMove();
                       }
+                      unlockFunction(chess.algebraic.length - 1);
                     }}
-                    onClick={async (e) => {
+                    onClick={(e) => {
+                      if (locked) {
+                        unlockFunction(chess.algebraic.length - 1);
+                        return;
+                      }
+
                       if (!isYourTurn) {
                         return;
                       }
@@ -179,6 +209,7 @@ const Chessboard: React.FC<{
                         }
 
                         if (
+                          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                           board[moveTo.y]![moveTo.x]?.pieceType === "PAWN" &&
                           ((color === "WHITE" && moveTo.y === 7) ||
                             (color === "BLACK" && moveTo.y === 0))
@@ -186,8 +217,8 @@ const Chessboard: React.FC<{
                           setPromotedPawn(moveTo);
                         }
 
-                        try {
-                          await moveMutation.mutateAsync({
+                        if (mutate) {
+                          moveMutation.mutate({
                             uuid: uuid,
                             fromTile: {
                               x: highlightedTile.x,
@@ -198,10 +229,8 @@ const Chessboard: React.FC<{
                               y: row_index,
                             },
                           });
-                        } catch (e) {
-                          console.log("reverting...");
-                          chess.revertLastMove();
                         }
+                        unlockFunction(chess.algebraic.length - 1);
 
                         return;
                       }
