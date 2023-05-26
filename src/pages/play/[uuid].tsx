@@ -27,7 +27,7 @@ const Play: NextPage = () => {
   const utils = api.useContext();
 
   const isDisplayedBoardLatest =
-    indexOfBoardToDisplay === (chessRef.current?.algebraic.length ?? 1) - 1;
+    indexOfBoardToDisplay === (chessRef.current?.algebraic?.length ?? 1) - 1;
 
   const {
     isSuccess,
