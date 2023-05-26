@@ -23,8 +23,11 @@ const Play: NextPage = () => {
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
-  const [boardToDisplay, setBoardToDisplay] = useState<Board | null>(null);
+  const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const utils = api.useContext();
+
+  const isDisplayedBoardLatest =
+    indexOfBoardToDisplay === (chessRef.current?.algebraic.length ?? 1) - 1;
 
   const {
     isSuccess,
@@ -77,6 +80,7 @@ const Play: NextPage = () => {
                 if (!chessRef.current.pawnReadyToPromote) {
                   nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
                 }
+                setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
                 return {
                   ...old,
                   board: newBoard,
@@ -187,7 +191,7 @@ const Play: NextPage = () => {
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
       {gameFinished && <div className="text-white"> You lost</div>}
       {isLoading && <div className="text-white"> Loading... </div>}
-      {isError && (
+      {(isError || !channelRef) && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
       )}
       {isSuccess &&
@@ -200,7 +204,15 @@ const Play: NextPage = () => {
             color={gameState.color}
             isYourTurn={gameState.turn === gameState.color}
             chess={chessRef.current}
-            board={boardToDisplay ?? gameState.board}
+            board={
+              isDisplayedBoardLatest
+                ? gameState.board
+                : chessRef.current.history[
+                    indexOfBoardToDisplay
+                  ]?.buildBoard() ?? gameState.board
+            }
+            locked={!isDisplayedBoardLatest}
+            unlockFunction={setIndexOfBoardToDisplay}
             mutate
           ></Chessboard>
         )}
@@ -220,7 +232,8 @@ const Play: NextPage = () => {
             {chessRef.current && (
               <MovesHistory
                 chess={chessRef.current}
-                setCurrentBoard={setBoardToDisplay}
+                index={indexOfBoardToDisplay}
+                setIndex={setIndexOfBoardToDisplay}
               ></MovesHistory>
             )}
           </div>

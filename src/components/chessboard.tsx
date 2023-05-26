@@ -24,8 +24,19 @@ const Chessboard: React.FC<{
   isYourTurn: boolean;
   chess: Chess;
   board: Board;
+  locked: boolean;
+  unlockFunction: Dispatch<SetStateAction<number>>;
   mutate?: boolean;
-}> = ({ uuid, color, isYourTurn, chess, board, mutate = false }) => {
+}> = ({
+  uuid,
+  color,
+  isYourTurn,
+  chess,
+  board,
+  locked,
+  unlockFunction,
+  mutate = false,
+}) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
@@ -85,9 +96,14 @@ const Chessboard: React.FC<{
                       e.preventDefault();
                     }}
                     onDrag={(e) => {
+                      if (locked) {
+                        unlockFunction(chess.algebraic.length - 1);
+                        return;
+                      }
                       if (!isYourTurn) {
                         return;
                       }
+
                       const tile = e.target;
                       if (!(tile instanceof Element)) {
                         return;
@@ -103,6 +119,10 @@ const Chessboard: React.FC<{
                       setDraggedPiece(coords);
                     }}
                     onDrop={() => {
+                      if (locked) {
+                        unlockFunction(chess.algebraic.length - 1);
+                        return;
+                      }
                       if (draggedPiece === null) {
                         return;
                       }
@@ -144,8 +164,14 @@ const Chessboard: React.FC<{
                           },
                         });
                       }
+                      unlockFunction(chess.algebraic.length - 1);
                     }}
                     onClick={(e) => {
+                      if (locked) {
+                        unlockFunction(chess.algebraic.length - 1);
+                        return;
+                      }
+
                       if (!isYourTurn) {
                         return;
                       }
@@ -204,6 +230,7 @@ const Chessboard: React.FC<{
                             },
                           });
                         }
+                        unlockFunction(chess.algebraic.length - 1);
 
                         return;
                       }

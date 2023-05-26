@@ -4,13 +4,10 @@ import { type Board } from "~/utils/pieces";
 
 const MovesHistory: React.FC<{
   chess: Chess;
-  setCurrentBoard: Dispatch<SetStateAction<Board | null>>;
-}> = ({ chess, setCurrentBoard }) => {
+  index: number;
+  setIndex: Dispatch<SetStateAction<number>>;
+}> = ({ chess, index: indexToSelect, setIndex }) => {
   const moves = chess.algebraic;
-  const [currentBoardIndex, setCurrentBoardIndex] = useState<number>(0);
-  useEffect(() => {
-    setCurrentBoardIndex(moves.length - 1);
-  }, [moves.length]);
 
   return (
     <div className="font-white flex h-full w-full flex-wrap content-start gap-y-1 gap-x-1 p-3 font-os text-sm">
@@ -28,7 +25,7 @@ const MovesHistory: React.FC<{
           <div
             key={index}
             className={`h-fit w-fit cursor-pointer whitespace-nowrap rounded-sm p-1 hover:bg-neutral-500 ${
-              index === currentBoardIndex
+              index === indexToSelect
                 ? "bg-neutral-400 text-green-800 hover:text-green-900"
                 : ""
             }`}
@@ -38,8 +35,7 @@ const MovesHistory: React.FC<{
                 return;
               }
 
-              setCurrentBoardIndex(index);
-              setCurrentBoard(fen.buildBoard());
+              setIndex(index);
             }}
           >
             {" "}
