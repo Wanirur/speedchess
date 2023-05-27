@@ -4,6 +4,7 @@ import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/drawresignpanel";
+import GameSummary from "~/components/gamesummary";
 import MovesHistory from "~/components/moveshistory";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
@@ -152,6 +153,7 @@ const Play: NextPage = () => {
 
     channelRef.current.bind("draw", () => {
       setGameFinished(true);
+      chessRef.current?.drawAgreement();
       setIsDrawOffered(false);
     });
 
@@ -189,7 +191,15 @@ const Play: NextPage = () => {
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
-      {gameFinished && <div className="text-white"> You lost</div>}
+      {isSuccess &&
+        gameFinished &&
+        chessRef.current &&
+        chessRef.current.gameResult && (
+          <GameSummary
+            gameResult={chessRef.current.gameResult}
+            color={gameState.color}
+          ></GameSummary>
+        )}
       {isLoading && <div className="text-white"> Loading... </div>}
       {(isError || !channelRef) && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
