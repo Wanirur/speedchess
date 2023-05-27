@@ -260,7 +260,7 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === gameState.color}
+            isLocked={gameState.turn === gameState.color || gameFinished}
           ></Timer>
           <div className="h-full w-80 bg-neutral-700 font-os text-white">
             {chessRef.current && (
@@ -287,7 +287,7 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === opponentsColor}
+            isLocked={gameState.turn === opponentsColor || gameFinished}
           ></Timer>
         </div>
       )}
