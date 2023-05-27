@@ -1,5 +1,7 @@
 import { type NextPage } from "next";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
+import { userAgent } from "next/server";
 import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
@@ -10,7 +12,12 @@ import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
-import { type PromotedPieceType, copyBoard, type Board } from "~/utils/pieces";
+import {
+  type PromotedPieceType,
+  copyBoard,
+  type Board,
+  PlayerColor,
+} from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -140,14 +147,30 @@ const Play: NextPage = () => {
     }
   );
 
+  const {
+    isSuccess: isSuccessOpponentsData,
+    isLoading: isLoadingOpponentsData,
+    isError: isErrorOpponentsData,
+    data: opponentsData,
+  } = api.chess.getOpponentsData.useQuery(
+    { uuid: uuid as string },
+    {
+      enabled: !!uuid,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    }
+  );
+
   useEffect(() => {
     if (!router.isReady) {
       return;
     }
 
     channelRef.current = pusherClient.subscribe(uuid as string);
-    channelRef.current.bind("resign", () => {
+    channelRef.current.bind("resign", (data: { color: string }) => {
       setGameFinished(true);
+      chessRef.current?.resign(data.color as PlayerColor);
       setIsDrawOffered(false);
     });
 
@@ -193,9 +216,10 @@ const Play: NextPage = () => {
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
       {isSuccess &&
         gameFinished &&
-        chessRef.current &&
-        chessRef.current.gameResult && (
+        chessRef.current?.gameResult &&
+        opponentsData && (
           <GameSummary
+            user={opponentsData}
             gameResult={chessRef.current.gameResult}
             color={gameState.color}
           ></GameSummary>

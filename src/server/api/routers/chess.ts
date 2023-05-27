@@ -335,7 +335,7 @@ export const chessgameRouter = createTRPCRouter({
 
       const opponent = await ctx.prisma.user.findFirst({
         where: {
-          id: user.id !== match.white.id ? match.black.id : match.white.id,
+          id: user.id === match.white.id ? match.black.id : match.white.id,
         },
       });
 
