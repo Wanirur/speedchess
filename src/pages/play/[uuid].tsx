@@ -64,10 +64,16 @@ const Play: NextPage = () => {
                 }
 
                 if (old.turn === old.color) {
+                  if (chessRef.current.gameResult) {
+                    setTimeout(() => {
+                      setGameFinished(true);
+                    }, 1000);
+                  }
                   let nextTurn = old.turn;
                   if (!chessRef.current.pawnReadyToPromote) {
                     nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
                   }
+
                   return {
                     ...old,
                     turn: nextTurn,
@@ -77,6 +83,12 @@ const Play: NextPage = () => {
                 const newBoard = copyBoard(
                   chessRef.current.move(from, to, old.turn)
                 );
+
+                if (chessRef.current.gameResult) {
+                  setTimeout(() => {
+                    setGameFinished(true);
+                  }, 1000);
+                }
 
                 let nextTurn = old.turn;
                 if (!chessRef.current.pawnReadyToPromote) {
@@ -114,16 +126,28 @@ const Play: NextPage = () => {
                 }
 
                 if (old.turn === old.color) {
+                  if (chessRef.current.gameResult) {
+                    setTimeout(() => {
+                      setGameFinished(true);
+                    }, 1000);
+                  }
                   return {
                     ...old,
                     turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
                   };
                 }
+
+                const newBoard = copyBoard(
+                  chessRef.current.promote(promotion.promotedTo, old.turn)
+                );
+                if (chessRef.current.gameResult) {
+                  setTimeout(() => {
+                    setGameFinished(true);
+                  }, 1000);
+                }
                 return {
                   ...old,
-                  board: copyBoard(
-                    chessRef.current.promote(promotion.promotedTo, old.turn)
-                  ),
+                  board: newBoard,
                   turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
                 };
               }
