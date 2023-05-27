@@ -464,6 +464,27 @@ class Chess {
     return this.board;
   }
 
+  public drawAgreement() {
+    this._gameResult = {
+      winner: "DRAW",
+      reason: "AGREEMENT",
+    };
+  }
+
+  public resign(color: PlayerColor) {
+    this._gameResult = {
+      winner: color === "WHITE" ? "BLACK" : "WHITE",
+      reason: "RESIGNATION",
+    };
+  }
+
+  public abandon(color: PlayerColor) { 
+    this._gameResult = { 
+      winner: color === "WHITE" ? "BLACK" : "WHITE",
+      reason: "ABANDONMENT"
+    }
+  }
+
   private _calculateAttackedTiles() {
     let x = 0,
       y = 0;
