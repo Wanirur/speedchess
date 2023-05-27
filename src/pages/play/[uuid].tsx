@@ -1,7 +1,6 @@
+/* eslint-disable @typescript-eslint/consistent-type-imports */
 import { type NextPage } from "next";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { userAgent } from "next/server";
 import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
@@ -12,12 +11,7 @@ import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
-import {
-  type PromotedPieceType,
-  copyBoard,
-  type Board,
-  PlayerColor,
-} from "~/utils/pieces";
+import { type PromotedPieceType, copyBoard, PlayerColor } from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -147,20 +141,16 @@ const Play: NextPage = () => {
     }
   );
 
-  const {
-    isSuccess: isSuccessOpponentsData,
-    isLoading: isLoadingOpponentsData,
-    isError: isErrorOpponentsData,
-    data: opponentsData,
-  } = api.chess.getOpponentsData.useQuery(
-    { uuid: uuid as string },
-    {
-      enabled: !!uuid,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    }
-  );
+  const { isError: isErrorOpponentsData, data: opponentsData } =
+    api.chess.getOpponentsData.useQuery(
+      { uuid: uuid as string },
+      {
+        enabled: !!uuid,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+      }
+    );
 
   useEffect(() => {
     if (!router.isReady) {
@@ -225,7 +215,7 @@ const Play: NextPage = () => {
           ></GameSummary>
         )}
       {isLoading && <div className="text-white"> Loading... </div>}
-      {(isError || !channelRef) && (
+      {(isError || !channelRef || isErrorOpponentsData) && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
       )}
       {isSuccess &&
