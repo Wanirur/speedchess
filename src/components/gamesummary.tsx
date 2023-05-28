@@ -10,7 +10,8 @@ const GameSummary: React.FC<{
   gameResult: GameResult;
   color: PlayerColor;
   user: User;
-}> = ({ gameResult, color, user }) => {
+  queueUpTimeControl: number;
+}> = ({ gameResult, color, user, queueUpTimeControl }) => {
   const { data: sessionData } = useSession();
   const id = sessionData?.user.id;
   const { isSuccess, isLoading, isError, data } =
@@ -24,6 +25,9 @@ const GameSummary: React.FC<{
         refetchOnReconnect: false,
       }
     );
+
+  const queueUpMutation = api.chess.queueUp.useMutation();
+
   let msg = gameResult.winner as string;
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   msg = msg[0]! + msg.substring(1).toLowerCase();
@@ -46,7 +50,7 @@ const GameSummary: React.FC<{
       <div
         className={`flex ${
           color === "WHITE" ? "flex-row" : "flex-row-reverse"
-        } items-center justify-center gap-10 p-10`}
+        } items-center justify-center gap-10 p-6`}
       >
         {" "}
         {sessionData?.user?.image && (
@@ -69,7 +73,7 @@ const GameSummary: React.FC<{
       </div>
       <h1 className=" text-5xl font-semibold"> {msg} </h1>
 
-      <div className="flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center pb-6">
         {" "}
         <h3 className="text-2xl"> New rating: </h3>
         <h2 className="text-3xl font-semibold">
@@ -82,6 +86,16 @@ const GameSummary: React.FC<{
           </span>
         </h2>
       </div>
+
+      <button
+        className="rounded-xl bg-green-700 p-4"
+        onClick={() => {
+          queueUpMutation.mutate({ timeControl: queueUpTimeControl });
+        }}
+      >
+        {" "}
+        Queue up next
+      </button>
     </div>
   );
 };

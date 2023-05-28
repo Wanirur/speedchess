@@ -236,6 +236,7 @@ const Play: NextPage = () => {
             user={opponentsData}
             gameResult={chessRef.current.gameResult}
             color={gameState.color}
+            queueUpTimeControl={180}
           ></GameSummary>
         )}
       {isLoading && <div className="text-white"> Loading... </div>}
