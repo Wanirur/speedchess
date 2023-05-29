@@ -4,7 +4,9 @@ import Image from "next/image";
 import { type User } from "next-auth";
 import { api } from "~/utils/api";
 import { calculateRatingDiff } from "~/utils/elo";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import QueueDisplay from "./queue";
+import { useRouter } from "next/router";
 
 const GameSummary: React.FC<{
   gameResult: GameResult;
@@ -25,7 +27,22 @@ const GameSummary: React.FC<{
     }
   );
 
-  const queueUpMutation = api.chess.queueUp.useMutation();
+  const [isInQueue, setIsInQueue] = useState<boolean>(false);
+  const router = useRouter();
+
+  const queueUpMutation = api.chess.queueUp.useMutation({
+    onSuccess: (data?: { uuid: string; gameStarted: boolean }) => {
+      if (!data) {
+        return;
+      }
+
+      if (data.gameStarted) {
+        void router.push("/play/" + data.uuid);
+      } else {
+        setIsInQueue(true);
+      }
+    },
+  });
 
   let msg = gameResult.winner as string;
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -85,15 +102,31 @@ const GameSummary: React.FC<{
         </h2>
       </div>
 
-      <button
-        className="rounded-xl bg-green-700 p-4"
-        onClick={() => {
-          queueUpMutation.mutate({ timeControl: queueUpTimeControl });
-        }}
-      >
-        {" "}
-        Queue up next
-      </button>
+      {!isInQueue || !queueUpMutation.data ? (
+        <button
+          className="h-12 w-40 rounded-xl bg-green-700"
+          onClick={() => {
+            queueUpMutation.mutate({ timeControl: queueUpTimeControl });
+          }}
+        >
+          {" "}
+          Queue up next
+        </button>
+      ) : (
+        <>
+          {" "}
+          <button
+            className="h-12 w-40 rounded-xl bg-red-700"
+            onClick={() => {
+              setIsInQueue(false);
+            }}
+          >
+            {" "}
+            x{" "}
+          </button>
+          <QueueDisplay gameId={queueUpMutation.data.uuid}></QueueDisplay>
+        </>
+      )}
     </div>
   );
 };

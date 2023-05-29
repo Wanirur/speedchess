@@ -13,6 +13,10 @@ const QueueDisplay: React.FC<{ gameId: string }> = ({ gameId }) => {
 
     const channel = pusherClient.subscribe(gameId);
     channel.bind("match_start", onStart);
+
+    return () => {
+      pusherClient.unsubscribe(gameId);
+    };
   }, [gameId, router]);
 
   return (
