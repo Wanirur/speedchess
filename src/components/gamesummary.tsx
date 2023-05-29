@@ -14,17 +14,16 @@ const GameSummary: React.FC<{
 }> = ({ gameResult, color, user, queueUpTimeControl }) => {
   const { data: sessionData } = useSession();
   const id = sessionData?.user.id;
-  const { isSuccess, isLoading, isError, data } =
-    api.socials.getPlayerRating.useQuery(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      { playerId: id! },
-      {
-        enabled: !!id,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-      }
-    );
+  const { data } = api.socials.getPlayerRating.useQuery(
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    { playerId: id! },
+    {
+      enabled: !!id,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    }
+  );
 
   const queueUpMutation = api.chess.queueUp.useMutation();
 
@@ -37,7 +36,6 @@ const GameSummary: React.FC<{
 
   const ratingDiff = useMemo(() => {
     const ratingDiffs = calculateRatingDiff(gameResult, 1200, 1200);
-
     if (color === "WHITE") {
       return ratingDiffs.white;
     } else {
@@ -78,8 +76,8 @@ const GameSummary: React.FC<{
         <h3 className="text-2xl"> New rating: </h3>
         <h2 className="text-3xl font-semibold">
           {" "}
-          {data}{" "}
-          <span className="text-green-500">
+          {(data ?? 1200) + ratingDiff}{" "}
+          <span className="text-green-500 opacity-50">
             {" "}
             {ratingDiff >= 0 && "+"}
             {ratingDiff}

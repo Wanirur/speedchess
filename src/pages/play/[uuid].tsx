@@ -183,14 +183,14 @@ const Play: NextPage = () => {
 
     channelRef.current = pusherClient.subscribe(uuid as string);
     channelRef.current.bind("resign", (data: { color: string }) => {
-      setGameFinished(true);
       chessRef.current?.resign(data.color as PlayerColor);
+      setGameFinished(true);
       setIsDrawOffered(false);
     });
 
     channelRef.current.bind("draw", () => {
-      setGameFinished(true);
       chessRef.current?.drawAgreement();
+      setGameFinished(true);
       setIsDrawOffered(false);
     });
 

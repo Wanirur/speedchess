@@ -70,7 +70,6 @@ const DrawResignPanel: React.FC<{
             className="rounded-md bg-red-900 px-5 py-3 font-os text-white"
             onClick={() => {
               resignMutation.mutate({ uuid: uuid });
-              setGameFinished(true);
             }}
           >
             {" "}
