@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 import { type NextPage } from "next";
 import { useRouter } from "next/router";
 import { type Channel } from "pusher-js";
@@ -11,7 +10,11 @@ import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
-import { type PromotedPieceType, copyBoard, PlayerColor } from "~/utils/pieces";
+import {
+  type PromotedPieceType,
+  copyBoard,
+  type PlayerColor,
+} from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -276,6 +279,10 @@ const Play: NextPage = () => {
                 : gameState.blackMilisLeft
             }
             isLocked={gameState.turn === gameState.color || gameFinished}
+            setIsGameFinished={setGameFinished}
+            chessTimeoutFunc={(color: PlayerColor) =>
+              chessRef.current?.timeExpired(color)
+            }
           ></Timer>
           <div className="h-full w-80 bg-neutral-700 font-os text-white">
             {chessRef.current && (
@@ -303,6 +310,10 @@ const Play: NextPage = () => {
                 : gameState.blackMilisLeft
             }
             isLocked={gameState.turn === opponentsColor || gameFinished}
+            setIsGameFinished={setGameFinished}
+            chessTimeoutFunc={(color: PlayerColor) =>
+              chessRef.current?.timeExpired(color)
+            }
           ></Timer>
         </div>
       )}

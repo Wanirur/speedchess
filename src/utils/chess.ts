@@ -471,6 +471,13 @@ class Chess {
     };
   }
 
+  public timeExpired(color: PlayerColor) {
+    this._gameResult = {
+      winner: color === "WHITE" ? "BLACK" : "WHITE",
+      reason: "TIMEOUT",
+    };
+  }
+
   public resign(color: PlayerColor) {
     this._gameResult = {
       winner: color === "WHITE" ? "BLACK" : "WHITE",
@@ -478,11 +485,11 @@ class Chess {
     };
   }
 
-  public abandon(color: PlayerColor) { 
-    this._gameResult = { 
+  public abandon(color: PlayerColor) {
+    this._gameResult = {
       winner: color === "WHITE" ? "BLACK" : "WHITE",
-      reason: "ABANDONMENT"
-    }
+      reason: "ABANDONMENT",
+    };
   }
 
   private _calculateAttackedTiles() {
