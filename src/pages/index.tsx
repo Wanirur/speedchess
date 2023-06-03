@@ -3,7 +3,6 @@ import Head from "next/head";
 import Image from "next/image";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { api } from "~/utils/api";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import QueueDisplay from "~/components/queue";
 
@@ -42,7 +41,6 @@ const Home: NextPage = () => {
 
 const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
   const router = useRouter();
-  const [isInQueue, setIsInQueue] = useState<boolean>(false);
   const queueUpMutation = api.chess.queueUp.useMutation({
     onSuccess: (data?: { uuid: string; gameStarted: boolean }) => {
       if (!data) {
@@ -51,8 +49,6 @@ const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
 
       if (data.gameStarted) {
         void router.push("/play/" + data.uuid);
-      } else {
-        setIsInQueue(true);
       }
     },
   });

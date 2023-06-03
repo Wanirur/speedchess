@@ -1,5 +1,5 @@
 import type { Channel } from "pusher-js";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { type Coords } from "~/utils/coords";
 import type { PlayerColor } from "~/utils/pieces";
 
