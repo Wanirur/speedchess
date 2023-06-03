@@ -297,10 +297,12 @@ const Play: NextPage = () => {
           <DrawResignPanel
             isDrawOffered={isDrawOffered}
             uuid={uuid as string}
-            setGameFinished={setGameFinished}
             isUserDisconnected={isUserDisconnected}
             isEnemyDisconnected={isEnemyDisconnected}
+            setGameFinished={setGameFinished}
+            chessAbandonFunc={() => chessRef.current?.abandon(opponentsColor)}
           ></DrawResignPanel>
+
           <Timer
             channel={channelRef.current}
             color={gameState.color}

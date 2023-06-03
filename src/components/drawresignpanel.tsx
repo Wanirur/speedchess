@@ -1,23 +1,43 @@
 import { Check, X } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useRef } from "react";
 import { api } from "~/utils/api";
 
 const DrawResignPanel: React.FC<{
-  isDrawOffered: boolean;
   uuid: string;
-  setGameFinished: Dispatch<SetStateAction<boolean>>;
+  isDrawOffered: boolean;
   isUserDisconnected: boolean;
   isEnemyDisconnected: boolean;
+  setGameFinished: Dispatch<SetStateAction<boolean>>;
+  chessAbandonFunc: () => void;
 }> = ({
   isDrawOffered,
   uuid,
-  setGameFinished,
   isUserDisconnected,
   isEnemyDisconnected,
+  setGameFinished,
+  chessAbandonFunc,
 }) => {
   const resignMutation = api.chess.resign.useMutation();
   const drawOfferMutation = api.chess.offerDraw.useMutation();
   const drawRefuseMutation = api.chess.refuseDraw.useMutation();
+
+  const enemyTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isEnemyDisconnected && enemyTimeoutRef.current !== null) {
+      window.clearInterval(enemyTimeoutRef.current);
+      return;
+    }
+
+    if (!isEnemyDisconnected) {
+      return;
+    }
+
+    enemyTimeoutRef.current = window.setTimeout(() => {
+      setGameFinished(true);
+      chessAbandonFunc();
+    }, 10000);
+  }, [isEnemyDisconnected, setGameFinished, chessAbandonFunc]);
 
   return (
     <div className="flex w-80 flex-row items-center justify-center gap-2 p-8">
