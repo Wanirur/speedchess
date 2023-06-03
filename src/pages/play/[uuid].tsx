@@ -4,12 +4,17 @@ import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/drawresignpanel";
+import GameSummary from "~/components/gamesummary";
 import MovesHistory from "~/components/moveshistory";
 import Timer from "~/components/timer";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
-import { type PromotedPieceType, copyBoard, type Board } from "~/utils/pieces";
+import {
+  type PromotedPieceType,
+  copyBoard,
+  type PlayerColor,
+} from "~/utils/pieces";
 import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
@@ -62,10 +67,16 @@ const Play: NextPage = () => {
                 }
 
                 if (old.turn === old.color) {
+                  if (chessRef.current.gameResult) {
+                    setTimeout(() => {
+                      setGameFinished(true);
+                    }, 1000);
+                  }
                   let nextTurn = old.turn;
                   if (!chessRef.current.pawnReadyToPromote) {
                     nextTurn = nextTurn === "WHITE" ? "BLACK" : "WHITE";
                   }
+
                   return {
                     ...old,
                     turn: nextTurn,
@@ -75,6 +86,12 @@ const Play: NextPage = () => {
                 const newBoard = copyBoard(
                   chessRef.current.move(from, to, old.turn)
                 );
+
+                if (chessRef.current.gameResult) {
+                  setTimeout(() => {
+                    setGameFinished(true);
+                  }, 1000);
+                }
 
                 let nextTurn = old.turn;
                 if (!chessRef.current.pawnReadyToPromote) {
@@ -112,16 +129,28 @@ const Play: NextPage = () => {
                 }
 
                 if (old.turn === old.color) {
+                  if (chessRef.current.gameResult) {
+                    setTimeout(() => {
+                      setGameFinished(true);
+                    }, 1000);
+                  }
                   return {
                     ...old,
                     turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
                   };
                 }
+
+                const newBoard = copyBoard(
+                  chessRef.current.promote(promotion.promotedTo, old.turn)
+                );
+                if (chessRef.current.gameResult) {
+                  setTimeout(() => {
+                    setGameFinished(true);
+                  }, 1000);
+                }
                 return {
                   ...old,
-                  board: copyBoard(
-                    chessRef.current.promote(promotion.promotedTo, old.turn)
-                  ),
+                  board: newBoard,
                   turn: old.turn === "WHITE" ? "BLACK" : "WHITE",
                 };
               }
@@ -139,18 +168,31 @@ const Play: NextPage = () => {
     }
   );
 
+  const { isError: isErrorOpponentsData, data: opponentsData } =
+    api.chess.getOpponentsData.useQuery(
+      { uuid: uuid as string },
+      {
+        enabled: !!uuid,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+      }
+    );
+
   useEffect(() => {
     if (!router.isReady) {
       return;
     }
 
     channelRef.current = pusherClient.subscribe(uuid as string);
-    channelRef.current.bind("resign", () => {
+    channelRef.current.bind("resign", (data: { color: string }) => {
+      chessRef.current?.resign(data.color as PlayerColor);
       setGameFinished(true);
       setIsDrawOffered(false);
     });
 
     channelRef.current.bind("draw", () => {
+      chessRef.current?.drawAgreement();
       setGameFinished(true);
       setIsDrawOffered(false);
     });
@@ -189,9 +231,19 @@ const Play: NextPage = () => {
 
   return (
     <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
-      {gameFinished && <div className="text-white"> You lost</div>}
+      {isSuccess &&
+        gameFinished &&
+        chessRef.current?.gameResult &&
+        opponentsData && (
+          <GameSummary
+            user={opponentsData}
+            gameResult={chessRef.current.gameResult}
+            color={gameState.color}
+            queueUpTimeControl={180}
+          ></GameSummary>
+        )}
       {isLoading && <div className="text-white"> Loading... </div>}
-      {(isError || !channelRef) && (
+      {(isError || !channelRef || isErrorOpponentsData) && (
         <div className="text-red-600"> An error occured. Please refresh. </div>
       )}
       {isSuccess &&
@@ -226,7 +278,11 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === gameState.color}
+            isLocked={gameState.turn === gameState.color || gameFinished}
+            setIsGameFinished={setGameFinished}
+            chessTimeoutFunc={(color: PlayerColor) =>
+              chessRef.current?.timeExpired(color)
+            }
           ></Timer>
           <div className="h-full w-80 bg-neutral-700 font-os text-white">
             {chessRef.current && (
@@ -241,10 +297,12 @@ const Play: NextPage = () => {
           <DrawResignPanel
             isDrawOffered={isDrawOffered}
             uuid={uuid as string}
-            setGameFinished={setGameFinished}
             isUserDisconnected={isUserDisconnected}
             isEnemyDisconnected={isEnemyDisconnected}
+            setGameFinished={setGameFinished}
+            chessAbandonFunc={() => chessRef.current?.abandon(opponentsColor)}
           ></DrawResignPanel>
+
           <Timer
             channel={channelRef.current}
             color={gameState.color}
@@ -253,7 +311,11 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === opponentsColor}
+            isLocked={gameState.turn === opponentsColor || gameFinished}
+            setIsGameFinished={setGameFinished}
+            chessTimeoutFunc={(color: PlayerColor) =>
+              chessRef.current?.timeExpired(color)
+            }
           ></Timer>
         </div>
       )}

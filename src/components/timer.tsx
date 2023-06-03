@@ -1,5 +1,5 @@
 import type { Channel } from "pusher-js";
-import { useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { type Coords } from "~/utils/coords";
 import type { PlayerColor } from "~/utils/pieces";
 
@@ -8,11 +8,22 @@ const Timer: React.FC<{
   color: PlayerColor;
   initial: number;
   isLocked: boolean;
-}> = ({ channel, initial, isLocked }) => {
+  setIsGameFinished: Dispatch<SetStateAction<boolean>>;
+  chessTimeoutFunc: (color: PlayerColor) => void;
+}> = ({
+  channel,
+  color,
+  initial,
+  isLocked,
+  setIsGameFinished,
+  chessTimeoutFunc,
+}) => {
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
     if (seconds <= 0) {
+      setIsGameFinished(true);
+      chessTimeoutFunc(color);
       return;
     }
     const interval = setInterval(() => {
@@ -24,7 +35,7 @@ const Timer: React.FC<{
     return () => {
       clearInterval(interval);
     };
-  }, [seconds, isLocked]);
+  }, [seconds, isLocked, setIsGameFinished, chessTimeoutFunc, color]);
 
   useEffect(() => {
     const onMove = (move: {

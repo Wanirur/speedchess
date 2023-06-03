@@ -1,6 +1,5 @@
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction } from "react";
 import type Chess from "~/utils/chess";
-import { type Board } from "~/utils/pieces";
 
 const MovesHistory: React.FC<{
   chess: Chess;

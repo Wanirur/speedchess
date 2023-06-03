@@ -264,7 +264,9 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      await pusher.trigger(match.id, "resign", {});
+      const color = user.id === match.white.id ? "WHITE" : "BLACK";
+      match.chess.resign(color);
+      await pusher.trigger(match.id, "resign", { color: color });
     }),
   offerDraw: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
@@ -287,6 +289,7 @@ export const chessgameRouter = createTRPCRouter({
       const color = match.white.id === user.id ? "WHITE" : "BLACK";
       const result = match.offerDraw(color);
       if (result) {
+        match.chess.drawAgreement();
         await pusher.trigger(match.id, "draw", {});
       } else {
         await pusher.trigger(match.id, "draw_offer", { color: color });
@@ -311,5 +314,38 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       await pusher.trigger(match.id, "draw_refused", {});
+    }),
+  getOpponentsData: protectedProcedure
+    .input(z.object({ uuid: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const user = ctx.session.user;
+      const match = matches.get(input.uuid);
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      const opponent = await ctx.prisma.user.findFirst({
+        where: {
+          id: user.id === match.white.id ? match.black.id : match.white.id,
+        },
+      });
+
+      if (!opponent) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Cannot find opponent's data",
+        });
+      }
+
+      return opponent;
     }),
 });

@@ -2,7 +2,7 @@ import {
   type GameResult,
   type PlayerColor,
   initBoard,
-  PromotedPieceType,
+  type PromotedPieceType,
 } from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { matches } from "./matchmaking";
@@ -115,7 +115,10 @@ export class Game {
       return timeLeft;
     }
 
-    this._chess.promote(promoteTo, this._turn === this._white ? "WHITE" : "BLACK");
+    this._chess.promote(
+      promoteTo,
+      this._turn === this._white ? "WHITE" : "BLACK"
+    );
 
     if (this._turn === this._white) {
       this._turn = this._black;
