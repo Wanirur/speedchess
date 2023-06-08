@@ -492,6 +492,15 @@ class Chess {
     };
   }
 
+  public getFullAlgebraicHistory() {
+    let result = "";
+    this._algebraic.forEach((move) => {
+      result += move.toString();
+    });
+
+    return result;
+  }
+
   private _calculateAttackedTiles() {
     let x = 0,
       y = 0;
