@@ -1,53 +1,27 @@
 import { type NextPage } from "next";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { api } from "~/utils/api";
 
 const Profile: NextPage = () => {
-  const { data: sessionData } = useSession();
-  const image = sessionData?.user.image;
+  const router = useRouter();
+  const { slug: userId } = router.query;
+
+  const { isSuccess, data: userData } = api.socials.getUser.useQuery(
+    {
+      playerId: userId as string,
+    },
+    {
+      enabled: !!userId,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+    }
+  );
+
   const { ref, inView } = useInView();
-
-  const { isSuccess: isRatingSuccess, data: rating } =
-    api.socials.getPlayerRating.useQuery(
-      {
-        playerId: sessionData?.user.id ?? "0",
-      },
-      {
-        enabled: !!sessionData,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: false,
-      }
-    );
-
-  const { isSuccess: isCountSuccess, data: count } =
-    api.socials.getGamesCount.useQuery(
-      {
-        playerId: sessionData?.user.id ?? "0",
-      },
-      {
-        enabled: !!sessionData,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: false,
-      }
-    );
-
-  const { isSuccess: isDateSuccess, data: date } =
-    api.socials.getPlayerAccountCreationDate.useQuery(
-      {
-        playerId: sessionData?.user.id ?? "0",
-      },
-      {
-        enabled: !!sessionData,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: false,
-      }
-    );
 
   const {
     isSuccess: isGamesSuccess,
@@ -57,10 +31,10 @@ const Profile: NextPage = () => {
     isFetchingNextPage,
   } = api.socials.getRecentGames.useInfiniteQuery(
     {
-      playerId: sessionData?.user.id ?? "0",
+      playerId: userData?.id ?? "0",
     },
     {
-      enabled: !!sessionData?.user.id,
+      enabled: !!userData,
       initialCursor: 0,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       refetchOnWindowFocus: false,
@@ -71,18 +45,19 @@ const Profile: NextPage = () => {
 
   useEffect(() => {
     const fetchPage = async () => {
-      if (sessionData?.user.id) {
+      if (userData) {
         await fetchNextPage();
       }
     };
     void fetchPage();
-  }, [fetchNextPage, inView, sessionData]);
+  }, [fetchNextPage, inView, userData]);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-900">
       <div className="flex items-end ">
-        {image && (
+        {userData?.image && (
           <Image
-            src={image}
+            src={userData.image}
             alt={"avatar"}
             width={160}
             height={160}
@@ -91,27 +66,27 @@ const Profile: NextPage = () => {
         )}
 
         <h1 className="m-10 font-os text-3xl font-bold text-white">
-          {sessionData?.user.name}{" "}
+          {userData?.name}{" "}
         </h1>
       </div>
       <div className="m-10 flex gap-24">
         <div className="h-34 w-42 flex-col items-end justify-center text-center font-os text-xl text-white">
           {"Rating:"}
           <div className="m-auto mt-1 w-fit bg-green-800 px-8 py-4">
-            {rating}
+            {userData?.rating}
           </div>
         </div>
 
         <div className="h-34 w-42 flex-col items-end justify-center text-center font-os text-xl text-white">
           {"Games played:"}
           <div className="m-auto mt-1 w-fit bg-green-800 px-8 py-4">
-            {count}
+            {userData?.gamesPlayed}
           </div>
         </div>
         <div className="h-34 w-42 flex-col items-end justify-center text-center font-os text-xl text-white">
           {"Account created at:"}
           <div className="m-auto mt-1 w-fit bg-green-800 px-8 py-4">
-            {date?.toLocaleDateString()}
+            {userData?.createdAt?.toLocaleDateString()}
           </div>
         </div>
       </div>
@@ -127,16 +102,12 @@ const Profile: NextPage = () => {
           <>
             {games.pages.map((page) => {
               return page.games.map((game) => {
-                if (
-                  !game.gameToUsers[0] ||
-                  !game.gameToUsers[1] ||
-                  !sessionData
-                ) {
+                if (!game.gameToUsers[0] || !game.gameToUsers[1] || !userData) {
                   return;
                 }
 
                 let opponent, me;
-                if (game.gameToUsers[0].user.id === sessionData?.user.id) {
+                if (game.gameToUsers[0].user.id === userData.id) {
                   me = game.gameToUsers[0];
                   opponent = game.gameToUsers[1];
                 } else {

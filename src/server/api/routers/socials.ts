@@ -3,53 +3,36 @@ import { createTRPCRouter, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 export const socialsRouter = createTRPCRouter({
-  getPlayerRating: publicProcedure
+  getUser: publicProcedure
     .input(z.object({ playerId: z.string() }))
     .query(async ({ ctx, input }) => {
       const player = await ctx.prisma.user.findFirst({
         where: {
           id: input.playerId,
         },
-      });
-
-      if (!player) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "No player with provided id found",
-        });
-      }
-
-      return player.rating;
-    }),
-
-  getPlayerAccountCreationDate: publicProcedure
-    .input(z.object({ playerId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const player = await ctx.prisma.user.findFirst({
-        where: {
-          id: input.playerId,
+        select: {
+          id: true,
+          createdAt: true,
+          image: true,
+          rating: true,
+          name: true,
         },
       });
 
-      if (!player) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "No player with provided id found",
-        });
-      }
-
-      return player.createdAt;
-    }),
-  getGamesCount: publicProcedure
-    .input(z.object({ playerId: z.string() }))
-    .query(async ({ ctx, input }) => {
       const count = await ctx.prisma.gameToUser.count({
         where: {
           userId: input.playerId,
         },
       });
 
-      return count;
+      if (!player) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No player with provided id found",
+        });
+      }
+
+      return { ...player, gamesPlayed: count };
     }),
   getRecentGames: publicProcedure
     .input(
