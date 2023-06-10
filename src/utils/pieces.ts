@@ -57,6 +57,11 @@ export type GameResult = {
   reason: (typeof finishReason)[number];
 };
 
+export type TimeControl = {
+  startingTime: number;
+  increment: number;
+};
+
 const pieces = new Map<string, string>();
 pieces.set(JSON.stringify(whiteRook), "/white_rook.svg");
 pieces.set(JSON.stringify(blackRook), "/black_rook.svg");

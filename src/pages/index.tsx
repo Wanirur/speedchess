@@ -5,6 +5,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { api } from "~/utils/api";
 import { useRouter } from "next/router";
 import QueueDisplay from "~/components/queue";
+import { type TimeControl } from "~/utils/pieces";
 
 const Home: NextPage = () => {
   const { data: sessionData } = useSession();
@@ -17,11 +18,8 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-900">
-        {sessionData && sessionData.user && sessionData.user.image ? (
-          <UserLoggedInView
-            image={sessionData.user.image}
-            userId={sessionData.user.id}
-          ></UserLoggedInView>
+        {sessionData?.user?.image ? (
+          <UserLoggedInView></UserLoggedInView>
         ) : (
           <button
             className="rounded-md bg-green-700 p-4 font-os text-white"
@@ -42,10 +40,27 @@ const Home: NextPage = () => {
   );
 };
 
-const UserLoggedInView: React.FC<{ image: string; userId: string }> = ({
-  image,
-  userId,
-}) => {
+const QueueUpCard: React.FC<{
+  timeControl: TimeControl;
+  onClick: () => void;
+}> = ({ timeControl, onClick }) => {
+  return (
+    <div className="border-white-700 flex h-48 w-64 flex-col items-center justify-center gap-3 border-4 font-os text-white">
+      <span className="text-6xl">
+        {" "}
+        {`${timeControl.startingTime} | ${timeControl.increment}`}{" "}
+      </span>
+      <button
+        className="rounded-md bg-green-700 p-4 font-os text-white"
+        onClick={onClick}
+      >
+        Play
+      </button>
+    </div>
+  );
+};
+
+const UserLoggedInView: React.FC = () => {
   const router = useRouter();
   const queueUpMutation = api.chess.queueUp.useMutation({
     onSuccess: (data?: { uuid: string; gameStarted: boolean }) => {
@@ -61,41 +76,45 @@ const UserLoggedInView: React.FC<{ image: string; userId: string }> = ({
 
   return (
     <div className="container flex flex-col items-center justify-center gap-8 px-3 py-16">
-      <Image
-        src={image}
-        alt={"avatar"}
-        width={200}
-        height={200}
-        className="rounded-full"
-        onClick={() => {
-          void router.push(`user/${userId}`);
-        }}
-      />
+      {queueUpMutation.isError && (
+        <p className="text-red-400">{queueUpMutation.error.message}</p>
+      )}
 
       {queueUpMutation.isSuccess &&
       queueUpMutation.data &&
       !queueUpMutation.data.gameStarted ? (
         <QueueDisplay gameId={queueUpMutation.data.uuid}></QueueDisplay>
       ) : (
-        <button
-          className="rounded-md bg-green-700 p-4 font-os text-white"
-          onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
-        >
-          {" "}
-          Play{" "}
-        </button>
-      )}
+        <div className="flex h-96 w-[48rem] flex-col gap-3">
+          <div className="flex h-1/2 w-full items-center justify-center gap-3">
+            {" "}
+            <QueueUpCard
+              timeControl={{ startingTime: 1, increment: 0 }}
+              onClick={() => queueUpMutation.mutate({ timeControl: 60 })}
+            ></QueueUpCard>
+            <QueueUpCard
+              timeControl={{ startingTime: 1, increment: 1 }}
+              onClick={() => queueUpMutation.mutate({ timeControl: 60 })}
+            ></QueueUpCard>
+            <QueueUpCard
+              timeControl={{ startingTime: 2, increment: 1 }}
+              onClick={() => queueUpMutation.mutate({ timeControl: 120 })}
+            ></QueueUpCard>
+          </div>
 
-      {queueUpMutation.isError && (
-        <p className="text-red-400">{queueUpMutation.error.message}</p>
+          <div className="flex h-1/2 w-full items-center justify-center gap-3">
+            <QueueUpCard
+              timeControl={{ startingTime: 3, increment: 0 }}
+              onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
+            ></QueueUpCard>
+
+            <QueueUpCard
+              timeControl={{ startingTime: 3, increment: 1 }}
+              onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
+            ></QueueUpCard>
+          </div>
+        </div>
       )}
-      <button
-        className="rounded-md bg-green-700 p-4 font-os text-white"
-        onClick={() => void signOut()}
-      >
-        {" "}
-        Log out{" "}
-      </button>
     </div>
   );
 };
