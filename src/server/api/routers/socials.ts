@@ -6,7 +6,7 @@ export const socialsRouter = createTRPCRouter({
   getUser: publicProcedure
     .input(z.object({ playerId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const player = await ctx.prisma.user.findFirst({
+      const userPromise = ctx.prisma.user.findFirst({
         where: {
           id: input.playerId,
         },
@@ -19,11 +19,13 @@ export const socialsRouter = createTRPCRouter({
         },
       });
 
-      const count = await ctx.prisma.gameToUser.count({
+      const countPromise = ctx.prisma.gameToUser.count({
         where: {
           userId: input.playerId,
         },
       });
+
+      const [player, count] = await Promise.all([userPromise, countPromise]);
 
       if (!player) {
         throw new TRPCError({
