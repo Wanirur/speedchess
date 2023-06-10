@@ -13,19 +13,10 @@ const GameSummary: React.FC<{
   color: PlayerColor;
   user: User;
   queueUpTimeControl: number;
-}> = ({ gameResult, color, user, queueUpTimeControl }) => {
+  rating: number;
+}> = ({ gameResult, color, user, queueUpTimeControl, rating }) => {
   const { data: sessionData } = useSession();
   const id = sessionData?.user.id;
-  const { data } = api.socials.getPlayerRating.useQuery(
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    { playerId: id! },
-    {
-      enabled: !!id,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    }
-  );
 
   const [isInQueue, setIsInQueue] = useState<boolean>(false);
   const router = useRouter();
@@ -93,7 +84,7 @@ const GameSummary: React.FC<{
         <h3 className="text-2xl"> New rating: </h3>
         <h2 className="text-3xl font-semibold">
           {" "}
-          {(data ?? 1200) + ratingDiff}{" "}
+          {rating + ratingDiff}
           <span className="text-green-500 opacity-50">
             {" "}
             {ratingDiff >= 0 && "+"}

@@ -1,4 +1,5 @@
 import { type NextPage } from "next";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
@@ -20,6 +21,8 @@ import pusherClient from "~/utils/pusherClient";
 const Play: NextPage = () => {
   const router = useRouter();
   const { uuid } = router.query;
+
+  const { data: sessionData } = useSession();
   const [gameFinished, setGameFinished] = useState<boolean>(false);
   const channelRef = useRef<Channel>();
   const chessRef = useRef<Chess>();
@@ -234,12 +237,18 @@ const Play: NextPage = () => {
       {isSuccess &&
         gameFinished &&
         chessRef.current?.gameResult &&
+        sessionData?.user.rating &&
         opponentsData && (
           <GameSummary
             user={opponentsData}
             gameResult={chessRef.current.gameResult}
             color={gameState.color}
             queueUpTimeControl={180}
+            rating={
+              gameState.color === "WHITE"
+                ? gameState.ratingWhite
+                : gameState.ratingBlack
+            }
           ></GameSummary>
         )}
       {isLoading && <div className="text-white"> Loading... </div>}
