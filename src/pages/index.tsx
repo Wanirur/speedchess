@@ -18,7 +18,10 @@ const Home: NextPage = () => {
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-900">
         {sessionData && sessionData.user && sessionData.user.image ? (
-          <UserLoggedInView image={sessionData.user.image}></UserLoggedInView>
+          <UserLoggedInView
+            image={sessionData.user.image}
+            userId={sessionData.user.id}
+          ></UserLoggedInView>
         ) : (
           <button
             className="rounded-md bg-green-700 p-4 font-os text-white"
@@ -39,7 +42,10 @@ const Home: NextPage = () => {
   );
 };
 
-const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
+const UserLoggedInView: React.FC<{ image: string; userId: string }> = ({
+  image,
+  userId,
+}) => {
   const router = useRouter();
   const queueUpMutation = api.chess.queueUp.useMutation({
     onSuccess: (data?: { uuid: string; gameStarted: boolean }) => {
@@ -61,6 +67,9 @@ const UserLoggedInView: React.FC<{ image: string }> = ({ image }) => {
         width={200}
         height={200}
         className="rounded-full"
+        onClick={() => {
+          void router.push(`user/${userId}`);
+        }}
       />
 
       {queueUpMutation.isSuccess &&

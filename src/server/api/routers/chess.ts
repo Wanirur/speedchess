@@ -21,18 +21,23 @@ export const chessgameRouter = createTRPCRouter({
     .input(z.object({ timeControl: z.number().min(30).max(180) }))
     .mutation(async ({ ctx, input }) => {
       let tier = "guest" as RatingTier;
+      let rating = -1;
       let id = "guest";
 
       if (ctx.session) {
         id = ctx.session.user.id;
         try {
-          const rating = await ctx.prisma.user
-            .findUniqueOrThrow({
-              where: {
-                id: id,
-              },
-            })
-            .then((user) => user?.rating);
+          const user = await ctx.prisma.user.findUniqueOrThrow({
+            where: {
+              id: id,
+            },
+          });
+
+          if (user === null) {
+            //it will throw anyway so will never happen
+            return;
+          }
+          rating = user.rating ?? 1200;
           if (rating !== null) {
             tier = resolveRatingToTier(rating);
           }
@@ -60,7 +65,11 @@ export const chessgameRouter = createTRPCRouter({
             });
           }
 
-          game.black = { id: id, timeLeftInMilis: input.timeControl * 1000 };
+          game.black = {
+            id: id,
+            rating: rating,
+            timeLeftInMilis: input.timeControl * 1000,
+          };
           matches.set(game.id, game);
           await pusher.trigger(game.id, "match_start", {
             matchId: game.id,
@@ -71,7 +80,7 @@ export const chessgameRouter = createTRPCRouter({
             gameStarted: true,
           };
         } else {
-          const game = new Game(id, input.timeControl);
+          const game = new Game(id, rating, input.timeControl);
           queue.push(game);
           return {
             uuid: game.id,
@@ -170,7 +179,7 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       try {
-        time = match.move(from, to);
+        time = await match.move(from, to);
       } catch (e) {
         if (e instanceof Error) {
           throw new TRPCError({
@@ -233,7 +242,7 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       try {
-        match.promote(input.promoteTo as PromotedPieceType);
+        await match.promote(input.promoteTo as PromotedPieceType);
       } catch (e) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -265,8 +274,9 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       const color = user.id === match.white.id ? "WHITE" : "BLACK";
-      match.chess.resign(color);
-      await pusher.trigger(match.id, "resign", { color: color });
+      const resignation = match.resign(color);
+      const event = pusher.trigger(match.id, "resign", { color: color });
+      await Promise.all([resignation, event]);
     }),
   offerDraw: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
@@ -287,7 +297,7 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       const color = match.white.id === user.id ? "WHITE" : "BLACK";
-      const result = match.offerDraw(color);
+      const result = await match.offerDraw(color);
       if (result) {
         match.chess.drawAgreement();
         await pusher.trigger(match.id, "draw", {});
@@ -333,19 +343,20 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      const opponent = await ctx.prisma.user.findFirst({
+      const opponent = user.id === match.white.id ? match.black : match.white;
+      const opponentData = await ctx.prisma.user.findFirst({
         where: {
-          id: user.id === match.white.id ? match.black.id : match.white.id,
+          id: opponent.id,
         },
       });
 
-      if (!opponent) {
+      if (!opponentData) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Cannot find opponent's data",
         });
       }
 
-      return opponent;
+      return { ...opponentData, rating: opponent.rating };
     }),
 });

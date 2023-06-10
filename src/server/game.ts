@@ -8,9 +8,13 @@ import { randomUUID } from "crypto";
 import { matches } from "./matchmaking";
 import { type Coords } from "~/utils/coords";
 import Chess from "~/utils/chess";
+import { prisma } from "./db";
+import { type TimeControl } from "@prisma/client";
+import { calculateRatingDiff } from "~/utils/elo";
 
 export type Player = {
   id: string;
+  rating: number;
   timeLeftInMilis: number;
 };
 
@@ -54,23 +58,35 @@ export class Game {
     return this._lastMoveTime;
   }
 
-  constructor(whiteId: string, timeControl: number) {
+  private _timeControl: number;
+  private _increment: number;
+
+  constructor(
+    whiteId: string,
+    whiteRating: number,
+    timeControl: number,
+    increment = 0
+  ) {
     this._white = {
       id: whiteId,
+      rating: whiteRating,
       timeLeftInMilis: timeControl * 1000,
     };
 
     this._black = {
       id: "-1",
+      rating: -1,
       timeLeftInMilis: timeControl * 1000,
     };
     this._turn = this._white;
     this._drawOfferedBy = null;
     this._id = randomUUID();
     this._lastMoveTime = Date.now();
+    this._timeControl = timeControl;
+    this._increment = increment;
   }
 
-  move(from: Coords, to: Coords) {
+  async move(from: Coords, to: Coords) {
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
@@ -81,7 +97,7 @@ export class Game {
         winner: this._turn === this._white ? "BLACK" : "WHITE",
         reason: "TIMEOUT",
       };
-      this.finishGame();
+      await this.finishGame();
       return timeLeft;
     }
 
@@ -99,7 +115,7 @@ export class Game {
     return timeLeft;
   }
 
-  promote(promoteTo: PromotedPieceType) {
+  async promote(promoteTo: PromotedPieceType) {
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
@@ -111,7 +127,7 @@ export class Game {
         winner: this._turn === this._white ? "BLACK" : "WHITE",
         reason: "TIMEOUT",
       };
-      this.finishGame();
+      await this.finishGame();
       return timeLeft;
     }
 
@@ -129,7 +145,7 @@ export class Game {
     return timeLeft;
   }
 
-  offerDraw(color: PlayerColor): GameResult | null {
+  async offerDraw(color: PlayerColor) {
     if (color === "WHITE") {
       if (this._drawOfferedBy === this._white) {
         return null;
@@ -140,7 +156,7 @@ export class Game {
           winner: "DRAW",
           reason: "AGREEMENT",
         };
-        this.finishGame();
+        await this.finishGame();
         return this._gameResult;
       }
 
@@ -156,7 +172,7 @@ export class Game {
           winner: "DRAW",
           reason: "AGREEMENT",
         };
-        this.finishGame();
+        await this.finishGame();
         return this._gameResult;
       }
 
@@ -165,13 +181,98 @@ export class Game {
     }
   }
 
+  async resign(color: PlayerColor) {
+    this.chess.resign(color);
+    if (!this.chess.gameResult) {
+      return;
+    }
+
+    this._gameResult = this.chess.gameResult;
+    await this.finishGame();
+  }
+
   refuseDraw() {
     this._drawOfferedBy = null;
   }
 
-  private finishGame() {
-    if (this._gameResult) {
-      matches.delete(this._id);
+  private async finishGame() {
+    if (!this._gameResult) {
+      return;
     }
+
+    matches.delete(this._id);
+
+    let timeControl: TimeControl;
+    if (this._timeControl === 60) {
+      timeControl = "BULLET";
+    } else if (this._timeControl === 60 && this._increment === 1) {
+      timeControl = "BULLET_INCREMENT";
+    } else if (this._timeControl === 120 && this._increment === 1) {
+      timeControl = "LONG_BULLET_INCREMENT";
+    } else if (this._timeControl === 180) {
+      timeControl = "BLITZ";
+    } else {
+      timeControl = "BLITZ_INCREMENT";
+    }
+
+    const ratingDiff = calculateRatingDiff(
+      this._gameResult,
+      this.white.rating,
+      this.black.rating
+    );
+
+    await prisma.game.create({
+      data: {
+        result: this._gameResult.winner,
+        moves: this._chess.getFullAlgebraicHistory(),
+        timeControl: timeControl,
+        gameToUsers: {
+          create: [
+            {
+              user: {
+                connect: {
+                  id: this._white.id,
+                },
+              },
+              currentRating: this.white.rating,
+              color: "WHITE",
+            },
+            {
+              user: {
+                connect: {
+                  id: this.black.id,
+                },
+              },
+              currentRating: this.black.rating,
+              color: "BLACK",
+            },
+          ],
+        },
+      },
+    });
+
+    const whiteUpdate = prisma.user.update({
+      where: {
+        id: this.white.id,
+      },
+      data: {
+        rating: {
+          increment: ratingDiff.white,
+        },
+      },
+    });
+
+    const blackUpdate = prisma.user.update({
+      where: {
+        id: this.black.id,
+      },
+      data: {
+        rating: {
+          increment: ratingDiff.black,
+        },
+      },
+    });
+
+    await Promise.all([whiteUpdate, blackUpdate]);
   }
 }
