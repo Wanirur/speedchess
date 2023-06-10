@@ -230,7 +230,7 @@ const Play: NextPage = () => {
     isSuccess && gameState.color === "WHITE" ? "BLACK" : "WHITE";
 
   return (
-    <main className="flex min-h-screen flex-row items-center justify-center bg-neutral-900">
+    <main className="container flex min-h-[calc(100vh-3.5rem)] flex-row items-center justify-center bg-neutral-900">
       {isSuccess &&
         gameFinished &&
         chessRef.current?.gameResult &&

@@ -10,6 +10,7 @@ const config = {
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
         os: ["Open Sans", "sans-serif"],
+        logo: ["Francois One", "sans-serif"],
         timer: ["Share Tech Mono", "monospace"],
       },
       keyframes: {
