@@ -52,12 +52,48 @@ export const socialsRouter = createTRPCRouter({
       return count;
     }),
   getRecentGames: publicProcedure
-    .input(z.object({ playerId: z.string(), cursor: z.number().nullish() }))
+    .input(
+      z.object({
+        playerId: z.string(),
+        cursor: z.number().nonnegative().nullish(),
+      })
+    )
     .query(async ({ ctx, input }) => {
+      if (input.cursor === undefined || input.cursor === null) {
+        return {
+          games: [],
+          nextCursor: undefined,
+        };
+      }
       const LIMIT = 10;
 
+      let initialCursor: number | null = null;
+      if (input.cursor === 0) {
+        initialCursor = await ctx.prisma.game
+          .aggregate({
+            _max: {
+              id: true,
+            },
+            where: {
+              gameToUsers: {
+                some: {
+                  userId: input.playerId,
+                },
+              },
+            },
+          })
+          .then((data) => data._max.id);
+
+        if (!initialCursor) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "something went wrong",
+          });
+        }
+      }
+
       const games = await ctx.prisma.game.findMany({
-        take: -(LIMIT + 1),
+        take: LIMIT + 1,
         include: {
           gameToUsers: {
             select: {
@@ -80,16 +116,17 @@ export const socialsRouter = createTRPCRouter({
           },
         },
         cursor: {
-          id: input.cursor ?? 1,
+          id: initialCursor ?? input.cursor,
         },
         orderBy: {
-          finishedAt: "desc",
+          id: "desc",
         },
       });
 
-      let nextCursor;
+      let nextCursor: number | undefined = undefined;
       if (games.length > LIMIT) {
-        nextCursor = games.pop()?.id;
+        const nextItem = games.pop();
+        nextCursor = nextItem!.id;
       }
 
       return {
