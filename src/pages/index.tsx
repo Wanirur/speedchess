@@ -1,11 +1,11 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { api } from "~/utils/api";
 import { useRouter } from "next/router";
 import QueueDisplay from "~/components/queue";
 import { type TimeControl } from "~/utils/pieces";
+import { HelpCircle } from "lucide-react";
 
 const Home: NextPage = () => {
   const { data: sessionData } = useSession();
@@ -45,11 +45,22 @@ const QueueUpCard: React.FC<{
   onClick: () => void;
 }> = ({ timeControl, onClick }) => {
   return (
-    <div className="border-white-700 flex h-48 w-64 flex-col items-center justify-center gap-3 border-4 font-os text-white">
-      <span className="text-6xl">
-        {" "}
-        {`${timeControl.startingTime} | ${timeControl.increment}`}{" "}
-      </span>
+    <div className="flex h-48 w-64 flex-col items-center justify-center gap-5 bg-neutral-700 font-os text-white">
+      <div className="flex items-center justify-center">
+        <span className="text-6xl">
+          {`${timeControl.startingTime} | ${timeControl.increment}`}
+        </span>
+        <div className="group flex items-center justify-center gap-3 rounded-full bg-black font-bold">
+          <HelpCircle className="stroke-green-700" />
+          <div className="invisible absolute z-10 -translate-y-12 translate-x-40 rounded-lg bg-gray-600 p-2 opacity-90 group-hover:visible">
+            {`${timeControl.startingTime} minute${
+              timeControl.startingTime === 1 ? "" : "s"
+            } with ${timeControl.increment} second${
+              timeControl.increment === 1 ? "" : "s"
+            } increment after every move`}
+          </div>
+        </div>
+      </div>
       <button
         className="rounded-md bg-green-700 p-4 font-os text-white"
         onClick={onClick}
@@ -61,6 +72,7 @@ const QueueUpCard: React.FC<{
 };
 
 const UserLoggedInView: React.FC = () => {
+  const { data: sessionData } = useSession();
   const router = useRouter();
   const queueUpMutation = api.chess.queueUp.useMutation({
     onSuccess: (data?: { uuid: string; gameStarted: boolean }) => {
@@ -109,7 +121,7 @@ const UserLoggedInView: React.FC = () => {
             ></QueueUpCard>
 
             <QueueUpCard
-              timeControl={{ startingTime: 3, increment: 1 }}
+              timeControl={{ startingTime: 3, increment: 2 }}
               onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
             ></QueueUpCard>
           </div>
