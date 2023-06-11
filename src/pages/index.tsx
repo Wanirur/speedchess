@@ -92,6 +92,13 @@ const UserLoggedInView: React.FC = () => {
         <p className="text-red-400">{queueUpMutation.error.message}</p>
       )}
 
+      {sessionData?.user?.rating && (
+        <div className="flex flex-col items-center justify-center font-os text-white">
+          <h3>Current rating:</h3>
+          <h1 className="text-7xl font-bold">{sessionData.user.rating}</h1>
+        </div>
+      )}
+
       {queueUpMutation.isSuccess &&
       queueUpMutation.data &&
       !queueUpMutation.data.gameStarted ? (
