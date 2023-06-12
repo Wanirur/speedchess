@@ -8,6 +8,7 @@ import DrawResignPanel from "~/components/drawresignpanel";
 import GameSummary from "~/components/gamesummary";
 import MovesHistory from "~/components/moveshistory";
 import Timer from "~/components/timer";
+import UserBanner from "~/components/userbanner";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
@@ -293,6 +294,7 @@ const Play: NextPage = () => {
               chessRef.current?.timeExpired(color)
             }
           ></Timer>
+          {opponentsData && <UserBanner user={opponentsData}></UserBanner>}
           <div className="h-full w-80 bg-neutral-700 font-os text-white">
             {chessRef.current && (
               <MovesHistory
@@ -312,6 +314,9 @@ const Play: NextPage = () => {
             chessAbandonFunc={() => chessRef.current?.abandon(opponentsColor)}
           ></DrawResignPanel>
 
+          {sessionData?.user && (
+            <UserBanner user={sessionData.user}></UserBanner>
+          )}
           <Timer
             channel={channelRef.current}
             color={gameState.color}

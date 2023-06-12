@@ -56,7 +56,7 @@ const Timer: React.FC<{
   return (
     <div
       className={
-        "text-os w-full  bg-neutral-800 p-4 font-timer text-6xl " +
+        "text-os flex h-32 w-full items-center bg-neutral-800 px-5 font-timer text-5xl " +
         (seconds <= 10 ? "text-red-900" : "text-white")
       }
     >
