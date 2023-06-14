@@ -4,17 +4,20 @@ import Image from "next/image";
 import { type User } from "next-auth";
 import { api } from "~/utils/api";
 import { calculateRatingDiff } from "~/utils/elo";
-import { useMemo, useState } from "react";
+import { type HTMLAttributes, useMemo, useState } from "react";
 import QueueDisplay from "./queue";
 import { useRouter } from "next/router";
+import { twMerge } from "tailwind-merge";
 
-const GameSummary: React.FC<{
-  gameResult: GameResult;
-  color: PlayerColor;
-  user: User;
-  queueUpTimeControl: number;
-  rating: number;
-}> = ({ gameResult, color, user, queueUpTimeControl, rating }) => {
+const GameSummary: React.FC<
+  {
+    gameResult: GameResult;
+    color: PlayerColor;
+    user: User;
+    queueUpTimeControl: number;
+    rating: number;
+  } & HTMLAttributes<HTMLDivElement>
+> = ({ className, gameResult, color, user, queueUpTimeControl, rating }) => {
   const { data: sessionData } = useSession();
 
   const [isInQueue, setIsInQueue] = useState<boolean>(false);
@@ -51,7 +54,12 @@ const GameSummary: React.FC<{
   }, [gameResult, color]);
 
   return (
-    <div className="flex h-[40rem] w-[40rem] flex-col items-center justify-center gap-3 rounded-xl bg-neutral-700 p-10 font-os text-white">
+    <div
+      className={twMerge(
+        "flex flex-col items-center justify-center gap-3 rounded-xl bg-neutral-700 p-10 font-os text-white",
+        className
+      )}
+    >
       {!isInQueue || !queueUpMutation.data ? (
         <>
           <div
@@ -102,6 +110,7 @@ const GameSummary: React.FC<{
         </>
       ) : (
         <QueueDisplay
+          className="h-96 w-72"
           gameId={queueUpMutation.data.uuid}
           setIsInQueue={setIsInQueue}
         ></QueueDisplay>

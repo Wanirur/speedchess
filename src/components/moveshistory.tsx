@@ -1,15 +1,23 @@
-import { type Dispatch, type SetStateAction } from "react";
+import { type HTMLAttributes, type Dispatch, type SetStateAction } from "react";
+import { twMerge } from "tailwind-merge";
 import type Chess from "~/utils/chess";
 
-const MovesHistory: React.FC<{
-  chess: Chess;
-  index: number;
-  setIndex: Dispatch<SetStateAction<number>>;
-}> = ({ chess, index: indexToSelect, setIndex }) => {
+const MovesHistory: React.FC<
+  {
+    chess: Chess;
+    index: number;
+    setIndex: Dispatch<SetStateAction<number>>;
+  } & HTMLAttributes<HTMLDivElement>
+> = ({ className, chess, index: indexToSelect, setIndex }) => {
   const moves = chess.algebraic;
 
   return (
-    <div className="font-white flex h-full w-full flex-wrap content-start gap-y-1 gap-x-1 p-3 font-os text-sm">
+    <div
+      className={twMerge(
+        "font-white flex flex-wrap content-start gap-1 p-3 font-os text-sm",
+        className
+      )}
+    >
       {moves.map((move, index) => {
         const stringifiedMove = move.toString();
         let result;

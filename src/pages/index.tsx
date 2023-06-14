@@ -6,7 +6,8 @@ import { useRouter } from "next/router";
 import QueueDisplay from "~/components/queue";
 import { type TimeControl } from "~/utils/pieces";
 import { HelpCircle } from "lucide-react";
-import { useState } from "react";
+import { HTMLAttributes, useState } from "react";
+import { twMerge } from "tailwind-merge";
 
 const Home: NextPage = () => {
   const { data: sessionData } = useSession();
@@ -34,12 +35,19 @@ const Home: NextPage = () => {
   );
 };
 
-const QueueUpCard: React.FC<{
-  timeControl: TimeControl;
-  onClick: () => void;
-}> = ({ timeControl, onClick }) => {
+const QueueUpCard: React.FC<
+  {
+    timeControl: TimeControl;
+    onClick: () => void;
+  } & HTMLAttributes<HTMLDivElement>
+> = ({ className, timeControl, onClick }) => {
   return (
-    <div className="flex h-48 w-64 flex-col items-center justify-center gap-5 bg-neutral-700 font-os text-white">
+    <div
+      className={twMerge(
+        "flex flex-col items-center justify-center gap-5 bg-neutral-700 font-os text-white",
+        className
+      )}
+    >
       <div className="flex items-center justify-center">
         <span className="text-6xl">
           {`${timeControl.startingTime} | ${timeControl.increment}`}
@@ -99,22 +107,25 @@ const UserLoggedInView: React.FC = () => {
 
       {queueUpMutation?.data && isInQueue ? (
         <QueueDisplay
+          className="h-96 w-72"
           gameId={queueUpMutation.data.uuid}
           setIsInQueue={setIsInQueue}
         ></QueueDisplay>
       ) : (
         <div className="flex h-96 w-[48rem] flex-col gap-3">
           <div className="flex h-1/2 w-full items-center justify-center gap-3">
-            {" "}
             <QueueUpCard
+              className="h-48 w-64"
               timeControl={{ startingTime: 1, increment: 0 }}
               onClick={() => queueUpMutation.mutate({ timeControl: 60 })}
             ></QueueUpCard>
             <QueueUpCard
+              className="h-48 w-64"
               timeControl={{ startingTime: 1, increment: 1 }}
               onClick={() => queueUpMutation.mutate({ timeControl: 60 })}
             ></QueueUpCard>
             <QueueUpCard
+              className="h-48 w-64"
               timeControl={{ startingTime: 2, increment: 1 }}
               onClick={() => queueUpMutation.mutate({ timeControl: 120 })}
             ></QueueUpCard>
@@ -122,11 +133,13 @@ const UserLoggedInView: React.FC = () => {
 
           <div className="flex h-1/2 w-full items-center justify-center gap-3">
             <QueueUpCard
+              className="h-48 w-64"
               timeControl={{ startingTime: 3, increment: 0 }}
               onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
             ></QueueUpCard>
 
             <QueueUpCard
+              className="h-48 w-64"
               timeControl={{ startingTime: 3, increment: 2 }}
               onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
             ></QueueUpCard>

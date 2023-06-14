@@ -241,6 +241,7 @@ const Play: NextPage = () => {
         sessionData?.user.rating &&
         opponentsData && (
           <GameSummary
+            className={"h-[40rem] w-[40rem]"}
             user={opponentsData}
             gameResult={chessRef.current.gameResult}
             color={gameState.color}
@@ -262,6 +263,7 @@ const Play: NextPage = () => {
         chessRef.current &&
         subscribed && (
           <Chessboard
+            className="h-[40rem] w-[40rem]"
             uuid={uuid as string}
             color={gameState.color}
             isYourTurn={gameState.turn === gameState.color}
@@ -281,6 +283,7 @@ const Play: NextPage = () => {
       {isSuccess && channelRef.current && (
         <div className="flex h-[640px] w-max flex-col justify-center px-4">
           <Timer
+            className="h-32 w-full"
             channel={channelRef.current}
             color={opponentsColor}
             initial={
@@ -306,6 +309,7 @@ const Play: NextPage = () => {
           </div>
 
           <DrawResignPanel
+            className="h-44 w-full max-w-xs"
             isDrawOffered={isDrawOffered}
             uuid={uuid as string}
             isUserDisconnected={isUserDisconnected}
@@ -318,6 +322,7 @@ const Play: NextPage = () => {
             <UserBanner user={sessionData.user}></UserBanner>
           )}
           <Timer
+            className="h-32 w-full"
             channel={channelRef.current}
             color={gameState.color}
             initial={

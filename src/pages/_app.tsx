@@ -15,7 +15,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
   const router = useRouter();
   return (
     <SessionProvider session={session}>
-      <Header></Header>
+      <Header className="h-14"></Header>
       <Component key={router.asPath} {...pageProps} />
     </SessionProvider>
   );

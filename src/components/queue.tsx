@@ -1,12 +1,21 @@
 import { Search } from "lucide-react";
 import { useRouter } from "next/router";
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useState,
+  HTMLAttributes,
+} from "react";
+import { twMerge } from "tailwind-merge";
 import pusherClient from "~/utils/pusherClient";
 
-const QueueDisplay: React.FC<{
-  gameId: string;
-  setIsInQueue: Dispatch<SetStateAction<boolean>>;
-}> = ({ gameId, setIsInQueue }) => {
+const QueueDisplay: React.FC<
+  {
+    gameId: string;
+    setIsInQueue: Dispatch<SetStateAction<boolean>>;
+  } & HTMLAttributes<HTMLDivElement>
+> = ({ className, gameId, setIsInQueue }) => {
   const router = useRouter();
 
   const [isQueueLong, setIsQueueLong] = useState<boolean>(false);
@@ -35,7 +44,12 @@ const QueueDisplay: React.FC<{
   }, []);
 
   return (
-    <div className="flex h-96 w-72 flex-col items-center justify-center gap-4 bg-neutral-700  p-5 font-os text-white">
+    <div
+      className={twMerge(
+        "flex flex-col items-center justify-center gap-4 bg-neutral-700  p-5 font-os text-white",
+        className
+      )}
+    >
       <div className="flex w-full items-center justify-center">
         <Search className="m-2 h-8 w-8 animate-pulse "></Search>
         Looking for opponent...
