@@ -69,7 +69,7 @@ const Profile: NextPage = () => {
           {userData?.name}{" "}
         </h1>
       </div>
-      <div className="m-10 flex gap-24">
+      <div className="m-10 flex flex-col gap-12 md:flex-row md:gap-24">
         <div className="h-34 w-42 flex-col items-end justify-center text-center font-os text-xl text-white">
           {"Rating:"}
           <div className="m-auto mt-1 w-fit bg-green-700 px-8 py-4">
@@ -90,8 +90,8 @@ const Profile: NextPage = () => {
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-1 px-5 py-3">
-        <div className="flex h-12 w-[52rem] items-center justify-start bg-neutral-800 font-os text-white">
+      <div className="mb-20 flex flex-col gap-1 px-5 py-3 3xl:gap-1.5">
+        <div className="flex h-12 w-[52rem] max-w-lg items-center justify-start bg-neutral-800 font-os text-sm text-white md:max-w-full md:text-base 3xl:h-20 3xl:w-[76rem] 3xl:text-xl">
           <span className="w-1/4 text-center"> {"Date:"} </span>
           <span className="w-[15%] text-center"> {"Result:"} </span>
           <span className="w-[15%] text-center"> {"Time control:"} </span>
@@ -144,9 +144,9 @@ const Profile: NextPage = () => {
                 return (
                   <div
                     key={game.id}
-                    className="flex h-28 w-[52rem] items-center justify-center bg-neutral-800 font-os text-white"
+                    className="flex h-28 w-[52rem] max-w-lg items-center justify-center bg-neutral-800 font-os text-sm text-white md:max-w-full md:text-base 3xl:h-36 3xl:w-[76rem] 3xl:text-xl"
                   >
-                    <span className="w-1/4 text-center">
+                    <span className="w-1/4 p-1 text-center">
                       {game.finishedAt?.toLocaleString()}
                     </span>
                     <span className="w-[15%] text-center"> {result} </span>
@@ -167,7 +167,7 @@ const Profile: NextPage = () => {
                       </div>
                     </div>
                     <div className="flex w-1/5 items-center justify-center">
-                      <button className="h-12 w-24 rounded-md bg-green-700 hover:bg-green-800">
+                      <button className="rounded-md bg-green-700 p-2 hover:bg-green-800 md:px-4 md:py-3">
                         Analyze
                       </button>
                     </div>
