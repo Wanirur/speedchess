@@ -75,25 +75,25 @@ const DrawResignPanel: React.FC<
             Your opponent offered a draw. Do you accept?{" "}
           </p>
           <button
-            className="rounded-md bg-green-600"
+            className="rounded-md bg-green-700 hover:bg-green-800"
             onClick={() => drawOfferMutation.mutate({ uuid: uuid })}
           >
             {" "}
-            <Check className="fill-white"></Check>
+            <Check className="stroke-white"></Check>
           </button>{" "}
           <button
             className="rounded-md bg-red-600"
             onClick={() => drawRefuseMutation.mutate({ uuid: uuid })}
           >
             {" "}
-            <X className="fill-white"></X>
+            <X className="stroke-white"></X>
           </button>{" "}
         </>
       )}
       {!isUserDisconnected && !isEnemyDisconnected && !isDrawOffered && (
         <>
           <button
-            className="rounded-md bg-yellow-600 px-5 py-3 font-os text-white"
+            className="rounded-md bg-yellow-600 px-5 py-3 font-os text-white hover:bg-yellow-700"
             onClick={() => {
               drawOfferMutation.mutate({ uuid: uuid });
             }}
@@ -102,7 +102,7 @@ const DrawResignPanel: React.FC<
             draw{" "}
           </button>
           <button
-            className="rounded-md bg-red-900 px-5 py-3 font-os text-white"
+            className="rounded-md bg-red-900 px-5 py-3 font-os text-white hover:bg-red-950"
             onClick={() => {
               resignMutation.mutate({ uuid: uuid });
             }}

@@ -58,7 +58,7 @@ const QueueUpCard: React.FC<
         </div>
       </div>
       <button
-        className="rounded-md bg-green-700 p-1 font-os text-sm text-white md:p-4 md:text-base 3xl:text-xl"
+        className="rounded-md bg-green-700 p-1 font-os text-sm text-white hover:bg-green-800 md:p-4 md:text-base 3xl:text-xl"
         onClick={onClick}
       >
         Play

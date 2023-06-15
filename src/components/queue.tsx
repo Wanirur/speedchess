@@ -66,14 +66,14 @@ const QueueDisplay: React.FC<
 
       <div className="flex flex-col gap-3">
         <button
-          className={`rounded-md bg-green-700 p-4 ${
+          className={`rounded-md bg-green-700 p-4 hover:bg-green-800 ${
             isQueueLong ? "animate-pulse" : ""
           }`}
         >
           play a bot
         </button>
         <button
-          className="rounded-md bg-red-900 p-4"
+          className="rounded-md bg-red-900 p-4 hover:bg-red-950"
           onClick={() => {
             setIsInQueue(false);
           }}

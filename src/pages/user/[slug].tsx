@@ -72,20 +72,20 @@ const Profile: NextPage = () => {
       <div className="m-10 flex gap-24">
         <div className="h-34 w-42 flex-col items-end justify-center text-center font-os text-xl text-white">
           {"Rating:"}
-          <div className="m-auto mt-1 w-fit bg-green-800 px-8 py-4">
+          <div className="m-auto mt-1 w-fit bg-green-700 px-8 py-4">
             {userData?.rating}
           </div>
         </div>
 
         <div className="h-34 w-42 flex-col items-end justify-center text-center font-os text-xl text-white">
           {"Games played:"}
-          <div className="m-auto mt-1 w-fit bg-green-800 px-8 py-4">
+          <div className="m-auto mt-1 w-fit bg-green-700 px-8 py-4">
             {userData?.gamesPlayed}
           </div>
         </div>
         <div className="h-34 w-42 flex-col items-end justify-center text-center font-os text-xl text-white">
           {"Account created at:"}
-          <div className="m-auto mt-1 w-fit bg-green-800 px-8 py-4">
+          <div className="m-auto mt-1 w-fit bg-green-700 px-8 py-4">
             {userData?.createdAt?.toLocaleDateString()}
           </div>
         </div>
@@ -167,7 +167,7 @@ const Profile: NextPage = () => {
                       </div>
                     </div>
                     <div className="flex w-1/5 items-center justify-center">
-                      <button className="h-12 w-24 rounded-md bg-green-800">
+                      <button className="h-12 w-24 rounded-md bg-green-700 hover:bg-green-800">
                         Analyze
                       </button>
                     </div>
