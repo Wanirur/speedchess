@@ -11,12 +11,10 @@ const UserBanner: React.FC<
 > = ({ user, className }) => {
   return (
     <div
-      className={
-        (twMerge(
-          "flex h-16 w-full items-center bg-neutral-800 px-5 py-1 font-os font-light text-white"
-        ),
-        className)
-      }
+      className={twMerge(
+        "flex h-16 w-full items-center bg-neutral-800 px-5 py-1 font-os font-light text-white",
+        className
+      )}
     >
       <div className="group flex w-1/2 items-center gap-3">
         <Link href={`/user/${user.id}`} target="_blank">

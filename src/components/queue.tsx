@@ -5,7 +5,7 @@ import {
   type SetStateAction,
   useEffect,
   useState,
-  HTMLAttributes,
+  type HTMLAttributes,
 } from "react";
 import { twMerge } from "tailwind-merge";
 import pusherClient from "~/utils/pusherClient";
@@ -64,21 +64,23 @@ const QueueDisplay: React.FC<
         )}
       </div>
 
-      <button
-        className={`h-12 w-24 rounded-md bg-green-700 ${
-          isQueueLong ? "animate-pulse" : ""
-        }`}
-      >
-        play a bot
-      </button>
-      <button
-        className="h-12 w-24 rounded-md bg-red-900"
-        onClick={() => {
-          setIsInQueue(false);
-        }}
-      >
-        cancel
-      </button>
+      <div className="flex flex-col gap-3">
+        <button
+          className={`rounded-md bg-green-700 p-4 ${
+            isQueueLong ? "animate-pulse" : ""
+          }`}
+        >
+          play a bot
+        </button>
+        <button
+          className="rounded-md bg-red-900 p-4"
+          onClick={() => {
+            setIsInQueue(false);
+          }}
+        >
+          cancel
+        </button>
+      </div>
     </div>
   );
 };

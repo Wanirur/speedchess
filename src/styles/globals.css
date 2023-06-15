@@ -1,4 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+:root, html, body {
+    scrollbar-color: gray transparent;
+    scrollbar-width: thin;
+    @apply bg-neutral-900 w-screen [overflow-y:overlay] overflow-x-hidden min-h-screen
+}
+
+#__next { 
+    @apply min-h-screen
+}
+
+
 @import url('https://fonts.googleapis.com/css2?family=Francois+One&family=Open+Sans:wght@300&family=Share+Tech+Mono&display=swap');
