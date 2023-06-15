@@ -61,7 +61,9 @@ const Chessboard: React.FC<
   const rowOrderStyle = color === "WHITE" ? "flex-row" : "flex-row-reverse";
 
   return (
-    <div className={twMerge("flex gap-0", colOrderStyle, className)}>
+    <div
+      className={twMerge("flex h-full w-full gap-0", colOrderStyle, className)}
+    >
       {board.map((row, row_index) => (
         <div
           key={-row_index}

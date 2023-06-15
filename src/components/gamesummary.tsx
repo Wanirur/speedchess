@@ -56,16 +56,16 @@ const GameSummary: React.FC<
   return (
     <div
       className={twMerge(
-        "flex flex-col items-center justify-center gap-3 rounded-xl bg-neutral-700 p-10 font-os text-white",
+        "flex h-full w-full flex-col items-center justify-center gap-1 rounded-xl bg-neutral-700 p-10 font-os text-white md:gap-3",
         className
       )}
     >
       {!isInQueue || !queueUpMutation.data ? (
         <>
           <div
-            className={`flex ${
+            className={`flex items-center justify-center gap-6 p-2 md:gap-10 md:p-6 ${
               color === "WHITE" ? "flex-row" : "flex-row-reverse"
-            } items-center justify-center gap-10 p-6`}
+            }`}
           >
             {sessionData?.user?.image && (
               <Image
@@ -85,14 +85,13 @@ const GameSummary: React.FC<
               ></Image>
             )}
           </div>
-          <h1 className=" text-5xl font-semibold"> {msg} </h1>
+          <h1 className="text-4xl font-semibold md:text-5xl"> {msg} </h1>
 
-          <div className="flex flex-col items-center justify-center pb-6">
-            <h3 className="text-2xl"> New rating: </h3>
-            <h2 className="text-3xl font-semibold">
+          <div className="flex flex-col items-center justify-center pb-3 md:pb-6">
+            <h3 className="text-xl md:text-2xl"> New rating: </h3>
+            <h2 className="text-2xl font-semibold md:text-3xl">
               {rating + ratingDiff}
               <span className="text-green-500 opacity-50">
-                {" "}
                 {ratingDiff >= 0 && "+"}
                 {ratingDiff}
               </span>
@@ -100,7 +99,7 @@ const GameSummary: React.FC<
           </div>
 
           <button
-            className="h-12 w-40 rounded-xl bg-green-700"
+            className="h-12 w-40 rounded-xl bg-green-700 p-1 hover:bg-green-800"
             onClick={() => {
               queueUpMutation.mutate({ timeControl: queueUpTimeControl });
             }}
@@ -110,7 +109,7 @@ const GameSummary: React.FC<
         </>
       ) : (
         <QueueDisplay
-          className="h-96 w-72"
+          className="h-52 w-72 text-sm md:h-96 md:w-72"
           gameId={queueUpMutation.data.uuid}
           setIsInQueue={setIsInQueue}
         ></QueueDisplay>

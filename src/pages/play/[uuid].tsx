@@ -24,7 +24,6 @@ const Play: NextPage = () => {
   const { uuid } = router.query;
 
   const { data: sessionData } = useSession();
-  const [gameFinished, setGameFinished] = useState<boolean>(false);
   const channelRef = useRef<Channel>();
   const chessRef = useRef<Chess>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
@@ -32,16 +31,14 @@ const Play: NextPage = () => {
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
+  const [showSummary, setShowSummary] = useState<boolean>(true);
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const utils = api.useContext();
 
-  const isDisplayedBoardLatest =
-    indexOfBoardToDisplay === (chessRef.current?.algebraic?.length ?? 1) - 1;
-
   const {
-    isSuccess,
-    isLoading,
-    isError,
+    isSuccess: isSuccessGameState,
+    isLoading: isLoadingGameState,
+    isError: isErrorGameState,
     data: gameState,
   } = api.chess.getGameState.useQuery(
     { uuid: uuid as string },
@@ -72,8 +69,10 @@ const Play: NextPage = () => {
 
                 if (old.turn === old.color) {
                   if (chessRef.current.gameResult) {
+                    setShowSummary(false);
+
                     setTimeout(() => {
-                      setGameFinished(true);
+                      setShowSummary(true);
                     }, 1000);
                   }
                   let nextTurn = old.turn;
@@ -92,8 +91,10 @@ const Play: NextPage = () => {
                 );
 
                 if (chessRef.current.gameResult) {
+                  setShowSummary(false);
+
                   setTimeout(() => {
-                    setGameFinished(true);
+                    setShowSummary(true);
                   }, 1000);
                 }
 
@@ -134,8 +135,10 @@ const Play: NextPage = () => {
 
                 if (old.turn === old.color) {
                   if (chessRef.current.gameResult) {
+                    setShowSummary(false);
+
                     setTimeout(() => {
-                      setGameFinished(true);
+                      setShowSummary(true);
                     }, 1000);
                   }
                   return {
@@ -148,8 +151,10 @@ const Play: NextPage = () => {
                   chessRef.current.promote(promotion.promotedTo, old.turn)
                 );
                 if (chessRef.current.gameResult) {
+                  setShowSummary(false);
+
                   setTimeout(() => {
-                    setGameFinished(true);
+                    setShowSummary(true);
                   }, 1000);
                 }
                 return {
@@ -172,16 +177,20 @@ const Play: NextPage = () => {
     }
   );
 
-  const { isError: isErrorOpponentsData, data: opponentsData } =
-    api.chess.getOpponentsData.useQuery(
-      { uuid: uuid as string },
-      {
-        enabled: !!uuid,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-      }
-    );
+  const {
+    isSuccess: isSuccessOpponentsData,
+    isError: isErrorOpponentsData,
+    isLoading: isLoadingOpponentsData,
+    data: opponentsData,
+  } = api.chess.getOpponentsData.useQuery(
+    { uuid: uuid as string },
+    {
+      enabled: !!uuid,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    }
+  );
 
   useEffect(() => {
     if (!router.isReady) {
@@ -191,13 +200,11 @@ const Play: NextPage = () => {
     channelRef.current = pusherClient.subscribe(uuid as string);
     channelRef.current.bind("resign", (data: { color: string }) => {
       chessRef.current?.resign(data.color as PlayerColor);
-      setGameFinished(true);
       setIsDrawOffered(false);
     });
 
     channelRef.current.bind("draw", () => {
       chessRef.current?.drawAgreement();
-      setGameFinished(true);
       setIsDrawOffered(false);
     });
 
@@ -230,60 +237,66 @@ const Play: NextPage = () => {
     setSubscribed(true);
   }, [router.isReady, uuid]);
 
-  const opponentsColor =
-    isSuccess && gameState.color === "WHITE" ? "BLACK" : "WHITE";
+  if (isErrorGameState || !channelRef?.current || isErrorOpponentsData) {
+    return (
+      <div className="text-red-600"> An error occured. Please refresh. </div>
+    );
+  }
+
+  if (
+    isLoadingGameState ||
+    isLoadingOpponentsData ||
+    !subscribed ||
+    !chessRef.current ||
+    !sessionData?.user ||
+    !(isSuccessGameState && isSuccessOpponentsData)
+  ) {
+    return <div className="text-white"> Loading... </div>;
+  }
+
+  const gameSummaryRating =
+    gameState.color === "WHITE" ? gameState.ratingWhite : gameState.ratingBlack;
+
+  const opponentsColor = gameState.color === "WHITE" ? "BLACK" : "WHITE";
+
+  const isDisplayedBoardLatest =
+    indexOfBoardToDisplay === (chessRef.current?.algebraic?.length ?? 1) - 1;
+
+  const latestBoardFEN = chessRef.current.history[indexOfBoardToDisplay];
+  const boardToDisplay =
+    !isDisplayedBoardLatest && latestBoardFEN
+      ? latestBoardFEN.buildBoard()
+      : gameState.board;
 
   return (
-    <main className="container flex min-h-[calc(100vh-3.5rem)] flex-row items-center justify-center bg-neutral-900">
-      {isSuccess &&
-        gameFinished &&
-        chessRef.current?.gameResult &&
-        sessionData?.user.rating &&
-        opponentsData && (
-          <GameSummary
-            className={"h-[40rem] w-[40rem]"}
-            user={opponentsData}
-            gameResult={chessRef.current.gameResult}
-            color={gameState.color}
-            queueUpTimeControl={180}
-            rating={
-              gameState.color === "WHITE"
-                ? gameState.ratingWhite
-                : gameState.ratingBlack
-            }
-          ></GameSummary>
-        )}
-      {isLoading && <div className="text-white"> Loading... </div>}
-      {(isError || !channelRef || isErrorOpponentsData) && (
-        <div className="text-red-600"> An error occured. Please refresh. </div>
-      )}
-      {isSuccess &&
-        !gameFinished &&
-        channelRef.current &&
-        chessRef.current &&
-        subscribed && (
-          <Chessboard
-            className="h-[40rem] w-[40rem]"
-            uuid={uuid as string}
-            color={gameState.color}
-            isYourTurn={gameState.turn === gameState.color}
-            chess={chessRef.current}
-            board={
-              isDisplayedBoardLatest
-                ? gameState.board
-                : chessRef.current.history[
-                    indexOfBoardToDisplay
-                  ]?.buildBoard() ?? gameState.board
-            }
-            locked={!isDisplayedBoardLatest}
-            unlockFunction={setIndexOfBoardToDisplay}
-            mutate
-          ></Chessboard>
-        )}
-      {isSuccess && channelRef.current && (
-        <div className="flex h-[640px] w-max flex-col justify-center px-4">
+    <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
+      <div className="relative flex h-[33rem] flex-col items-center justify-center bg-neutral-900 md:h-[40rem] md:w-[60rem] md:flex-row 3xl:h-[60rem] 3xl:w-[90rem]">
+        <div className="z-10 h-80 w-80  md:h-[40rem] md:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
+          {showSummary && chessRef.current.gameResult ? (
+            <GameSummary
+              user={opponentsData}
+              gameResult={chessRef.current.gameResult}
+              color={gameState.color}
+              queueUpTimeControl={180}
+              rating={gameSummaryRating}
+            ></GameSummary>
+          ) : (
+            <Chessboard
+              uuid={uuid as string}
+              color={gameState.color}
+              isYourTurn={gameState.turn === gameState.color}
+              chess={chessRef.current}
+              board={boardToDisplay}
+              locked={!isDisplayedBoardLatest}
+              unlockFunction={setIndexOfBoardToDisplay}
+              mutate
+            ></Chessboard>
+          )}
+        </div>
+
+        <div className="absolute flex h-full w-full min-w-[15rem] max-w-xs  flex-col justify-center md:static md:m-0 md:w-1/3 md:max-w-md md:px-4 3xl:max-w-xl">
           <Timer
-            className="h-32 w-full"
+            className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             channel={channelRef.current}
             color={opponentsColor}
             initial={
@@ -291,38 +304,43 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === gameState.color || gameFinished}
-            setIsGameFinished={setGameFinished}
+            isLocked={
+              gameState.turn === gameState.color ||
+              !!chessRef.current.gameResult
+            }
             chessTimeoutFunc={(color: PlayerColor) =>
               chessRef.current?.timeExpired(color)
             }
           ></Timer>
-          {opponentsData && <UserBanner user={opponentsData}></UserBanner>}
-          <div className="h-full w-80 bg-neutral-700 font-os text-white">
-            {chessRef.current && (
-              <MovesHistory
-                chess={chessRef.current}
-                index={indexOfBoardToDisplay}
-                setIndex={setIndexOfBoardToDisplay}
-              ></MovesHistory>
-            )}
-          </div>
+
+          <UserBanner
+            className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
+            user={opponentsData}
+          ></UserBanner>
+
+          <MovesHistory
+            className="h-80 w-full md:h-full"
+            chess={chessRef.current}
+            index={indexOfBoardToDisplay}
+            setIndex={setIndexOfBoardToDisplay}
+          ></MovesHistory>
 
           <DrawResignPanel
-            className="h-44 w-full max-w-xs"
+            className="absolute bottom-0 right-0 z-10 flex w-1/2 min-w-min items-center justify-center text-xs md:static md:h-44 md:w-full md:text-base"
             isDrawOffered={isDrawOffered}
             uuid={uuid as string}
             isUserDisconnected={isUserDisconnected}
             isEnemyDisconnected={isEnemyDisconnected}
-            setGameFinished={setGameFinished}
             chessAbandonFunc={() => chessRef.current?.abandon(opponentsColor)}
           ></DrawResignPanel>
 
-          {sessionData?.user && (
-            <UserBanner user={sessionData.user}></UserBanner>
-          )}
+          <UserBanner
+            className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
+            user={sessionData.user}
+          ></UserBanner>
+
           <Timer
-            className="h-32 w-full"
+            className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             channel={channelRef.current}
             color={gameState.color}
             initial={
@@ -330,14 +348,15 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === opponentsColor || gameFinished}
-            setIsGameFinished={setGameFinished}
+            isLocked={
+              gameState.turn === opponentsColor || !!chessRef.current.gameResult
+            }
             chessTimeoutFunc={(color: PlayerColor) =>
               chessRef.current?.timeExpired(color)
             }
           ></Timer>
         </div>
-      )}
+      </div>
     </main>
   );
 };

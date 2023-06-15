@@ -1,11 +1,5 @@
 import type { Channel } from "pusher-js";
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useState,
-  HTMLAttributes,
-} from "react";
+import { useEffect, useState, type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 import { type Coords } from "~/utils/coords";
 import type { PlayerColor } from "~/utils/pieces";
@@ -16,23 +10,13 @@ const Timer: React.FC<
     color: PlayerColor;
     initial: number;
     isLocked: boolean;
-    setIsGameFinished: Dispatch<SetStateAction<boolean>>;
     chessTimeoutFunc: (color: PlayerColor) => void;
   } & HTMLAttributes<HTMLDivElement>
-> = ({
-  className,
-  channel,
-  color,
-  initial,
-  isLocked,
-  setIsGameFinished,
-  chessTimeoutFunc,
-}) => {
+> = ({ className, channel, color, initial, isLocked, chessTimeoutFunc }) => {
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
     if (seconds <= 0) {
-      setIsGameFinished(true);
       chessTimeoutFunc(color);
       return;
     }
@@ -45,7 +29,7 @@ const Timer: React.FC<
     return () => {
       clearInterval(interval);
     };
-  }, [seconds, isLocked, setIsGameFinished, chessTimeoutFunc, color]);
+  }, [seconds, isLocked, chessTimeoutFunc, color]);
 
   useEffect(() => {
     const onMove = (move: {

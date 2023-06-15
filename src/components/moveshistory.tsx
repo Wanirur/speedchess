@@ -14,7 +14,7 @@ const MovesHistory: React.FC<
   return (
     <div
       className={twMerge(
-        "font-white flex flex-wrap content-start gap-1 p-3 font-os text-sm",
+        "font-white flex flex-wrap content-start gap-1 bg-neutral-700 p-3 font-os  text-sm text-white",
         className
       )}
     >
