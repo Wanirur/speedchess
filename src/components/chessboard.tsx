@@ -32,7 +32,7 @@ const Chessboard: React.FC<
     chess: Chess;
     board: Board;
     locked: boolean;
-    unlockFunction: Dispatch<SetStateAction<number>>;
+    unlockFunction?: Dispatch<SetStateAction<number>>;
     mutate?: boolean;
   } & HTMLAttributes<HTMLDivElement>
 > = ({
@@ -110,7 +110,7 @@ const Chessboard: React.FC<
                 }}
                 onDrag={(e) => {
                   if (locked) {
-                    unlockFunction(chess.algebraic.length - 1);
+                    unlockFunction?.(chess.algebraic.length - 1);
                     return;
                   }
                   if (!isYourTurn) {
@@ -133,7 +133,7 @@ const Chessboard: React.FC<
                 }}
                 onDrop={() => {
                   if (locked) {
-                    unlockFunction(chess.algebraic.length - 1);
+                    unlockFunction?.(chess.algebraic.length - 1);
                     return;
                   }
                   if (draggedPiece === null) {
@@ -177,11 +177,11 @@ const Chessboard: React.FC<
                       },
                     });
                   }
-                  unlockFunction(chess.algebraic.length - 1);
+                  unlockFunction?.(chess.algebraic.length - 1);
                 }}
                 onClick={(e) => {
                   if (locked) {
-                    unlockFunction(chess.algebraic.length - 1);
+                    unlockFunction?.(chess.algebraic.length - 1);
                     return;
                   }
 
@@ -246,7 +246,7 @@ const Chessboard: React.FC<
                         },
                       });
                     }
-                    unlockFunction(chess.algebraic.length - 1);
+                    unlockFunction?.(chess.algebraic.length - 1);
 
                     return;
                   }
