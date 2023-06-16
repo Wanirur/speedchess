@@ -98,11 +98,11 @@ enum Winner {
 }
 
 enum TimeControl {
-    BULLET
-    BULLET_INCREMENT
-    LONG_BULLET_INCREMENT
-    BLITZ
-    BLITZ_INCREMENT
+    BULLET //1min
+    BULLET_INCREMENT //1min+1sec
+    LONG_BULLET_INCREMENT //2min+1sec
+    BLITZ //3min
+    BLITZ_INCREMENT //3min+2sec
 }
 
 model Game {

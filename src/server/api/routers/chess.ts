@@ -120,6 +120,8 @@ export const chessgameRouter = createTRPCRouter({
         board: match.chess.board,
         whiteMilisLeft: whiteTime,
         blackMilisLeft: blackTime,
+        ratingWhite: match.white.rating,
+        ratingBlack: match.black.rating,
         color: (user.id === match.white.id ? "WHITE" : "BLACK") as PlayerColor,
         turn: (match.turn === match.white ? "WHITE" : "BLACK") as PlayerColor,
       };

@@ -20,7 +20,6 @@
     "@trpc/react-query": "^10.29.0",
     "@trpc/server": "^10.29.0",
     "class-variance-authority": "^0.4.0",
-    "clsx": "^1.2.1",
     "isomorphic-ws": "^5.0.0",
     "lucide-react": "^0.126.0",
     "next": "^13.2.1",

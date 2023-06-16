@@ -1,20 +1,22 @@
 import { Check, X } from "lucide-react";
-import { type Dispatch, type SetStateAction, useEffect, useRef } from "react";
+import { useEffect, useRef, type HTMLAttributes } from "react";
+import { twMerge } from "tailwind-merge";
 import { api } from "~/utils/api";
 
-const DrawResignPanel: React.FC<{
-  uuid: string;
-  isDrawOffered: boolean;
-  isUserDisconnected: boolean;
-  isEnemyDisconnected: boolean;
-  setGameFinished: Dispatch<SetStateAction<boolean>>;
-  chessAbandonFunc: () => void;
-}> = ({
+const DrawResignPanel: React.FC<
+  {
+    uuid: string;
+    isDrawOffered: boolean;
+    isUserDisconnected: boolean;
+    isEnemyDisconnected: boolean;
+    chessAbandonFunc: () => void;
+  } & HTMLAttributes<HTMLDivElement>
+> = ({
+  className,
   isDrawOffered,
   uuid,
   isUserDisconnected,
   isEnemyDisconnected,
-  setGameFinished,
   chessAbandonFunc,
 }) => {
   const resignMutation = api.chess.resign.useMutation();
@@ -34,51 +36,52 @@ const DrawResignPanel: React.FC<{
     }
 
     enemyTimeoutRef.current = window.setTimeout(() => {
-      setGameFinished(true);
       chessAbandonFunc();
     }, 10000);
-  }, [isEnemyDisconnected, setGameFinished, chessAbandonFunc]);
+  }, [isEnemyDisconnected, chessAbandonFunc]);
 
   return (
-    <div className="flex w-80 flex-row items-center justify-center gap-2 p-8">
+    <div
+      className={twMerge(
+        "flex flex-row items-center justify-center gap-2 px-1.5 py-2 md:p-3",
+        className
+      )}
+    >
       {isUserDisconnected && (
-        <p className="max-w-full font-os text-white">
+        <p className="font-os text-white">
           {" "}
           You disconnected. Trying to restore connection...{" "}
         </p>
       )}
 
       {isEnemyDisconnected && (
-        <p className="max-w-full font-os text-white">
-          {" "}
+        <p className="font-os text-white">
           Your opponent disconnected. In 10s you may annouce win.{" "}
         </p>
       )}
       {!isUserDisconnected && !isEnemyDisconnected && isDrawOffered && (
         <>
-          <p className="max-w-full font-os text-white">
+          <p className="font-os text-white">
             Your opponent offered a draw. Do you accept?{" "}
           </p>
           <button
-            className="rounded-md bg-green-600"
+            className="rounded-md bg-green-700 hover:bg-green-800"
             onClick={() => drawOfferMutation.mutate({ uuid: uuid })}
           >
-            {" "}
-            <Check className="fill-white"></Check>
-          </button>{" "}
+            <Check className="stroke-white"></Check>
+          </button>
           <button
-            className="rounded-md bg-red-600"
+            className="rounded-md bg-red-600 hover:bg-red-700"
             onClick={() => drawRefuseMutation.mutate({ uuid: uuid })}
           >
-            {" "}
-            <X className="fill-white"></X>
-          </button>{" "}
+            <X className="stroke-white"></X>
+          </button>
         </>
       )}
       {!isUserDisconnected && !isEnemyDisconnected && !isDrawOffered && (
         <>
           <button
-            className="rounded-md bg-yellow-600 px-5 py-3 font-os text-white"
+            className="rounded-md bg-yellow-600 px-4 py-2 font-os text-white hover:bg-yellow-700 md:px-5 md:py-3"
             onClick={() => {
               drawOfferMutation.mutate({ uuid: uuid });
             }}
@@ -87,7 +90,7 @@ const DrawResignPanel: React.FC<{
             draw{" "}
           </button>
           <button
-            className="rounded-md bg-red-900 px-5 py-3 font-os text-white"
+            className="rounded-md bg-red-900 px-4 py-2 font-os text-white hover:bg-red-950 md:px-5 md:py-3"
             onClick={() => {
               resignMutation.mutate({ uuid: uuid });
             }}

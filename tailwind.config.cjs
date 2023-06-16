@@ -1,15 +1,21 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { fontFamily } = require("tailwindcss/defaultTheme");
+const { fontFamily, screens } = require("tailwindcss/defaultTheme");
 
 /** @type {import('tailwindcss').Config} */
 const config = {
   darkMode: ["class", '[data-theme="dark"]'],
   content: ["./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
+    screens: {
+      xs: "320px",
+      ...screens,
+      "3xl": "2160px",
+    },
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
         os: ["Open Sans", "sans-serif"],
+        logo: ["Francois One", "sans-serif"],
         timer: ["Share Tech Mono", "monospace"],
       },
       keyframes: {

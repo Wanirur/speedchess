@@ -1,28 +1,22 @@
 import type { Channel } from "pusher-js";
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState, type HTMLAttributes } from "react";
+import { twMerge } from "tailwind-merge";
 import { type Coords } from "~/utils/coords";
 import type { PlayerColor } from "~/utils/pieces";
 
-const Timer: React.FC<{
-  channel: Channel;
-  color: PlayerColor;
-  initial: number;
-  isLocked: boolean;
-  setIsGameFinished: Dispatch<SetStateAction<boolean>>;
-  chessTimeoutFunc: (color: PlayerColor) => void;
-}> = ({
-  channel,
-  color,
-  initial,
-  isLocked,
-  setIsGameFinished,
-  chessTimeoutFunc,
-}) => {
+const Timer: React.FC<
+  {
+    channel: Channel;
+    color: PlayerColor;
+    initial: number;
+    isLocked: boolean;
+    chessTimeoutFunc: (color: PlayerColor) => void;
+  } & HTMLAttributes<HTMLDivElement>
+> = ({ className, channel, color, initial, isLocked, chessTimeoutFunc }) => {
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
     if (seconds <= 0) {
-      setIsGameFinished(true);
       chessTimeoutFunc(color);
       return;
     }
@@ -35,7 +29,7 @@ const Timer: React.FC<{
     return () => {
       clearInterval(interval);
     };
-  }, [seconds, isLocked, setIsGameFinished, chessTimeoutFunc, color]);
+  }, [seconds, isLocked, chessTimeoutFunc, color]);
 
   useEffect(() => {
     const onMove = (move: {
@@ -53,12 +47,16 @@ const Timer: React.FC<{
       channel.unbind("move_made", onMove);
     };
   }, [channel, isLocked]);
+
+  const textColor = seconds <= 10 ? "text-red-900" : "text-white";
+
   return (
     <div
-      className={
-        "text-os w-full  bg-neutral-800 p-4 font-timer text-6xl " +
-        (seconds <= 10 ? "text-red-900" : "text-white")
-      }
+      className={twMerge(
+        "text-os flex items-center bg-neutral-800 px-5 font-timer text-5xl",
+        textColor,
+        className
+      )}
     >
       {Math.floor(seconds / 60).toString() +
         ":" +
