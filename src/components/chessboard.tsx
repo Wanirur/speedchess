@@ -80,25 +80,31 @@ const Chessboard: React.FC<
               isWhite = !isWhite;
             }
 
-            let tileBgStyle = isWhite ? "bg-white " : "bg-green-500 ";
+            const tileBgStyle = isWhite ? "bg-white " : "bg-green-500 ";
+
+            let highlightStyle;
             if (
               highlightedTile &&
               highlightedTile.x === index &&
               highlightedTile.y === row_index
             ) {
-              tileBgStyle = "bg-red-500";
+              highlightStyle = "w-full h-full bg-black bg-opacity-25";
             } else if (
               possibleMoves?.find(
                 (tile) => tile.x === index && tile.y === row_index
               ) !== undefined
             ) {
-              tileBgStyle = "bg-green-100";
+              highlightStyle =
+                "w-1/2 h-1/2 bg-black bg-opacity-25 rounded-full m-auto";
             }
 
             return (
               <div
                 key={index * row_index + index}
-                className={twMerge("relative h-full w-[12.5%]", tileBgStyle)}
+                className={twMerge(
+                  "relative flex h-full w-[12.5%]",
+                  tileBgStyle
+                )}
                 onDragOver={(e) => {
                   e.preventDefault();
                 }}
@@ -192,7 +198,10 @@ const Chessboard: React.FC<
                     return;
                   }
                   //no highlighted piece and clicked tile is empty - dont highlight
-                  if (highlightedTile === null && tile === null) {
+                  if (
+                    highlightedTile === null &&
+                    (tile === null || tile.color !== color)
+                  ) {
                     return;
                   }
 
@@ -256,28 +265,31 @@ const Chessboard: React.FC<
                   ]);
                 }}
               >
-                {!(
-                  promotedPawn &&
-                  index === promotedPawn.x &&
-                  row_index === promotedPawn.y
-                ) ? (
-                  tile && (
-                    <Image
-                      src={resolvePieceToImage(tile)}
-                      alt={tile.pieceType}
-                      fill
-                      className="cursor-pointer"
-                    ></Image>
-                  )
-                ) : (
-                  <PromotionPieceList
-                    className="absolute z-10 h-[400%] w-full"
-                    color={color}
-                    uuid={uuid}
-                    chess={chess}
-                    setPromotedPawn={setPromotedPawn}
-                  ></PromotionPieceList>
-                )}
+                <>
+                  {highlightStyle && <div className={highlightStyle}></div>}
+                  {!(
+                    promotedPawn &&
+                    index === promotedPawn.x &&
+                    row_index === promotedPawn.y
+                  ) ? (
+                    tile && (
+                      <Image
+                        src={resolvePieceToImage(tile)}
+                        alt={tile.pieceType}
+                        fill
+                        className="cursor-pointer"
+                      ></Image>
+                    )
+                  ) : (
+                    <PromotionPieceList
+                      className="absolute z-10 h-[400%] w-full"
+                      color={color}
+                      uuid={uuid}
+                      chess={chess}
+                      setPromotedPawn={setPromotedPawn}
+                    ></PromotionPieceList>
+                  )}
+                </>
               </div>
             );
           })}

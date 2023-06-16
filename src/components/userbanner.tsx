@@ -16,11 +16,11 @@ const UserBanner: React.FC<
         className
       )}
     >
-      <div className="group flex w-1/2 items-center gap-3">
+      <div className="flex w-1/2 items-center gap-3">
+        {user.name}
         <Link href={`/user/${user.id}`} target="_blank">
-          {user.name}
+          <UserIcon className="h-5 w-5 fill-gray-600 stroke-gray-600 hover:fill-white hover:stroke-white"></UserIcon>
         </Link>
-        <UserIcon className="h-5 w-5 fill-gray-600 stroke-gray-600 group-hover:fill-white group-hover:stroke-white"></UserIcon>
       </div>
       <div className="w-1/2 text-right">{user.rating}</div>
     </div>

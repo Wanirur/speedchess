@@ -270,8 +270,8 @@ const Play: NextPage = () => {
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
-      <div className="relative flex h-[33rem] flex-col items-center justify-center bg-neutral-900 md:h-[40rem] md:w-[60rem] md:flex-row 3xl:h-[60rem] 3xl:w-[90rem]">
-        <div className="z-10 h-80 w-80  md:h-[40rem] md:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
+      <div className="relative flex h-[33rem] flex-col items-center justify-center bg-neutral-900 md:h-[30rem] md:w-[50rem] md:flex-row lg:h-[40rem] lg:w-[60rem] 3xl:h-[60rem] 3xl:w-[90rem]">
+        <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
           {showSummary && chessRef.current.gameResult ? (
             <GameSummary
               user={opponentsData}
@@ -319,7 +319,7 @@ const Play: NextPage = () => {
           ></UserBanner>
 
           <MovesHistory
-            className="h-80 w-full md:h-full"
+            className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
             chess={chessRef.current}
             index={indexOfBoardToDisplay}
             setIndex={setIndexOfBoardToDisplay}
