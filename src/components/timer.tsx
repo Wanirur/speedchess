@@ -1,5 +1,5 @@
 import type { Channel } from "pusher-js";
-import { useEffect, useState, type HTMLAttributes } from "react";
+import { useEffect, useState, type HTMLAttributes, useRef } from "react";
 import { twMerge } from "tailwind-merge";
 import { type Coords } from "~/utils/coords";
 import type { PlayerColor } from "~/utils/pieces";
@@ -16,20 +16,22 @@ const Timer: React.FC<
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
-    if (seconds <= 0) {
-      chessTimeoutFunc(color);
-      return;
-    }
-    const interval = setInterval(() => {
+    const timeout = setInterval(() => {
       if (!isLocked) {
-        setSeconds((x) => x - 1);
+        setSeconds((x) => (x === 0 ? 0 : x - 1));
       }
     }, 1000);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(timeout);
     };
-  }, [seconds, isLocked, chessTimeoutFunc, color]);
+  }, [isLocked]);
+
+  useEffect(() => {
+    if (seconds <= 0) {
+      chessTimeoutFunc(color);
+    }
+  }, [seconds, chessTimeoutFunc, color]);
 
   useEffect(() => {
     const onMove = (move: {

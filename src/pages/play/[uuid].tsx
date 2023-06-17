@@ -31,7 +31,7 @@ const Play: NextPage = () => {
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
-  const [showSummary, setShowSummary] = useState<boolean>(true);
+  const [isGameFinished, setIsGameFinished] = useState<boolean>(true);
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const utils = api.useContext();
 
@@ -69,10 +69,8 @@ const Play: NextPage = () => {
 
                 if (old.turn === old.color) {
                   if (chessRef.current.gameResult) {
-                    setShowSummary(false);
-
                     setTimeout(() => {
-                      setShowSummary(true);
+                      setIsGameFinished(true);
                     }, 1000);
                   }
                   let nextTurn = old.turn;
@@ -91,10 +89,8 @@ const Play: NextPage = () => {
                 );
 
                 if (chessRef.current.gameResult) {
-                  setShowSummary(false);
-
                   setTimeout(() => {
-                    setShowSummary(true);
+                    setIsGameFinished(true);
                   }, 1000);
                 }
 
@@ -135,10 +131,8 @@ const Play: NextPage = () => {
 
                 if (old.turn === old.color) {
                   if (chessRef.current.gameResult) {
-                    setShowSummary(false);
-
                     setTimeout(() => {
-                      setShowSummary(true);
+                      setIsGameFinished(true);
                     }, 1000);
                   }
                   return {
@@ -151,10 +145,8 @@ const Play: NextPage = () => {
                   chessRef.current.promote(promotion.promotedTo, old.turn)
                 );
                 if (chessRef.current.gameResult) {
-                  setShowSummary(false);
-
                   setTimeout(() => {
-                    setShowSummary(true);
+                    setIsGameFinished(true);
                   }, 1000);
                 }
                 return {
@@ -272,7 +264,7 @@ const Play: NextPage = () => {
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
       <div className="relative flex h-[33rem] flex-col items-center justify-center bg-neutral-900 md:h-[30rem] md:w-[50rem] md:flex-row lg:h-[40rem] lg:w-[60rem] 3xl:h-[60rem] 3xl:w-[90rem]">
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
-          {showSummary && chessRef.current.gameResult ? (
+          {isGameFinished && chessRef.current.gameResult ? (
             <GameSummary
               user={opponentsData}
               gameResult={chessRef.current.gameResult}
@@ -308,9 +300,10 @@ const Play: NextPage = () => {
               gameState.turn === gameState.color ||
               !!chessRef.current.gameResult
             }
-            chessTimeoutFunc={(color: PlayerColor) =>
-              chessRef.current?.timeExpired(color)
-            }
+            chessTimeoutFunc={(color: PlayerColor) => {
+              chessRef.current?.timeExpired(color);
+              setIsGameFinished(true);
+            }}
           ></Timer>
 
           <UserBanner
@@ -351,9 +344,10 @@ const Play: NextPage = () => {
             isLocked={
               gameState.turn === opponentsColor || !!chessRef.current.gameResult
             }
-            chessTimeoutFunc={(color: PlayerColor) =>
-              chessRef.current?.timeExpired(color)
-            }
+            chessTimeoutFunc={(color: PlayerColor) => {
+              chessRef.current?.timeExpired(color);
+              setIsGameFinished(true);
+            }}
           ></Timer>
         </div>
       </div>
