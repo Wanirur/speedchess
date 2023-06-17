@@ -11,7 +11,7 @@ import Chess from "~/utils/chess";
 import { prisma } from "./db";
 import { type TimeControl } from "@prisma/client";
 import { calculateRatingDiff } from "~/utils/elo";
-
+import { setTimeout } from "timers";
 export type Player = {
   id: string;
   rating: number;
@@ -61,6 +61,8 @@ export class Game {
   private _timeControl: number;
   private _increment: number;
 
+  private _timeout: NodeJS.Timeout;
+
   constructor(
     whiteId: string,
     whiteRating: number,
@@ -84,6 +86,14 @@ export class Game {
     this._lastMoveTime = Date.now();
     this._timeControl = timeControl;
     this._increment = increment;
+
+    this._timeout = setTimeout(() => {
+      this._gameResult = {
+        winner: "BLACK",
+        reason: "TIMEOUT",
+      };
+      void this.finishGame();
+    }, this._white.timeLeftInMilis);
   }
 
   async move(from: Coords, to: Coords) {
@@ -91,7 +101,7 @@ export class Game {
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
     this._turn.timeLeftInMilis -= duration;
-    const timeLeft = this._turn.timeLeftInMilis;
+    let timeLeft = this._turn.timeLeftInMilis;
     if (timeLeft <= 0) {
       this._gameResult = {
         winner: this._turn === this._white ? "BLACK" : "WHITE",
@@ -105,6 +115,18 @@ export class Game {
     if (this._chess.pawnReadyToPromote !== null) {
       return timeLeft;
     }
+
+    clearTimeout(this._timeout);
+    this._turn.timeLeftInMilis += this._increment * 1000;
+    timeLeft = this._turn.timeLeftInMilis;
+
+    this._timeout = setTimeout(() => {
+      this._gameResult = {
+        winner: this._turn === this._white ? "BLACK" : "WHITE",
+        reason: "TIMEOUT",
+      };
+      void this.finishGame();
+    }, this._turn.timeLeftInMilis);
 
     if (this._turn === this._white) {
       this._turn = this._black;
@@ -200,6 +222,8 @@ export class Game {
       return;
     }
 
+    clearTimeout(this._timeout);
+
     matches.delete(this._id);
 
     let timeControl: TimeControl;
@@ -224,6 +248,7 @@ export class Game {
     await prisma.game.create({
       data: {
         result: this._gameResult.winner,
+        reason: this._gameResult.reason,
         moves: this._chess.getFullAlgebraicHistory(),
         timeControl: timeControl,
         gameToUsers: {

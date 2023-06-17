@@ -97,6 +97,17 @@ enum Winner {
     DRAW
 }
 
+enum Reason {
+    RESIGNATION
+    MATE
+    TIMEOUT
+    ABANDONMENT
+    AGREEMENT
+    STALEMATE
+    REPETITION
+    FIFTY_MOVE
+}
+
 enum TimeControl {
     BULLET //1min
     BULLET_INCREMENT //1min+1sec
@@ -109,6 +120,7 @@ model Game {
     id          Int          @id @default(autoincrement())
     gameToUsers GameToUser[]
     result      Winner
+    reason      Reason?
     moves       String
     timeControl TimeControl  @default(BLITZ)
     finishedAt  DateTime?    @default(now())
