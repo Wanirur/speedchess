@@ -31,7 +31,7 @@ const Play: NextPage = () => {
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
-  const [isGameFinished, setIsGameFinished] = useState<boolean>(true);
+  const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const utils = api.useContext();
 
