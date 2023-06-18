@@ -9,6 +9,7 @@ import GameSummary from "~/components/gamesummary";
 import MovesHistory from "~/components/moveshistory";
 import Timer from "~/components/timer";
 import UserBanner from "~/components/userbanner";
+import { usePusher } from "~/context/pusher_provider";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
@@ -17,7 +18,6 @@ import {
   copyBoard,
   type PlayerColor,
 } from "~/utils/pieces";
-import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
   const router = useRouter();
@@ -33,6 +33,7 @@ const Play: NextPage = () => {
     useState<boolean>(false);
   const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
+  const pusherClient = usePusher();
   const utils = api.useContext();
 
   const {
@@ -189,33 +190,33 @@ const Play: NextPage = () => {
       return;
     }
 
-    channelRef.current = pusherClient.subscribe(uuid as string);
-    channelRef.current.bind("resign", (data: { color: string }) => {
+    channelRef.current = pusherClient?.subscribe(uuid as string);
+    channelRef.current?.bind("resign", (data: { color: string }) => {
       chessRef.current?.resign(data.color as PlayerColor);
       setIsDrawOffered(false);
     });
 
-    channelRef.current.bind("draw", () => {
+    channelRef.current?.bind("draw", () => {
       chessRef.current?.drawAgreement();
       setIsDrawOffered(false);
     });
 
-    channelRef.current.bind("draw_offer", () => {
+    channelRef.current?.bind("draw_offer", () => {
       setIsDrawOffered(true);
     });
 
-    channelRef.current.bind("draw_refused", () => {
+    channelRef.current?.bind("draw_refused", () => {
       setIsDrawOffered(false);
     });
 
-    channelRef.current.bind(
+    channelRef.current?.bind(
       "pusher:subscription_count",
       ({ subscription_count }: { subscription_count: number }) => {
         setIsEnemyDisconnected(subscription_count < 2);
       }
     );
 
-    pusherClient.connection.bind(
+    pusherClient?.connection.bind(
       "state_change",
       ({ current }: { previous: string; current: string }) => {
         if (current === "connecting" || current === "unavailable") {
@@ -227,7 +228,7 @@ const Play: NextPage = () => {
     );
 
     setSubscribed(true);
-  }, [router.isReady, uuid]);
+  }, [router.isReady, uuid, pusherClient]);
 
   if (isErrorGameState || !channelRef?.current || isErrorOpponentsData) {
     return (

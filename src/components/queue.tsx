@@ -8,7 +8,7 @@ import {
   type HTMLAttributes,
 } from "react";
 import { twMerge } from "tailwind-merge";
-import pusherClient from "~/utils/pusherClient";
+import { usePusher } from "~/context/pusher_provider";
 
 const QueueDisplay: React.FC<
   {
@@ -17,6 +17,7 @@ const QueueDisplay: React.FC<
   } & HTMLAttributes<HTMLDivElement>
 > = ({ className, gameId, setIsInQueue }) => {
   const router = useRouter();
+  const pusherClient = usePusher();
 
   const [isQueueLong, setIsQueueLong] = useState<boolean>(false);
 
@@ -25,13 +26,13 @@ const QueueDisplay: React.FC<
       void router.push(`/play/${data.matchId}`);
     };
 
-    const channel = pusherClient.subscribe(gameId);
-    channel.bind("match_start", onStart);
+    const channel = pusherClient?.subscribe(gameId);
+    channel?.bind("match_start", onStart);
 
     return () => {
-      pusherClient.unsubscribe(gameId);
+      pusherClient?.unsubscribe(gameId);
     };
-  }, [gameId, router]);
+  }, [gameId, router, pusherClient]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
