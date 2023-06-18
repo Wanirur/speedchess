@@ -5,8 +5,9 @@ import { useRouter } from "next/router";
 import QueueDisplay from "~/components/queue";
 import { type TimeControl } from "~/utils/pieces";
 import { HelpCircle } from "lucide-react";
-import { type HTMLAttributes, useState } from "react";
+import { type HTMLAttributes, useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
+import pusherClient from "~/utils/pusherClient";
 
 const Home: NextPage = () => {
   const { data: sessionData } = useSession();
@@ -85,6 +86,10 @@ const UserLoggedInView: React.FC = () => {
   });
 
   const [isInQueue, setIsInQueue] = useState<boolean>(false);
+
+  useEffect(() => {
+    pusherClient.signin();
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center gap-8 px-3 py-16">
