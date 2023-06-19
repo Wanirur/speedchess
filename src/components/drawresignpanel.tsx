@@ -27,7 +27,7 @@ const DrawResignPanel: React.FC<
 
   useEffect(() => {
     if (!isEnemyDisconnected && enemyTimeoutRef.current !== null) {
-      window.clearInterval(enemyTimeoutRef.current);
+      window.clearTimeout(enemyTimeoutRef.current);
       return;
     }
 
@@ -37,7 +37,7 @@ const DrawResignPanel: React.FC<
 
     enemyTimeoutRef.current = window.setTimeout(() => {
       chessAbandonFunc();
-    }, 10000);
+    }, 10_000);
   }, [isEnemyDisconnected, chessAbandonFunc]);
 
   return (
