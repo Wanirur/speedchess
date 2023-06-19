@@ -213,6 +213,11 @@ export class Game {
     await this.finishGame();
   }
 
+  async abandon(color: PlayerColor) {
+    this.chess.abandon(color);
+    await this.finishGame();
+  }
+
   refuseDraw() {
     this._drawOfferedBy = null;
   }

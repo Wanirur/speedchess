@@ -27,7 +27,8 @@ const Play: NextPage = () => {
   const channelRef = useRef<Channel>();
   const chessRef = useRef<Chess>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
-  const [isDrawOffered, setIsDrawOffered] = useState<boolean>(false);
+  const [showDrawResignPanel, setShowDrawResignPanel] =
+    useState<boolean>(false);
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
@@ -190,23 +191,27 @@ const Play: NextPage = () => {
       return;
     }
 
+    pusherClient?.subscribe(`presence-${uuid as string}`);
     channelRef.current = pusherClient?.subscribe(uuid as string);
+
     channelRef.current?.bind("resign", (data: { color: string }) => {
       chessRef.current?.resign(data.color as PlayerColor);
-      setIsDrawOffered(false);
+      setIsGameFinished(true);
+      setShowDrawResignPanel(false);
     });
 
     channelRef.current?.bind("draw", () => {
       chessRef.current?.drawAgreement();
-      setIsDrawOffered(false);
+      setIsGameFinished(true);
+      setShowDrawResignPanel(false);
     });
 
     channelRef.current?.bind("draw_offer", () => {
-      setIsDrawOffered(true);
+      setShowDrawResignPanel(true);
     });
 
     channelRef.current?.bind("draw_refused", () => {
-      setIsDrawOffered(false);
+      setShowDrawResignPanel(false);
     });
 
     channelRef.current?.bind(
@@ -321,11 +326,14 @@ const Play: NextPage = () => {
 
           <DrawResignPanel
             className="absolute bottom-0 right-0 z-10 flex w-1/2 min-w-min items-center justify-center text-xs md:static md:h-44 md:w-full md:text-base"
-            isDrawOffered={isDrawOffered}
+            isDrawOffered={showDrawResignPanel}
             uuid={uuid as string}
             isUserDisconnected={isUserDisconnected}
             isEnemyDisconnected={isEnemyDisconnected}
-            chessAbandonFunc={() => chessRef.current?.abandon(opponentsColor)}
+            chessAbandonFunc={() => {
+              chessRef.current?.abandon(opponentsColor);
+              setIsGameFinished(true);
+            }}
           ></DrawResignPanel>
 
           <UserBanner

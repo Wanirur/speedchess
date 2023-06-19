@@ -1,4 +1,3 @@
-import type Pusher from "pusher-js/types/src/core/pusher";
 import {
   type ReactNode,
   createContext,
@@ -11,27 +10,34 @@ import PusherClient from "pusher-js";
 
 import { env } from "~/env.mjs";
 
-const PusherClientContext = createContext<Pusher | null>(null);
+const getPusherInstance = () => {
+  if (PusherClient.instances.length) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return PusherClient.instances[0]!;
+  }
+
+  return new PusherClient(env.NEXT_PUBLIC_SOKETI_APP_KEY, {
+    cluster: "eu",
+    enabledTransports: ["ws", "wss"],
+    userAuthentication: {
+      endpoint: "/api/user_auth",
+      transport: "ajax",
+    },
+    channelAuthorization: {
+      endpoint: "/api/channel_auth",
+      transport: "ajax",
+    },
+  });
+};
+
+const PusherClientContext = createContext<PusherClient>(getPusherInstance());
 
 export const usePusher = () => useContext(PusherClientContext);
 
 const PusherProvider = ({ children }: { children: ReactNode }) => {
-  const pusherClient = useRef<Pusher | null>(null);
+  const pusherClient = useRef<PusherClient>(getPusherInstance());
 
   useEffect(() => {
-    if (pusherClient.current !== null) {
-      return;
-    }
-
-    pusherClient.current = new PusherClient(env.NEXT_PUBLIC_SOKETI_APP_KEY, {
-      cluster: "eu",
-      enabledTransports: ["ws", "wss"],
-      userAuthentication: {
-        endpoint: "/api/pusher_auth",
-        transport: "ajax",
-      },
-    });
-
     PusherClient.logToConsole = true;
   }, []);
 

@@ -23,14 +23,18 @@ const QueueDisplay: React.FC<
 
   useEffect(() => {
     const onStart = (data: { matchId: string; timeControl: number }) => {
+      console.log("here!");
       void router.push(`/play/${data.matchId}`);
     };
 
+    console.log(pusherClient);
     const channel = pusherClient?.subscribe(gameId);
+    pusherClient?.subscribe(`presence-${gameId}`);
     channel?.bind("match_start", onStart);
 
     return () => {
       pusherClient?.unsubscribe(gameId);
+      pusherClient?.unsubscribe(`presence-${gameId}`);
     };
   }, [gameId, router, pusherClient]);
 

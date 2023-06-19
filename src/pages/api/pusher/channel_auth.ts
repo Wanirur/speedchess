@@ -2,12 +2,12 @@ import { type NextApiHandler } from "next";
 import { getServerAuthSession } from "~/server/auth";
 import pusher from "~/server/pusher";
 
-const PusherAuthHandler: NextApiHandler = async (req, res) => {
+const ChannelAuthHandler: NextApiHandler = async (req, res) => {
   const session = await getServerAuthSession({ req, res });
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const { socket_id: socketId } = req.body;
+  const { socket_id: socketId, channel_name: channelName } = req.body;
 
-  if (!socketId) {
+  if (!socketId || !channelName) {
     res.status(400).json({ message: "missing data" });
     return;
   }
@@ -18,11 +18,16 @@ const PusherAuthHandler: NextApiHandler = async (req, res) => {
   }
 
   const userData = {
-    id: session.user.id,
+    user_id: session.user.id,
   };
 
-  const authResponse = pusher.authenticateUser(socketId as string, userData);
+  const authResponse = pusher.authorizeChannel(
+    socketId as string,
+    channelName as string,
+    userData
+  );
+
   res.status(200).json(authResponse);
 };
 
-export default PusherAuthHandler;
+export default ChannelAuthHandler;
