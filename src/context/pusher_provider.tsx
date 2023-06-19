@@ -20,11 +20,11 @@ const getPusherInstance = () => {
     cluster: "eu",
     enabledTransports: ["ws", "wss"],
     userAuthentication: {
-      endpoint: "/api/user_auth",
+      endpoint: "/api/pusher/user_auth",
       transport: "ajax",
     },
     channelAuthorization: {
-      endpoint: "/api/channel_auth",
+      endpoint: "/api/pusher/channel_auth",
       transport: "ajax",
     },
   });

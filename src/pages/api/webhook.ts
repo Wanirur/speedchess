@@ -52,14 +52,11 @@ const WebhookHandler: NextApiHandler = async (req, res) => {
       continue;
     }
 
-    console.log("it has it!");
     const userId = event.data;
     const match = matches.get(channelUuid);
-    console.log(match);
 
-    const abandonColor = match?.white.id === userId ? "WHITE" : "BLACK";
+    const abandonColor = match?.white.id === userId ? "BLACK" : "WHITE";
     await match?.abandon(abandonColor);
-    console.log("abandoned");
   }
 
   res.status(200).json({ message: "success" });

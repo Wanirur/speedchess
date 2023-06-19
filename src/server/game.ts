@@ -1,5 +1,4 @@
 import {
-  type GameResult,
   type PlayerColor,
   initBoard,
   type PromotedPieceType,
@@ -49,9 +48,8 @@ export class Game {
   public get drawOfferedBy() {
     return this._turn;
   }
-  private _gameResult: GameResult | null = null;
   private get gameResult() {
-    return this._gameResult;
+    return this.chess.gameResult;
   }
   private _lastMoveTime: number;
   public get lastMoveTime() {
@@ -88,10 +86,7 @@ export class Game {
     this._increment = increment;
 
     this._timeout = setTimeout(() => {
-      this._gameResult = {
-        winner: "BLACK",
-        reason: "TIMEOUT",
-      };
+      this.chess.timeExpired("BLACK");
       void this.finishGame();
     }, this._white.timeLeftInMilis);
   }
@@ -103,10 +98,7 @@ export class Game {
     this._turn.timeLeftInMilis -= duration;
     let timeLeft = this._turn.timeLeftInMilis;
     if (timeLeft <= 0) {
-      this._gameResult = {
-        winner: this._turn === this._white ? "BLACK" : "WHITE",
-        reason: "TIMEOUT",
-      };
+      this.chess.timeExpired(this._turn === this._white ? "WHITE" : "BLACK");
       await this.finishGame();
       return timeLeft;
     }
@@ -121,10 +113,7 @@ export class Game {
     timeLeft = this._turn.timeLeftInMilis;
 
     this._timeout = setTimeout(() => {
-      this._gameResult = {
-        winner: this._turn === this._white ? "BLACK" : "WHITE",
-        reason: "TIMEOUT",
-      };
+      this.chess.timeExpired(this._turn === this._white ? "WHITE" : "BLACK");
       void this.finishGame();
     }, this._turn.timeLeftInMilis);
 
@@ -145,10 +134,7 @@ export class Game {
     const timeLeft = this._turn.timeLeftInMilis;
 
     if (timeLeft <= 0) {
-      this._gameResult = {
-        winner: this._turn === this._white ? "BLACK" : "WHITE",
-        reason: "TIMEOUT",
-      };
+      this.chess.timeExpired(this._turn === this._white ? "WHITE" : "BLACK");
       await this.finishGame();
       return timeLeft;
     }
@@ -174,12 +160,9 @@ export class Game {
       }
 
       if (this._drawOfferedBy === this._black) {
-        this._gameResult = {
-          winner: "DRAW",
-          reason: "AGREEMENT",
-        };
+        this.chess.drawAgreement();
         await this.finishGame();
-        return this._gameResult;
+        return this.gameResult;
       }
 
       this._drawOfferedBy = this._white;
@@ -190,12 +173,9 @@ export class Game {
       }
 
       if (this._drawOfferedBy === this._white) {
-        this._gameResult = {
-          winner: "DRAW",
-          reason: "AGREEMENT",
-        };
+        this.chess.drawAgreement();
         await this.finishGame();
-        return this._gameResult;
+        return this.gameResult;
       }
 
       this._drawOfferedBy = this._black;
@@ -209,7 +189,6 @@ export class Game {
       return;
     }
 
-    this._gameResult = this.chess.gameResult;
     await this.finishGame();
   }
 
@@ -223,7 +202,7 @@ export class Game {
   }
 
   private async finishGame() {
-    if (!this._gameResult) {
+    if (!this.gameResult) {
       return;
     }
 
@@ -245,15 +224,15 @@ export class Game {
     }
 
     const ratingDiff = calculateRatingDiff(
-      this._gameResult,
+      this.gameResult,
       this.white.rating,
       this.black.rating
     );
 
     await prisma.game.create({
       data: {
-        result: this._gameResult.winner,
-        reason: this._gameResult.reason,
+        result: this.gameResult.winner,
+        reason: this.gameResult.reason,
         moves: this._chess.getFullAlgebraicHistory(),
         timeControl: timeControl,
         gameToUsers: {
