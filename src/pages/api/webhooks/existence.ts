@@ -2,7 +2,7 @@ import { type NextApiHandler } from "next";
 import { matches, playersWaitingForMatch } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 
-const WebhookHandler: NextApiHandler = (req, res) => {
+const ExistenceWebhookHandler: NextApiHandler = (req, res) => {
   const webhookReq = {
     headers: req.headers,
     rawBody: JSON.stringify(req.body),
@@ -20,18 +20,24 @@ const WebhookHandler: NextApiHandler = (req, res) => {
       return event.name === "channel_vacated";
     })
     .map((event) => event.channel);
-  vacatedChannels.forEach((channelUuid) => {
+
+  for (const channelUuid of vacatedChannels) {
+    if (channelUuid.startsWith("presence-")) {
+      continue;
+    }
+
     if (matches.has(channelUuid)) {
       matches.delete(channelUuid);
-      return;
+      continue;
     }
 
     playersWaitingForMatch.forEach((gamesInTier) => {
       const index = gamesInTier.findIndex((game) => game.id === channelUuid);
       gamesInTier.splice(index, 1);
     });
-  });
+  }
+
   res.status(200).json({ message: "success" });
 };
 
-export default WebhookHandler;
+export default ExistenceWebhookHandler;

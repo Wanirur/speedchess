@@ -5,8 +5,9 @@ import { useRouter } from "next/router";
 import QueueDisplay from "~/components/queue";
 import { type TimeControl } from "~/utils/pieces";
 import { HelpCircle } from "lucide-react";
-import { type HTMLAttributes, useState } from "react";
+import { type HTMLAttributes, useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
+import { usePusher } from "~/context/pusher_provider";
 
 const Home: NextPage = () => {
   const { data: sessionData } = useSession();
@@ -70,6 +71,7 @@ const QueueUpCard: React.FC<
 const UserLoggedInView: React.FC = () => {
   const { data: sessionData } = useSession();
   const router = useRouter();
+  const pusherClient = usePusher();
   const queueUpMutation = api.chess.queueUp.useMutation({
     onSuccess: (data?: { uuid: string; gameStarted: boolean }) => {
       if (!data) {
@@ -85,6 +87,10 @@ const UserLoggedInView: React.FC = () => {
   });
 
   const [isInQueue, setIsInQueue] = useState<boolean>(false);
+
+  useEffect(() => {
+    pusherClient?.signin();
+  }, [pusherClient]);
 
   return (
     <div className="flex flex-col items-center justify-center gap-8 px-3 py-16">

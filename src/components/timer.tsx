@@ -16,20 +16,22 @@ const Timer: React.FC<
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
-    if (seconds <= 0) {
-      chessTimeoutFunc(color);
-      return;
-    }
-    const interval = setInterval(() => {
+    const timeout = setInterval(() => {
       if (!isLocked) {
-        setSeconds((x) => x - 1);
+        setSeconds((x) => (x === 0 ? 0 : x - 1));
       }
     }, 1000);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(timeout);
     };
-  }, [seconds, isLocked, chessTimeoutFunc, color]);
+  }, [isLocked]);
+
+  useEffect(() => {
+    if (seconds <= 0) {
+      chessTimeoutFunc(color);
+    }
+  }, [seconds, chessTimeoutFunc, color]);
 
   useEffect(() => {
     const onMove = (move: {

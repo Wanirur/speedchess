@@ -9,6 +9,7 @@ import GameSummary from "~/components/gamesummary";
 import MovesHistory from "~/components/moveshistory";
 import Timer from "~/components/timer";
 import UserBanner from "~/components/userbanner";
+import { usePusher } from "~/context/pusher_provider";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
@@ -17,7 +18,6 @@ import {
   copyBoard,
   type PlayerColor,
 } from "~/utils/pieces";
-import pusherClient from "~/utils/pusherClient";
 
 const Play: NextPage = () => {
   const router = useRouter();
@@ -27,12 +27,14 @@ const Play: NextPage = () => {
   const channelRef = useRef<Channel>();
   const chessRef = useRef<Chess>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
-  const [isDrawOffered, setIsDrawOffered] = useState<boolean>(false);
+  const [showDrawResignPanel, setShowDrawResignPanel] =
+    useState<boolean>(false);
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
   const [isEnemyDisconnected, setIsEnemyDisconnected] =
     useState<boolean>(false);
-  const [showSummary, setShowSummary] = useState<boolean>(true);
+  const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
+  const pusherClient = usePusher();
   const utils = api.useContext();
 
   const {
@@ -69,10 +71,8 @@ const Play: NextPage = () => {
 
                 if (old.turn === old.color) {
                   if (chessRef.current.gameResult) {
-                    setShowSummary(false);
-
                     setTimeout(() => {
-                      setShowSummary(true);
+                      setIsGameFinished(true);
                     }, 1000);
                   }
                   let nextTurn = old.turn;
@@ -91,10 +91,8 @@ const Play: NextPage = () => {
                 );
 
                 if (chessRef.current.gameResult) {
-                  setShowSummary(false);
-
                   setTimeout(() => {
-                    setShowSummary(true);
+                    setIsGameFinished(true);
                   }, 1000);
                 }
 
@@ -135,10 +133,8 @@ const Play: NextPage = () => {
 
                 if (old.turn === old.color) {
                   if (chessRef.current.gameResult) {
-                    setShowSummary(false);
-
                     setTimeout(() => {
-                      setShowSummary(true);
+                      setIsGameFinished(true);
                     }, 1000);
                   }
                   return {
@@ -151,10 +147,8 @@ const Play: NextPage = () => {
                   chessRef.current.promote(promotion.promotedTo, old.turn)
                 );
                 if (chessRef.current.gameResult) {
-                  setShowSummary(false);
-
                   setTimeout(() => {
-                    setShowSummary(true);
+                    setIsGameFinished(true);
                   }, 1000);
                 }
                 return {
@@ -197,33 +191,37 @@ const Play: NextPage = () => {
       return;
     }
 
-    channelRef.current = pusherClient.subscribe(uuid as string);
-    channelRef.current.bind("resign", (data: { color: string }) => {
+    pusherClient?.subscribe(`presence-${uuid as string}`);
+    channelRef.current = pusherClient?.subscribe(uuid as string);
+
+    channelRef.current?.bind("resign", (data: { color: string }) => {
       chessRef.current?.resign(data.color as PlayerColor);
-      setIsDrawOffered(false);
+      setIsGameFinished(true);
+      setShowDrawResignPanel(false);
     });
 
-    channelRef.current.bind("draw", () => {
+    channelRef.current?.bind("draw", () => {
       chessRef.current?.drawAgreement();
-      setIsDrawOffered(false);
+      setIsGameFinished(true);
+      setShowDrawResignPanel(false);
     });
 
-    channelRef.current.bind("draw_offer", () => {
-      setIsDrawOffered(true);
+    channelRef.current?.bind("draw_offer", () => {
+      setShowDrawResignPanel(true);
     });
 
-    channelRef.current.bind("draw_refused", () => {
-      setIsDrawOffered(false);
+    channelRef.current?.bind("draw_refused", () => {
+      setShowDrawResignPanel(false);
     });
 
-    channelRef.current.bind(
+    channelRef.current?.bind(
       "pusher:subscription_count",
       ({ subscription_count }: { subscription_count: number }) => {
         setIsEnemyDisconnected(subscription_count < 2);
       }
     );
 
-    pusherClient.connection.bind(
+    pusherClient?.connection.bind(
       "state_change",
       ({ current }: { previous: string; current: string }) => {
         if (current === "connecting" || current === "unavailable") {
@@ -235,7 +233,7 @@ const Play: NextPage = () => {
     );
 
     setSubscribed(true);
-  }, [router.isReady, uuid]);
+  }, [router.isReady, uuid, pusherClient]);
 
   if (isErrorGameState || !channelRef?.current || isErrorOpponentsData) {
     return (
@@ -272,7 +270,7 @@ const Play: NextPage = () => {
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
       <div className="relative flex h-[33rem] flex-col items-center justify-center bg-neutral-900 md:h-[30rem] md:w-[50rem] md:flex-row lg:h-[40rem] lg:w-[60rem] 3xl:h-[60rem] 3xl:w-[90rem]">
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
-          {showSummary && chessRef.current.gameResult ? (
+          {isGameFinished && chessRef.current.gameResult ? (
             <GameSummary
               user={opponentsData}
               gameResult={chessRef.current.gameResult}
@@ -308,9 +306,10 @@ const Play: NextPage = () => {
               gameState.turn === gameState.color ||
               !!chessRef.current.gameResult
             }
-            chessTimeoutFunc={(color: PlayerColor) =>
-              chessRef.current?.timeExpired(color)
-            }
+            chessTimeoutFunc={(color: PlayerColor) => {
+              chessRef.current?.timeExpired(color);
+              setIsGameFinished(true);
+            }}
           ></Timer>
 
           <UserBanner
@@ -327,11 +326,14 @@ const Play: NextPage = () => {
 
           <DrawResignPanel
             className="absolute bottom-0 right-0 z-10 flex w-1/2 min-w-min items-center justify-center text-xs md:static md:h-44 md:w-full md:text-base"
-            isDrawOffered={isDrawOffered}
+            isDrawOffered={showDrawResignPanel}
             uuid={uuid as string}
             isUserDisconnected={isUserDisconnected}
             isEnemyDisconnected={isEnemyDisconnected}
-            chessAbandonFunc={() => chessRef.current?.abandon(opponentsColor)}
+            chessAbandonFunc={() => {
+              chessRef.current?.abandon(opponentsColor);
+              setIsGameFinished(true);
+            }}
           ></DrawResignPanel>
 
           <UserBanner
@@ -351,9 +353,10 @@ const Play: NextPage = () => {
             isLocked={
               gameState.turn === opponentsColor || !!chessRef.current.gameResult
             }
-            chessTimeoutFunc={(color: PlayerColor) =>
-              chessRef.current?.timeExpired(color)
-            }
+            chessTimeoutFunc={(color: PlayerColor) => {
+              chessRef.current?.timeExpired(color);
+              setIsGameFinished(true);
+            }}
           ></Timer>
         </div>
       </div>
