@@ -1,9 +1,8 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import {
-  type RatingTier,
   playersWaitingForMatch,
-  resolveRatingToTier,
   matches,
+  findGame,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
@@ -20,7 +19,6 @@ export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
     .input(z.object({ timeControl: z.number().min(30).max(180) }))
     .mutation(async ({ ctx, input }) => {
-      let tier = "guest" as RatingTier;
       let rating = -1;
       let id = "guest";
 
@@ -38,58 +36,46 @@ export const chessgameRouter = createTRPCRouter({
             return;
           }
           rating = user.rating ?? 1200;
-          if (rating !== null) {
-            tier = resolveRatingToTier(rating);
-          }
         } catch (e) {
           console.error("no user with id: " + id + " in db");
         }
       }
 
-      if (playersWaitingForMatch.has(tier)) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const queue = playersWaitingForMatch.get(tier)!;
-        if (queue.length > 0) {
-          if (id != "guest" && queue[queue.length - 1]?.white.id === id) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "You are already in queue. Multiple tabs open?",
-            });
-          }
-          const game = queue.pop();
-          if (!game) {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "Game you tried to join ceased to exist. Queue up again.",
-            });
-          }
+      const game = findGame(id, rating);
+      if (game) {
+        game.black = {
+          id: id,
+          rating: rating,
+          timeLeftInMilis: input.timeControl * 1000,
+        };
 
-          game.black = {
-            id: id,
-            rating: rating,
-            timeLeftInMilis: input.timeControl * 1000,
-          };
-          
-          game.start();
-          matches.set(game.id, game);
-          await pusher.trigger(game.id, "match_start", {
-            matchId: game.id,
-            timeControl: input.timeControl,
-          });
-          return {
-            uuid: game.id,
-            gameStarted: true,
-          };
-        } else {
-          const game = new Game(id, rating, input.timeControl);
-          queue.push(game);
-          return {
-            uuid: game.id,
-            gameStarted: false,
-          };
-        }
+        game.start();
+        matches.set(game.id, game);
+        await pusher.trigger(game.id, "match_start", {
+          matchId: game.id,
+          timeControl: input.timeControl,
+        });
+        return {
+          uuid: game.id,
+          gameStarted: true,
+        };
       }
+
+      const rounded = Math.round(rating / 100) * 100;
+      const queue = playersWaitingForMatch.get(rounded);
+      if (!queue) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Something went wrong",
+        });
+      }
+
+      const newGame = new Game(id, rating, input.timeControl);
+      queue.push(newGame);
+      return {
+        uuid: newGame.id,
+        gameStarted: false,
+      };
     }),
   getGameState: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))

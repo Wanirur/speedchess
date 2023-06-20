@@ -1,53 +1,50 @@
 import { type Game } from "./game";
 
-const tiers = [
-  "guest",
-  "0-250",
-  "251-500",
-  "501-750",
-  "751-1000",
-  "1001-1250",
-  "1251-1500",
-  "1501-1750",
-  "1751-2000",
-  "2001-2250",
-  "2251-2500",
-  "2500+",
-] as const;
-
-export type RatingTier = (typeof tiers)[number];
-const queue = new Map<RatingTier, Game[]>();
-tiers.forEach((item) => {
+const ratingBuckets = Array.from({ length: 30 }, (x, i) => i * 100); // expected to get array [0, 100, 200, ..., 3000]
+const queue = new Map<number, Game[]>();
+ratingBuckets.forEach((item) => {
   queue.set(item, [] as Game[]);
 });
 
 export const playersWaitingForMatch = queue;
-export const resolveRatingToTier = (rating: number): RatingTier => {
-  let tier = "guest" as RatingTier;
-  if (rating <= 250) {
-    tier = "0-250";
-  } else if (rating <= 500) {
-    tier = "251-500";
-  } else if (rating <= 750) {
-    tier = "501-750";
-  } else if (rating <= 1000) {
-    tier = "751-1000";
-  } else if (rating <= 1250) {
-    tier = "1001-1250";
-  } else if (rating <= 1500) {
-    tier = "1251-1500";
-  } else if (rating <= 1750) {
-    tier = "1501-1750";
-  } else if (rating <= 2000) {
-    tier = "1751-2000";
-  } else if (rating <= 2250) {
-    tier = "2001-2250";
-  } else if (rating <= 2500) {
-    tier = "2251-2500";
-  } else {
-    tier = "2500+";
+export const findGame = (id: string, rating: number): Game | undefined => {
+  const rounded = Math.round(rating / 100) * 100;
+
+  console.log(rounded);
+  let currentBucketQueue = queue.get(rounded);
+  if (currentBucketQueue?.length) {
+    const opponentsIndex = currentBucketQueue.findIndex(
+      (game) => game.white.id !== id
+    );
+    console.log(opponentsIndex);
+    if (opponentsIndex !== -1) {
+      return currentBucketQueue.splice(opponentsIndex, 1)[0];
+    }
   }
-  return tier;
+  currentBucketQueue = queue.get(rounded + 100);
+  if (currentBucketQueue?.length) {
+    const opponentsIndex = currentBucketQueue.findIndex(
+      (game) => game.white.id !== id
+    );
+    console.log(opponentsIndex);
+
+    if (opponentsIndex !== -1) {
+      return currentBucketQueue.splice(opponentsIndex, 1)[0];
+    }
+  }
+  currentBucketQueue = queue.get(rounded - 100);
+  if (currentBucketQueue?.length) {
+    const opponentsIndex = currentBucketQueue.findIndex(
+      (game) => game.white.id !== id
+    );
+    console.log(opponentsIndex);
+
+    if (opponentsIndex !== -1) {
+      return currentBucketQueue.splice(opponentsIndex, 1)[0];
+    }
+  }
+
+  return undefined;
 };
 
 export const matches = new Map<string, Game>();
