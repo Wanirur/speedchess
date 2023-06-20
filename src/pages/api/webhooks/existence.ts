@@ -31,9 +31,11 @@ const ExistenceWebhookHandler: NextApiHandler = (req, res) => {
       continue;
     }
 
-    playersWaitingForMatch.forEach((gamesInTier) => {
-      const index = gamesInTier.findIndex((game) => game.id === channelUuid);
-      gamesInTier.splice(index, 1);
+    playersWaitingForMatch.forEach((tiersInTimeControl) => {
+      tiersInTimeControl.forEach((gamesInTier) => {
+        const index = gamesInTier.findIndex((game) => game.id === channelUuid);
+        gamesInTier.splice(index, 1);
+      });
     });
   }
 

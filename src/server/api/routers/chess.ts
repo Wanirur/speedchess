@@ -1,10 +1,10 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import {
-  playersWaitingForMatch,
   matches,
   findGame,
   queuedUpUsers,
   playingUsers,
+  addGameToQueue,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
@@ -43,23 +43,39 @@ export const chessgameRouter = createTRPCRouter({
         }
       }
 
-      const queueMatchUuid = queuedUpUsers.get(id);
-      if (queueMatchUuid) {
-        return {
-          uuid: queueMatchUuid,
-          gameStarted: false,
-        };
+      const queueMatchData = queuedUpUsers.get(id);
+      if (queueMatchData) {
+        if (queueMatchData.timeControl.startingTime === input.timeControl) {
+          return {
+            uuid: queueMatchData.gameId,
+            gameStarted: false,
+          };
+        }
+
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already in queue in different time control!",
+        });
       }
 
-      const matchUuid = playingUsers.get(id);
-      if (matchUuid) {
-        return {
-          uuid: matchUuid,
-          gameStarted: true,
-        };
+      const matchData = playingUsers.get(id);
+      if (matchData) {
+        if (matchData.timeControl.startingTime === input.timeControl) {
+          return {
+            uuid: matchData.gameId,
+            gameStarted: false,
+          };
+        }
+
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already playing in different time control!",
+        });
       }
 
-      const game = findGame(id, rating);
+      //TODO: add increment support
+      const timeControl = { startingTime: input.timeControl, increment: 0 };
+      const game = findGame(id, rating, timeControl);
       if (game) {
         game.black = {
           id: id,
@@ -70,8 +86,14 @@ export const chessgameRouter = createTRPCRouter({
         game.start();
         matches.set(game.id, game);
         queuedUpUsers.delete(id);
-        playingUsers.set(game.white.id, game.id);
-        playingUsers.set(game.black.id, game.id);
+        playingUsers.set(game.white.id, {
+          gameId: game.id,
+          timeControl: timeControl,
+        });
+        playingUsers.set(game.black.id, {
+          gameId: game.id,
+          timeControl: timeControl,
+        });
 
         await pusher.trigger(game.id, "match_start", {
           matchId: game.id,
@@ -83,18 +105,9 @@ export const chessgameRouter = createTRPCRouter({
         };
       }
 
-      const rounded = Math.round(rating / 100) * 100;
-      const queue = playersWaitingForMatch.get(rounded);
-      if (!queue) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Something went wrong",
-        });
-      }
-
       const newGame = new Game(id, rating, input.timeControl);
-      queue.push(newGame);
-      queuedUpUsers.set(id, newGame.id);
+      addGameToQueue(rating, newGame);
+      queuedUpUsers.set(id, { gameId: newGame.id, timeControl: timeControl });
       return {
         uuid: newGame.id,
         gameStarted: false,

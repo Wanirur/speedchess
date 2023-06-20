@@ -108,20 +108,22 @@ enum Reason {
     FIFTY_MOVE
 }
 
-enum TimeControl {
+enum TimeControlName {
     BULLET //1min
     BULLET_INCREMENT //1min+1sec
     LONG_BULLET_INCREMENT //2min+1sec
     BLITZ //3min
     BLITZ_INCREMENT //3min+2sec
+
+    @@map("TimeControl")
 }
 
 model Game {
-    id          Int          @id @default(autoincrement())
+    id          Int             @id @default(autoincrement())
     gameToUsers GameToUser[]
     result      Winner
     reason      Reason?
     moves       String
-    timeControl TimeControl  @default(BLITZ)
-    finishedAt  DateTime?    @default(now())
+    timeControl TimeControlName @default(BLITZ)
+    finishedAt  DateTime?       @default(now())
 }
