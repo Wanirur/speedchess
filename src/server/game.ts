@@ -60,6 +60,7 @@ export class Game {
   private _increment: number;
 
   private _timeout: NodeJS.Timeout;
+  private _hasStarted = false;
 
   constructor(
     whiteId: string,
@@ -91,7 +92,16 @@ export class Game {
     }, this._white.timeLeftInMilis);
   }
 
+  start() {
+    this._lastMoveTime = Date.now();
+    this._hasStarted = true;
+  }
+
   async move(from: Coords, to: Coords) {
+    if (!this._hasStarted) {
+      return 0;
+    }
+
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
@@ -127,6 +137,10 @@ export class Game {
   }
 
   async promote(promoteTo: PromotedPieceType) {
+    if (!this._hasStarted) {
+      return 0;
+    }
+
     const moveEnd = Date.now();
     const duration = moveEnd - this._lastMoveTime;
     this._lastMoveTime = moveEnd;
@@ -154,6 +168,10 @@ export class Game {
   }
 
   async offerDraw(color: PlayerColor) {
+    if (!this._hasStarted) {
+      return null;
+    }
+
     if (color === "WHITE") {
       if (this._drawOfferedBy === this._white) {
         return null;
@@ -184,6 +202,10 @@ export class Game {
   }
 
   async resign(color: PlayerColor) {
+    if (!this._hasStarted) {
+      return;
+    }
+
     this.chess.resign(color);
     if (!this.chess.gameResult) {
       return;
@@ -193,16 +215,24 @@ export class Game {
   }
 
   async abandon(color: PlayerColor) {
+    if (!this._hasStarted) {
+      return;
+    }
+
     this.chess.abandon(color);
     await this.finishGame();
   }
 
   refuseDraw() {
+    if (!this._hasStarted) {
+      return;
+    }
+
     this._drawOfferedBy = null;
   }
 
   private async finishGame() {
-    if (!this.gameResult) {
+    if (!this._hasStarted || !this.gameResult) {
       return;
     }
 

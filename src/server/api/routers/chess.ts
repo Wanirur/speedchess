@@ -70,6 +70,8 @@ export const chessgameRouter = createTRPCRouter({
             rating: rating,
             timeLeftInMilis: input.timeControl * 1000,
           };
+          
+          game.start();
           matches.set(game.id, game);
           await pusher.trigger(game.id, "match_start", {
             matchId: game.id,
