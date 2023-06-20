@@ -47,5 +47,7 @@ export const findGame = (id: string, rating: number): Game | undefined => {
   return undefined;
 };
 
+export const queuedUpUsers = new Map<string, string>(); // key: userId, value: gameId
 export const matches = new Map<string, Game>();
+export const playingUsers = new Map<string, string>(); // key: userId, value: gameId
 export const abandonTimeouts = new Map<string, NodeJS.Timeout>();

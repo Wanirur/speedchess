@@ -4,7 +4,7 @@ import {
   type PromotedPieceType,
 } from "~/utils/pieces";
 import { randomUUID } from "crypto";
-import { matches } from "./matchmaking";
+import { matches, playingUsers } from "./matchmaking";
 import { type Coords } from "~/utils/coords";
 import Chess from "~/utils/chess";
 import { prisma } from "./db";
@@ -239,6 +239,8 @@ export class Game {
     clearTimeout(this._timeout);
 
     matches.delete(this._id);
+    playingUsers.delete(this.white.id);
+    playingUsers.delete(this.black.id);
 
     let timeControl: TimeControl;
     if (this._timeControl === 60) {

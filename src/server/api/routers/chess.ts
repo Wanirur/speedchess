@@ -3,6 +3,8 @@ import {
   playersWaitingForMatch,
   matches,
   findGame,
+  queuedUpUsers,
+  playingUsers,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
@@ -41,6 +43,22 @@ export const chessgameRouter = createTRPCRouter({
         }
       }
 
+      const queueMatchUuid = queuedUpUsers.get(id);
+      if (queueMatchUuid) {
+        return {
+          uuid: queueMatchUuid,
+          gameStarted: false,
+        };
+      }
+
+      const matchUuid = playingUsers.get(id);
+      if (matchUuid) {
+        return {
+          uuid: matchUuid,
+          gameStarted: true,
+        };
+      }
+
       const game = findGame(id, rating);
       if (game) {
         game.black = {
@@ -51,6 +69,10 @@ export const chessgameRouter = createTRPCRouter({
 
         game.start();
         matches.set(game.id, game);
+        queuedUpUsers.delete(id);
+        playingUsers.set(game.white.id, game.id);
+        playingUsers.set(game.black.id, game.id);
+
         await pusher.trigger(game.id, "match_start", {
           matchId: game.id,
           timeControl: input.timeControl,
@@ -72,6 +94,7 @@ export const chessgameRouter = createTRPCRouter({
 
       const newGame = new Game(id, rating, input.timeControl);
       queue.push(newGame);
+      queuedUpUsers.set(id, newGame.id);
       return {
         uuid: newGame.id,
         gameStarted: false,
