@@ -1,7 +1,8 @@
 import {
-  type PlayerColor,
   initBoard,
+  type PlayerColor,
   type PromotedPieceType,
+  type TimeControl,
 } from "~/utils/pieces";
 import { randomUUID } from "crypto";
 import { matches, playingUsers } from "./matchmaking";
@@ -69,29 +70,24 @@ export class Game {
   private _timeout: NodeJS.Timeout;
   private _hasStarted = false;
 
-  constructor(
-    whiteId: string,
-    whiteRating: number,
-    timeControl: number,
-    increment = 0
-  ) {
+  constructor(whiteId: string, whiteRating: number, timeControl: TimeControl) {
     this._white = {
       id: whiteId,
       rating: whiteRating,
-      timeLeftInMilis: timeControl * 1000,
+      timeLeftInMilis: timeControl.initialTime * 1000,
     };
 
     this._black = {
       id: "-1",
       rating: -1,
-      timeLeftInMilis: timeControl * 1000,
+      timeLeftInMilis: timeControl.initialTime * 1000,
     };
     this._turn = this._white;
     this._drawOfferedBy = null;
     this._id = randomUUID();
     this._lastMoveTime = Date.now();
-    this._initialTime = timeControl;
-    this._increment = increment;
+    this._initialTime = timeControl.initialTime;
+    this._increment = timeControl.increment;
 
     this._timeout = setTimeout(() => {
       this.chess.timeExpired("BLACK");
@@ -126,6 +122,7 @@ export class Game {
     }
 
     clearTimeout(this._timeout);
+
     this._turn.timeLeftInMilis += this._increment * 1000;
     timeLeft = this._turn.timeLeftInMilis;
 

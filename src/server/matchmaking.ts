@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { TimeControlName } from "@prisma/client";
+import { type TimeControlName } from "@prisma/client";
 import { type Game } from "./game";
-import { TimeControl } from "~/utils/pieces";
+import { type TimeControl } from "~/utils/pieces";
 
 export const playersWaitingForMatch = new Map<
   TimeControlName,
@@ -31,7 +31,7 @@ ratingBuckets.forEach((item) => {
 });
 
 const resolveTimeControlToName = (timeControl: TimeControl) => {
-  const time = timeControl.startingTime;
+  const time = timeControl.initialTime;
   const inc = timeControl.increment;
 
   if (time === 60 && inc === 0) {
@@ -95,7 +95,7 @@ export const findGame = (
 export const addGameToQueue = (rating: number, game: Game) => {
   const rounded = Math.round(rating / 100) * 100;
   const timeControlName = resolveTimeControlToName({
-    startingTime: game.initialTime,
+    initialTime: game.initialTime,
     increment: game.increment,
   });
 
@@ -104,7 +104,13 @@ export const addGameToQueue = (rating: number, game: Game) => {
   correctRatingQueue?.push(game);
 };
 
-export const queuedUpUsers = new Map<string, {gameId: string, timeControl: TimeControl }>(); // key: userId, value: {gameId, timeControl}
+export const queuedUpUsers = new Map<
+  string,
+  { gameId: string; timeControl: TimeControl }
+>(); // key: userId, value: {gameId, timeControl}
 export const matches = new Map<string, Game>();
-export const playingUsers = new Map<string, {gameId: string, timeControl: TimeControl }>(); // key: userId, value: {gameId, timeControl}
+export const playingUsers = new Map<
+  string,
+  { gameId: string; timeControl: TimeControl }
+>(); // key: userId, value: {gameId, timeControl}
 export const abandonTimeouts = new Map<string, NodeJS.Timeout>();

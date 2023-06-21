@@ -40,7 +40,7 @@ const Timer: React.FC<
       timeLeftInMilis: number;
     }) => {
       if (!isLocked) {
-        setSeconds(Math.round(move.timeLeftInMilis / 1000));
+        setSeconds(Math.ceil(move.timeLeftInMilis / 1000));
       }
     };
 

@@ -19,7 +19,12 @@ import { Coords } from "~/utils/coords";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
-    .input(z.object({ timeControl: z.number().min(30).max(180) }))
+    .input(
+      z.object({
+        initialTime: z.number().min(30).max(180),
+        increment: z.number().min(0).max(2),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       let rating = -1;
       let id = "guest";
@@ -45,7 +50,7 @@ export const chessgameRouter = createTRPCRouter({
 
       const queueMatchData = queuedUpUsers.get(id);
       if (queueMatchData) {
-        if (queueMatchData.timeControl.startingTime === input.timeControl) {
+        if (queueMatchData.timeControl.initialTime === input.initialTime) {
           return {
             uuid: queueMatchData.gameId,
             gameStarted: false,
@@ -60,7 +65,7 @@ export const chessgameRouter = createTRPCRouter({
 
       const matchData = playingUsers.get(id);
       if (matchData) {
-        if (matchData.timeControl.startingTime === input.timeControl) {
+        if (matchData.timeControl.initialTime === input.initialTime) {
           return {
             uuid: matchData.gameId,
             gameStarted: false,
@@ -73,19 +78,23 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      //TODO: add increment support
-      const timeControl = { startingTime: input.timeControl, increment: 0 };
+      const timeControl = {
+        initialTime: input.initialTime,
+        increment: input.increment,
+      };
       const game = findGame(id, rating, timeControl);
       if (game) {
         game.black = {
           id: id,
           rating: rating,
-          timeLeftInMilis: input.timeControl * 1000,
+          timeLeftInMilis: input.initialTime * 1000,
         };
 
         game.start();
         matches.set(game.id, game);
-        queuedUpUsers.delete(id);
+        queuedUpUsers.delete(game.white.id);
+        console.log(queuedUpUsers);
+
         playingUsers.set(game.white.id, {
           gameId: game.id,
           timeControl: timeControl,
@@ -94,10 +103,11 @@ export const chessgameRouter = createTRPCRouter({
           gameId: game.id,
           timeControl: timeControl,
         });
+        console.log(playingUsers);
 
         await pusher.trigger(game.id, "match_start", {
           matchId: game.id,
-          timeControl: input.timeControl,
+          timeControl: input.initialTime,
         });
         return {
           uuid: game.id,
@@ -105,9 +115,10 @@ export const chessgameRouter = createTRPCRouter({
         };
       }
 
-      const newGame = new Game(id, rating, input.timeControl);
+      const newGame = new Game(id, rating, timeControl);
       addGameToQueue(rating, newGame);
       queuedUpUsers.set(id, { gameId: newGame.id, timeControl: timeControl });
+      console.log(queuedUpUsers);
       return {
         uuid: newGame.id,
         gameStarted: false,
@@ -148,6 +159,10 @@ export const chessgameRouter = createTRPCRouter({
         ratingBlack: match.black.rating,
         color: (user.id === match.white.id ? "WHITE" : "BLACK") as PlayerColor,
         turn: (match.turn === match.white ? "WHITE" : "BLACK") as PlayerColor,
+        timeControl: {
+          initialTime: match.initialTime,
+          increment: match.increment,
+        },
       };
     }),
   movePiece: protectedProcedure
