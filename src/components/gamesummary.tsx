@@ -1,5 +1,9 @@
 import { useSession } from "next-auth/react";
-import { type GameResult, type PlayerColor } from "~/utils/pieces";
+import {
+  type TimeControl,
+  type GameResult,
+  type PlayerColor,
+} from "~/utils/pieces";
 import Image from "next/image";
 import { type User } from "next-auth";
 import { api } from "~/utils/api";
@@ -14,7 +18,7 @@ const GameSummary: React.FC<
     gameResult: GameResult;
     color: PlayerColor;
     user: User;
-    queueUpTimeControl: number;
+    queueUpTimeControl: TimeControl;
     rating: number;
   } & HTMLAttributes<HTMLDivElement>
 > = ({ className, gameResult, color, user, queueUpTimeControl, rating }) => {
@@ -101,7 +105,7 @@ const GameSummary: React.FC<
           <button
             className="h-12 w-40 rounded-xl bg-green-700 p-1 hover:bg-green-800"
             onClick={() => {
-              queueUpMutation.mutate({ timeControl: queueUpTimeControl });
+              queueUpMutation.mutate(queueUpTimeControl);
             }}
           >
             Queue up next

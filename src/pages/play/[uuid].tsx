@@ -233,6 +233,11 @@ const Play: NextPage = () => {
     );
 
     setSubscribed(true);
+
+    return () => {
+      pusherClient.unsubscribe(`presence-${uuid as string}`);
+      pusherClient.unsubscribe(uuid as string);
+    };
   }, [router.isReady, uuid, pusherClient]);
 
   if (isErrorGameState || !channelRef?.current || isErrorOpponentsData) {
@@ -275,7 +280,7 @@ const Play: NextPage = () => {
               user={opponentsData}
               gameResult={chessRef.current.gameResult}
               color={gameState.color}
-              queueUpTimeControl={180}
+              queueUpTimeControl={gameState.timeControl}
               rating={gameSummaryRating}
             ></GameSummary>
           ) : (

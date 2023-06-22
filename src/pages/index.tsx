@@ -45,13 +45,13 @@ const QueueUpCard: React.FC<
     >
       <div className="relative flex items-center justify-center">
         <span className="mx-1 text-2xl md:text-6xl 3xl:text-7xl">
-          {`${timeControl.startingTime} | ${timeControl.increment}`}
+          {`${timeControl.initialTime} | ${timeControl.increment}`}
         </span>
         <div className="group absolute left-full flex items-center justify-center rounded-full bg-black font-bold">
           <HelpCircle className="h-3 w-3 stroke-green-700 md:h-5 md:w-5 3xl:h-8 3xl:w-8" />
           <div className="invisible absolute bottom-full left-full z-10 w-fit rounded-lg bg-gray-600 p-2 text-xs opacity-90 group-hover:visible md:text-base 3xl:text-2xl">
-            {`${timeControl.startingTime} minute${
-              timeControl.startingTime === 1 ? "" : "s"
+            {`${timeControl.initialTime} minute${
+              timeControl.initialTime === 1 ? "" : "s"
             } with ${timeControl.increment} second${
               timeControl.increment === 1 ? "" : "s"
             } increment after every move`}
@@ -116,24 +116,34 @@ const UserLoggedInView: React.FC = () => {
       ) : (
         <div className="flex h-[19.25rem] w-[16.75rem] flex-wrap items-center justify-center gap-3 md:h-[24.75rem] md:w-[50rem] 3xl:h-[33rem] 3xl:w-[74rem] 3xl:gap-4">
           <QueueUpCard
-            timeControl={{ startingTime: 1, increment: 0 }}
-            onClick={() => queueUpMutation.mutate({ timeControl: 60 })}
+            timeControl={{ initialTime: 1, increment: 0 }}
+            onClick={() =>
+              queueUpMutation.mutate({ initialTime: 60, increment: 0 })
+            }
           ></QueueUpCard>
           <QueueUpCard
-            timeControl={{ startingTime: 1, increment: 1 }}
-            onClick={() => queueUpMutation.mutate({ timeControl: 60 })}
+            timeControl={{ initialTime: 1, increment: 1 }}
+            onClick={() =>
+              queueUpMutation.mutate({ initialTime: 60, increment: 1 })
+            }
           ></QueueUpCard>
           <QueueUpCard
-            timeControl={{ startingTime: 2, increment: 1 }}
-            onClick={() => queueUpMutation.mutate({ timeControl: 120 })}
+            timeControl={{ initialTime: 2, increment: 1 }}
+            onClick={() =>
+              queueUpMutation.mutate({ initialTime: 120, increment: 1 })
+            }
           ></QueueUpCard>
           <QueueUpCard
-            timeControl={{ startingTime: 3, increment: 0 }}
-            onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
+            timeControl={{ initialTime: 3, increment: 0 }}
+            onClick={() =>
+              queueUpMutation.mutate({ initialTime: 180, increment: 0 })
+            }
           ></QueueUpCard>
           <QueueUpCard
-            timeControl={{ startingTime: 3, increment: 2 }}
-            onClick={() => queueUpMutation.mutate({ timeControl: 180 })}
+            timeControl={{ initialTime: 3, increment: 2 }}
+            onClick={() =>
+              queueUpMutation.mutate({ initialTime: 180, increment: 2 })
+            }
           ></QueueUpCard>
         </div>
       )}

@@ -1,54 +1,116 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { type TimeControlName } from "@prisma/client";
 import { type Game } from "./game";
+import { type TimeControl } from "~/utils/pieces";
 
-const tiers = [
-  "guest",
-  "0-250",
-  "251-500",
-  "501-750",
-  "751-1000",
-  "1001-1250",
-  "1251-1500",
-  "1501-1750",
-  "1751-2000",
-  "2001-2250",
-  "2251-2500",
-  "2500+",
-] as const;
+export const playersWaitingForMatch = new Map<
+  TimeControlName,
+  Map<number, Game[]>
+>();
+playersWaitingForMatch.set("BULLET", new Map<number, Game[]>());
+playersWaitingForMatch.set("BULLET_INCREMENT", new Map<number, Game[]>());
+playersWaitingForMatch.set("LONG_BULLET_INCREMENT", new Map<number, Game[]>());
+playersWaitingForMatch.set("BLITZ", new Map<number, Game[]>());
+playersWaitingForMatch.set("BLITZ_INCREMENT", new Map<number, Game[]>());
 
-export type RatingTier = (typeof tiers)[number];
-const queue = new Map<RatingTier, Game[]>();
-tiers.forEach((item) => {
-  queue.set(item, [] as Game[]);
+const ratingBuckets = Array.from({ length: 30 }, (x, i) => i * 100); // expected to get array [0, 100, 200, ..., 3000]
+const queueBullet = playersWaitingForMatch.get("BULLET")!;
+const queueBulletIncrement = playersWaitingForMatch.get("BULLET_INCREMENT")!;
+const queueLongBulletIncrement = playersWaitingForMatch.get(
+  "LONG_BULLET_INCREMENT"
+)!;
+const queueBlitz = playersWaitingForMatch.get("BLITZ")!;
+const queueBlitzIncrement = playersWaitingForMatch.get("BLITZ_INCREMENT")!;
+
+ratingBuckets.forEach((item) => {
+  queueBullet.set(item, [] as Game[]);
+  queueBulletIncrement.set(item, [] as Game[]);
+  queueLongBulletIncrement.set(item, [] as Game[]);
+  queueBlitz.set(item, [] as Game[]);
+  queueBlitzIncrement.set(item, [] as Game[]);
 });
 
-export const playersWaitingForMatch = queue;
-export const resolveRatingToTier = (rating: number): RatingTier => {
-  let tier = "guest" as RatingTier;
-  if (rating <= 250) {
-    tier = "0-250";
-  } else if (rating <= 500) {
-    tier = "251-500";
-  } else if (rating <= 750) {
-    tier = "501-750";
-  } else if (rating <= 1000) {
-    tier = "751-1000";
-  } else if (rating <= 1250) {
-    tier = "1001-1250";
-  } else if (rating <= 1500) {
-    tier = "1251-1500";
-  } else if (rating <= 1750) {
-    tier = "1501-1750";
-  } else if (rating <= 2000) {
-    tier = "1751-2000";
-  } else if (rating <= 2250) {
-    tier = "2001-2250";
-  } else if (rating <= 2500) {
-    tier = "2251-2500";
+const resolveTimeControlToName = (timeControl: TimeControl) => {
+  const time = timeControl.initialTime;
+  const inc = timeControl.increment;
+
+  if (time === 60 && inc === 0) {
+    return "BULLET";
+  } else if (time === 60 && inc === 1) {
+    return "BULLET_INCREMENT";
+  } else if (time === 120 && inc === 1) {
+    return "LONG_BULLET_INCREMENT";
+  } else if (time === 180 && inc === 0) {
+    return "BLITZ";
   } else {
-    tier = "2500+";
+    return "BLITZ_INCREMENT";
   }
-  return tier;
 };
 
+export const findGame = (
+  id: string,
+  rating: number,
+  timeControl: TimeControl
+): Game | undefined => {
+  const rounded = Math.round(rating / 100) * 100;
+  const queue = playersWaitingForMatch.get(
+    resolveTimeControlToName(timeControl)
+  )!;
+  let currentBucketQueue = queue.get(rounded);
+  if (currentBucketQueue?.length) {
+    const opponentsIndex = currentBucketQueue.findIndex(
+      (game) => game.white.id !== id
+    );
+    console.log(opponentsIndex);
+    if (opponentsIndex !== -1) {
+      return currentBucketQueue.splice(opponentsIndex, 1)[0];
+    }
+  }
+  currentBucketQueue = queue.get(rounded + 100);
+  if (currentBucketQueue?.length) {
+    const opponentsIndex = currentBucketQueue.findIndex(
+      (game) => game.white.id !== id
+    );
+    console.log(opponentsIndex);
+
+    if (opponentsIndex !== -1) {
+      return currentBucketQueue.splice(opponentsIndex, 1)[0];
+    }
+  }
+  currentBucketQueue = queue.get(rounded - 100);
+  if (currentBucketQueue?.length) {
+    const opponentsIndex = currentBucketQueue.findIndex(
+      (game) => game.white.id !== id
+    );
+    console.log(opponentsIndex);
+
+    if (opponentsIndex !== -1) {
+      return currentBucketQueue.splice(opponentsIndex, 1)[0];
+    }
+  }
+
+  return undefined;
+};
+
+export const addGameToQueue = (rating: number, game: Game) => {
+  const rounded = Math.round(rating / 100) * 100;
+  const timeControlName = resolveTimeControlToName({
+    initialTime: game.initialTime,
+    increment: game.increment,
+  });
+
+  const correctTimeControlQueue = playersWaitingForMatch.get(timeControlName);
+  const correctRatingQueue = correctTimeControlQueue?.get(rounded);
+  correctRatingQueue?.push(game);
+};
+
+export const queuedUpUsers = new Map<
+  string,
+  { gameId: string; timeControl: TimeControl }
+>(); // key: userId, value: {gameId, timeControl}
 export const matches = new Map<string, Game>();
+export const playingUsers = new Map<
+  string,
+  { gameId: string; timeControl: TimeControl }
+>(); // key: userId, value: {gameId, timeControl}
 export const abandonTimeouts = new Map<string, NodeJS.Timeout>();

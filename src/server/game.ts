@@ -1,16 +1,18 @@
 import {
-  type PlayerColor,
   initBoard,
+  type PlayerColor,
   type PromotedPieceType,
+  type TimeControl,
 } from "~/utils/pieces";
 import { randomUUID } from "crypto";
-import { matches } from "./matchmaking";
+import { matches, playingUsers } from "./matchmaking";
 import { type Coords } from "~/utils/coords";
 import Chess from "~/utils/chess";
 import { prisma } from "./db";
-import { type TimeControl } from "@prisma/client";
+import { type TimeControlName } from "@prisma/client";
 import { calculateRatingDiff } from "~/utils/elo";
 import { setTimeout } from "timers";
+
 export type Player = {
   id: string;
   rating: number;
@@ -56,35 +58,36 @@ export class Game {
     return this._lastMoveTime;
   }
 
-  private _timeControl: number;
+  private _initialTime: number;
+  public get initialTime(): number {
+    return this._initialTime;
+  }
   private _increment: number;
+  public get increment(): number {
+    return this._increment;
+  }
 
   private _timeout: NodeJS.Timeout;
   private _hasStarted = false;
 
-  constructor(
-    whiteId: string,
-    whiteRating: number,
-    timeControl: number,
-    increment = 0
-  ) {
+  constructor(whiteId: string, whiteRating: number, timeControl: TimeControl) {
     this._white = {
       id: whiteId,
       rating: whiteRating,
-      timeLeftInMilis: timeControl * 1000,
+      timeLeftInMilis: timeControl.initialTime * 1000,
     };
 
     this._black = {
       id: "-1",
       rating: -1,
-      timeLeftInMilis: timeControl * 1000,
+      timeLeftInMilis: timeControl.initialTime * 1000,
     };
     this._turn = this._white;
     this._drawOfferedBy = null;
     this._id = randomUUID();
     this._lastMoveTime = Date.now();
-    this._timeControl = timeControl;
-    this._increment = increment;
+    this._initialTime = timeControl.initialTime;
+    this._increment = timeControl.increment;
 
     this._timeout = setTimeout(() => {
       this.chess.timeExpired("BLACK");
@@ -119,6 +122,7 @@ export class Game {
     }
 
     clearTimeout(this._timeout);
+
     this._turn.timeLeftInMilis += this._increment * 1000;
     timeLeft = this._turn.timeLeftInMilis;
 
@@ -239,15 +243,17 @@ export class Game {
     clearTimeout(this._timeout);
 
     matches.delete(this._id);
+    playingUsers.delete(this.white.id);
+    playingUsers.delete(this.black.id);
 
-    let timeControl: TimeControl;
-    if (this._timeControl === 60) {
+    let timeControl: TimeControlName;
+    if (this._initialTime === 60) {
       timeControl = "BULLET";
-    } else if (this._timeControl === 60 && this._increment === 1) {
+    } else if (this._initialTime === 60 && this._increment === 1) {
       timeControl = "BULLET_INCREMENT";
-    } else if (this._timeControl === 120 && this._increment === 1) {
+    } else if (this._initialTime === 120 && this._increment === 1) {
       timeControl = "LONG_BULLET_INCREMENT";
-    } else if (this._timeControl === 180) {
+    } else if (this._initialTime === 180) {
       timeControl = "BLITZ";
     } else {
       timeControl = "BLITZ_INCREMENT";

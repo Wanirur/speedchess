@@ -1,9 +1,10 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import {
-  type RatingTier,
-  playersWaitingForMatch,
-  resolveRatingToTier,
   matches,
+  findGame,
+  queuedUpUsers,
+  playingUsers,
+  addGameToQueue,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 import { Game } from "~/server/game";
@@ -18,9 +19,13 @@ import { Coords } from "~/utils/coords";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
-    .input(z.object({ timeControl: z.number().min(30).max(180) }))
+    .input(
+      z.object({
+        initialTime: z.number().min(30).max(180),
+        increment: z.number().min(0).max(2),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      let tier = "guest" as RatingTier;
       let rating = -1;
       let id = "guest";
 
@@ -38,58 +43,86 @@ export const chessgameRouter = createTRPCRouter({
             return;
           }
           rating = user.rating ?? 1200;
-          if (rating !== null) {
-            tier = resolveRatingToTier(rating);
-          }
         } catch (e) {
           console.error("no user with id: " + id + " in db");
         }
       }
 
-      if (playersWaitingForMatch.has(tier)) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const queue = playersWaitingForMatch.get(tier)!;
-        if (queue.length > 0) {
-          if (id != "guest" && queue[queue.length - 1]?.white.id === id) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "You are already in queue. Multiple tabs open?",
-            });
-          }
-          const game = queue.pop();
-          if (!game) {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "Game you tried to join ceased to exist. Queue up again.",
-            });
-          }
-
-          game.black = {
-            id: id,
-            rating: rating,
-            timeLeftInMilis: input.timeControl * 1000,
-          };
-          
-          game.start();
-          matches.set(game.id, game);
-          await pusher.trigger(game.id, "match_start", {
-            matchId: game.id,
-            timeControl: input.timeControl,
-          });
+      const queueMatchData = queuedUpUsers.get(id);
+      if (queueMatchData) {
+        if (queueMatchData.timeControl.initialTime === input.initialTime) {
           return {
-            uuid: game.id,
-            gameStarted: true,
-          };
-        } else {
-          const game = new Game(id, rating, input.timeControl);
-          queue.push(game);
-          return {
-            uuid: game.id,
+            uuid: queueMatchData.gameId,
             gameStarted: false,
           };
         }
+
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already in queue in different time control!",
+        });
       }
+
+      const matchData = playingUsers.get(id);
+      if (matchData) {
+        if (matchData.timeControl.initialTime === input.initialTime) {
+          return {
+            uuid: matchData.gameId,
+            gameStarted: false,
+          };
+        }
+
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You are already playing in different time control!",
+        });
+      }
+
+      const timeControl = {
+        initialTime: input.initialTime,
+        increment: input.increment,
+      };
+      const game = findGame(id, rating, timeControl);
+      if (game) {
+        game.black = {
+          id: id,
+          rating: rating,
+          timeLeftInMilis: input.initialTime * 1000,
+        };
+
+        game.start();
+        matches.set(game.id, game);
+        queuedUpUsers.delete(game.white.id);
+        console.log(queuedUpUsers);
+
+        playingUsers.set(game.white.id, {
+          gameId: game.id,
+          timeControl: timeControl,
+        });
+        playingUsers.set(game.black.id, {
+          gameId: game.id,
+          timeControl: timeControl,
+        });
+        console.log(playingUsers);
+
+        await pusher.trigger(game.id, "match_start", {
+          matchId: game.id,
+          timeControl: input.initialTime,
+        });
+        return {
+          uuid: game.id,
+          gameStarted: true,
+        };
+      }
+
+      const newGame = new Game(id, rating, timeControl);
+      addGameToQueue(rating, newGame);
+      queuedUpUsers.set(id, { gameId: newGame.id, timeControl: timeControl });
+      console.log(queuedUpUsers);
+      return {
+        uuid: newGame.id,
+        gameStarted: false,
+      };
     }),
   getGameState: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
@@ -126,6 +159,10 @@ export const chessgameRouter = createTRPCRouter({
         ratingBlack: match.black.rating,
         color: (user.id === match.white.id ? "WHITE" : "BLACK") as PlayerColor,
         turn: (match.turn === match.white ? "WHITE" : "BLACK") as PlayerColor,
+        timeControl: {
+          initialTime: match.initialTime,
+          increment: match.increment,
+        },
       };
     }),
   movePiece: protectedProcedure

@@ -58,7 +58,7 @@ export type GameResult = {
 };
 
 export type TimeControl = {
-  startingTime: number;
+  initialTime: number;
   increment: number;
 };
 

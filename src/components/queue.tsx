@@ -23,7 +23,8 @@ const QueueDisplay: React.FC<
 
   useEffect(() => {
     const onStart = (data: { matchId: string; timeControl: number }) => {
-      console.log("here!");
+      pusherClient?.unsubscribe(gameId);
+      pusherClient?.unsubscribe(`presence-${gameId}`);
       void router.push(`/play/${data.matchId}`);
     };
 
