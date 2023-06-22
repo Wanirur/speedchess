@@ -2,8 +2,8 @@ import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
-import MovesHistory from "~/components/moveshistory";
-import UserBanner from "~/components/userbanner";
+import MovesHistory from "~/components/moves_history";
+import UserBanner from "~/components/user_banner";
 import Chess from "~/utils/chess";
 import { initBoard } from "~/utils/pieces";
 
