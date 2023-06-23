@@ -276,8 +276,6 @@ class Chess {
           to,
           movedPiece.pieceType,
           toTile !== null,
-          true,
-          true,
           playerColor === "WHITE"
             ? this._isBlackKingChecked
             : this._isWhiteKingChecked,
@@ -318,12 +316,10 @@ class Chess {
         to,
         movedPiece.pieceType,
         toTile !== null,
-        true,
-        true,
         playerColor === "WHITE"
           ? this._isBlackKingChecked
           : this._isWhiteKingChecked,
-        !!this._gameResult
+        this._gameResult?.reason === "MATE"
       )
     );
 
@@ -496,9 +492,35 @@ class Chess {
     let result = "";
     this._algebraic.forEach((move) => {
       result += move.toString();
+      result += " ";
     });
 
-    return result;
+    return result.trimEnd();
+  }
+
+  public getFullLongAlgebraicHistory() {
+    let result = "";
+    this._algebraic.forEach((move) => {
+      result += move.toLongNotationString();
+      result += " ";
+    });
+
+    return result.trimEnd();
+  }
+
+  public playOutFromAlgebraic(moves: AlgebraicNotation[]) {
+    let color = "WHITE" as PlayerColor;
+    for (const currentMove of moves) {
+      const from = currentMove.from;
+      const to = currentMove.to;
+      this.move(from, to, color);
+
+      if (color === "WHITE") {
+        color = "BLACK";
+      } else {
+        color = "WHITE";
+      }
+    }
   }
 
   private _calculateAttackedTiles() {

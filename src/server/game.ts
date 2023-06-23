@@ -269,7 +269,7 @@ export class Game {
       data: {
         result: this.gameResult.winner,
         reason: this.gameResult.reason,
-        moves: this._chess.getFullAlgebraicHistory(),
+        moves: this._chess.getFullLongAlgebraicHistory(),
         timeControl: timeControl,
         gameToUsers: {
           create: [

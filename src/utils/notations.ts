@@ -230,8 +230,6 @@ export class AlgebraicNotation {
   }
   private _pieceType: PieceType;
   private _isCapturing: boolean;
-  private _isXDisambiguous: boolean;
-  private _isYDisambiguous: boolean;
 
   private _isCheck: boolean;
   private _isMate: boolean;
@@ -244,23 +242,47 @@ export class AlgebraicNotation {
     to: Coords,
     piece: PieceType,
     isCapturing: boolean,
-    isXDisambiguous: boolean,
-    isYDisambiguous: boolean,
     isCheck: boolean,
     isMate: boolean,
-    gameResult?: GameResult,
     promotedTo?: PieceType
   ) {
     this._from = from;
     this._to = to;
     this._pieceType = piece;
     this._isCapturing = isCapturing;
-    this._isXDisambiguous = isXDisambiguous;
-    this._isYDisambiguous = isYDisambiguous;
     this._promotedTo = promotedTo;
-    this._gameResult = gameResult;
     this._isCheck = isCheck;
     this._isMate = isMate;
+  }
+
+  public toLongNotationString() {
+    if (this._promotedTo) {
+      return this._to.toString() + "=" + this._promotedTo === "KNIGHT"
+        ? "N"
+        : this._promotedTo.charAt(0);
+    }
+
+    let result = "";
+    if (this._pieceType != "PAWN") {
+      result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
+    }
+
+    const from = this._from.toString();
+    result += from.charAt(0);
+    result += from.charAt(1);
+
+    if (this._isCapturing) {
+      result += "x";
+    }
+    result += this._to.toString();
+
+    if (this._isMate) {
+      result += "#";
+    } else if (this._isCheck) {
+      result += "+";
+    }
+
+    return result;
   }
 
   public toString() {
@@ -275,7 +297,7 @@ export class AlgebraicNotation {
     }
 
     if (this._promotedTo) {
-      return this._to.toNotation() + "=" + this._promotedTo === "KNIGHT"
+      return this._to.toString() + "=" + this._promotedTo === "KNIGHT"
         ? "N"
         : this._promotedTo.charAt(0);
     }
@@ -285,20 +307,10 @@ export class AlgebraicNotation {
       result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
     }
 
-    const from = this._from.toNotation();
-    if (
-      !this._isXDisambiguous ||
-      (this._pieceType === "PAWN" && this._isCapturing)
-    ) {
-      result += from.charAt(0);
-    }
-    if (!this._isYDisambiguous) {
-      result += from.charAt(1);
-    }
     if (this._isCapturing) {
       result += "x";
     }
-    result += this._to.toNotation();
+    result += this._to.toString();
 
     if (this._isMate) {
       result += "#";
@@ -307,5 +319,52 @@ export class AlgebraicNotation {
     }
 
     return result;
+  }
+
+  public static fromLongNotationString(notation: string) {
+    const pieceTypeString = notation.charAt(0);
+    const pieceType =
+      AlgebraicNotation._resolveSymbolToPieceType(pieceTypeString);
+
+    let charsLeft = pieceType !== "PAWN" ? notation.slice(1) : notation;
+    const fromCoordsString = charsLeft.slice(0, 2);
+    const isCapturing = charsLeft.charAt(2) === "x";
+    charsLeft = isCapturing ? charsLeft.slice(3) : charsLeft.slice(2);
+
+    const toCoordsString = charsLeft.slice(0, 2);
+    const isCheck = charsLeft.charAt(3) === "+";
+    const isMate = charsLeft.charAt(3) === "#";
+
+    const from = Coords.fromNotation(fromCoordsString);
+    const to = Coords.fromNotation(toCoordsString);
+
+    if (!from || !to) {
+      throw new Error("incorrect coordinates");
+    }
+
+    return new AlgebraicNotation(
+      from,
+      to,
+      pieceType,
+      isCapturing,
+      isCheck,
+      isMate
+    );
+  }
+
+  private static _resolveSymbolToPieceType(symbol: string) {
+    if (symbol === "K") {
+      return "KING";
+    } else if (symbol === "Q") {
+      return "QUEEN";
+    } else if (symbol === "R") {
+      return "ROOK";
+    } else if (symbol === "N") {
+      return "KNIGHT";
+    } else if (symbol === "B") {
+      return "BISHOP";
+    } else {
+      return "PAWN";
+    }
   }
 }

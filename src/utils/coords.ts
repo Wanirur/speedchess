@@ -46,7 +46,7 @@ export class Coords {
     return Coords._pool[y]?.[x];
   }
 
-  public toNotation() {
+  public toString() {
     return (
       String.fromCharCode("a".charCodeAt(0) + this._x) + this._y.toString()
     );
