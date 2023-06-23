@@ -400,4 +400,23 @@ export const chessgameRouter = createTRPCRouter({
 
       return { ...opponentData, rating: opponent.rating };
     }),
+
+  getGameHistory: protectedProcedure
+    .input(z.object({ id: z.number().nonnegative() }))
+    .query(async ({ ctx, input }) => {
+      const game = await ctx.prisma.game.findFirst({
+        where: {
+          id: input.id,
+        },
+      });
+
+      if (!game) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No game with provided id was found",
+        });
+      }
+
+      return game?.moves;
+    }),
 });

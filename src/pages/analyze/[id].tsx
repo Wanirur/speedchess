@@ -1,13 +1,18 @@
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
-import { useRef, useState } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
 import Chessboard from "~/components/chessboard";
 import MovesHistory from "~/components/moves_history";
 import UserBanner from "~/components/user_banner";
+import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
+import { AlgebraicNotation } from "~/utils/notations";
 import { initBoard } from "~/utils/pieces";
 
 const Test: NextPage = () => {
+  const router = useRouter();
+  const { id } = router.query;
   const { data: sessionData } = useSession();
   const board = initBoard();
 
@@ -16,13 +21,48 @@ const Test: NextPage = () => {
     chessRef.current = new Chess(board);
   }
 
+  const {
+    isLoading,
+    isError,
+    data: gameMoves,
+  } = api.chess.getGameHistory.useQuery(
+    { id: Number.parseInt(id as string) },
+    {
+      enabled: !!id,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  useEffect(() => {
+    if (!gameMoves) {
+      return;
+    }
+
+    const splitMovesString = gameMoves.split(" ");
+
+    console.log(splitMovesString);
+    try {
+      const algebraicMoves = splitMovesString.map((move) =>
+        AlgebraicNotation.fromLongNotationString(move)
+      );
+
+      chessRef.current?.playOutFromAlgebraic(algebraicMoves);
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error(err);
+      }
+    }
+  }, [gameMoves]);
+
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
 
-  if (!sessionData?.user) {
+  if (!sessionData?.user || isError) {
     return <div> error </div>;
   }
 
-  if (!chessRef.current) {
+  if (!chessRef.current || !router.isReady || isLoading) {
     return <div> loading...</div>;
   }
 
