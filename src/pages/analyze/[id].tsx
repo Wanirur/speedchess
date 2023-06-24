@@ -14,11 +14,10 @@ const Test: NextPage = () => {
   const router = useRouter();
   const { id } = router.query;
   const { data: sessionData } = useSession();
-  const board = initBoard();
 
   const chessRef = useRef<Chess | null>(null);
   if (chessRef.current === null) {
-    chessRef.current = new Chess(board);
+    chessRef.current = new Chess(initBoard());
   }
 
   const {
@@ -34,9 +33,10 @@ const Test: NextPage = () => {
       refetchOnWindowFocus: false,
     }
   );
+  const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
 
   useEffect(() => {
-    if (!gameMoves) {
+    if (!gameMoves || !chessRef.current) {
       return;
     }
 
@@ -48,15 +48,14 @@ const Test: NextPage = () => {
         AlgebraicNotation.fromLongNotationString(move)
       );
 
-      chessRef.current?.playOutFromAlgebraic(algebraicMoves);
+      chessRef.current.playOutFromAlgebraic(algebraicMoves);
+      setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
     } catch (err) {
       if (err instanceof Error) {
         console.error(err);
       }
     }
   }, [gameMoves]);
-
-  const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
 
   if (!sessionData?.user || isError) {
     return <div> error </div>;
@@ -67,7 +66,8 @@ const Test: NextPage = () => {
   }
 
   const boardToDisplay =
-    chessRef.current.history[indexOfBoardToDisplay]?.buildBoard() ?? board;
+    chessRef.current.history[indexOfBoardToDisplay]?.buildBoard() ??
+    chessRef.current.board;
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
@@ -100,12 +100,7 @@ const Test: NextPage = () => {
             <button
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
-                if (
-                  indexOfBoardToDisplay <
-                  chessRef.current!.history.length - 1
-                ) {
-                  setIndexOfBoardToDisplay((x) => x - 1);
-                }
+                setIndexOfBoardToDisplay((x) => (x === 1 ? x : x - 1));
               }}
             >
               {"<"}
@@ -113,9 +108,9 @@ const Test: NextPage = () => {
             <button
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
-                if (indexOfBoardToDisplay > 0) {
-                  setIndexOfBoardToDisplay((x) => x + 1);
-                }
+                setIndexOfBoardToDisplay((x) =>
+                  x === chessRef.current?.algebraic.length ? x : x + 1
+                );
               }}
             >
               {">"}

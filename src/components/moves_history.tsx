@@ -1,4 +1,9 @@
-import { type HTMLAttributes, type Dispatch, type SetStateAction } from "react";
+import {
+  type HTMLAttributes,
+  type Dispatch,
+  type SetStateAction,
+  useState,
+} from "react";
 import { twMerge } from "tailwind-merge";
 import type Chess from "~/utils/chess";
 
@@ -18,7 +23,7 @@ const MovesHistory: React.FC<
         className
       )}
     >
-      {moves.map((move, index) => {
+      {moves.map((move, index, movesArr) => {
         const stringifiedMove = move.toString();
         let result;
         if (index % 2) {
@@ -28,17 +33,26 @@ const MovesHistory: React.FC<
             (Math.floor(index / 2) + 1).toString() + ". " + stringifiedMove;
         }
 
+        let isHighlighted = false;
+        if (
+          index === indexToSelect ||
+          (indexToSelect === -1 && index === movesArr.length - 1)
+        ) {
+          isHighlighted = true;
+        }
+
         return (
           <div
             key={index}
-            className={`h-fit w-fit cursor-pointer whitespace-nowrap rounded-sm p-1 hover:bg-neutral-500 ${
-              index === indexToSelect
-                ? "bg-neutral-400 text-green-800 hover:text-green-900"
-                : ""
-            }`}
+            className={twMerge(
+              "h-fit w-fit cursor-pointer whitespace-nowrap rounded-sm p-1 hover:bg-neutral-500",
+              isHighlighted &&
+                "bg-neutral-400 text-green-800 hover:text-green-900"
+            )}
             onClick={() => {
               const fen = chess.history[index + 1];
               if (!fen) {
+                setIndex(-1);
                 return;
               }
 

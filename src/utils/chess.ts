@@ -105,9 +105,7 @@ class Chess {
     this._whiteKingCoords = this._findKing("WHITE");
     this._blackKingCoords = this._findKing("BLACK");
 
-    this._history = [
-      new FEN(this._currentBoard, "BLACK", true, true, true, true, null, 0),
-    ];
+    this._history = [] as FEN[];
   }
 
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {
@@ -442,7 +440,7 @@ class Chess {
   }
 
   public revertLastMove() {
-    if (this.history.length < 2) {
+    if (this.history.length <= 0) {
       throw new Error("no moves to revert");
     }
 
