@@ -100,7 +100,7 @@ const Test: NextPage = () => {
             <button
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
-                setIndexOfBoardToDisplay((x) => (x === 1 ? x : x - 1));
+                setIndexOfBoardToDisplay((x) => (x === 0 ? x : x - 1));
               }}
             >
               {"<"}
@@ -109,7 +109,7 @@ const Test: NextPage = () => {
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
                 setIndexOfBoardToDisplay((x) =>
-                  x === chessRef.current?.algebraic.length ? x : x + 1
+                  x + 1 === chessRef.current?.history.length ? x : x + 1
                 );
               }}
             >
