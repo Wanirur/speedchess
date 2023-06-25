@@ -255,31 +255,24 @@ export class AlgebraicNotation {
     this._isMate = isMate;
   }
 
+  //version used by UCI https://en.wikipedia.org/wiki/Universal_Chess_Interface
   public toLongNotationString() {
-    if (this._promotedTo) {
-      return this._to.toString() + "=" + this._promotedTo === "KNIGHT"
-        ? "N"
-        : this._promotedTo.charAt(0);
-    }
-
     let result = "";
-    if (this._pieceType != "PAWN") {
-      result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
-    }
 
     const from = this._from.toString();
-    result += from.charAt(0);
-    result += from.charAt(1);
-
-    if (this._isCapturing) {
-      result += "x";
-    }
+    result += from.slice(0, 2);
     result += this._to.toString();
 
-    if (this._isMate) {
-      result += "#";
-    } else if (this._isCheck) {
-      result += "+";
+    if (this._promotedTo) {
+      if (this._promotedTo === "QUEEN") {
+        result += "q";
+      } else if (this._promotedTo === "KNIGHT") {
+        result += "n";
+      } else if (this._promotedTo === "ROOK") {
+        result += "r";
+      } else {
+        result += "b";
+      }
     }
 
     return result;
