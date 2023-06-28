@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
@@ -9,11 +11,13 @@ import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { AlgebraicNotation } from "~/utils/notations";
 import { initBoard } from "~/utils/pieces";
+import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
 
-const Test: NextPage = () => {
+const AnalyzePage = () => {
   const router = useRouter();
   const { id } = router.query;
   const { data: sessionData } = useSession();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
   const chessRef = useRef<Chess | null>(null);
   if (chessRef.current === null) {
@@ -35,6 +39,21 @@ const Test: NextPage = () => {
   );
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
 
+  const { isLoading: isStockfishLoading, stockfish } = useStockfish();
+  const [movesLoaded, setMovesLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!movesLoaded) {
+      return;
+    }
+
+    const position = chessRef.current?.history[indexOfBoardToDisplay];
+    if (position) {
+      console.log(stockfish);
+      stockfish?.evaluate(position);
+    }
+  }, [indexOfBoardToDisplay, stockfish, movesLoaded]);
+
   useEffect(() => {
     if (!gameMoves || !chessRef.current) {
       return;
@@ -50,6 +69,7 @@ const Test: NextPage = () => {
 
       chessRef.current.playOutFromAlgebraic(algebraicMoves);
       setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
+      setMovesLoaded(true);
     } catch (err) {
       if (err instanceof Error) {
         console.error(err);
@@ -61,7 +81,7 @@ const Test: NextPage = () => {
     return <div> error </div>;
   }
 
-  if (!chessRef.current || !router.isReady || isLoading) {
+  if (!chessRef.current || !router.isReady || isLoading || isStockfishLoading) {
     return <div> loading...</div>;
   }
 
@@ -126,4 +146,12 @@ const Test: NextPage = () => {
   );
 };
 
-export default Test;
+const AnalyzeWithStockfish: NextPage = () => {
+  return (
+    <StockfishProvider>
+      <AnalyzePage></AnalyzePage>
+    </StockfishProvider>
+  );
+};
+
+export default AnalyzeWithStockfish;

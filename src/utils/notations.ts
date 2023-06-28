@@ -19,6 +19,7 @@ import {
   whiteKing,
   type PieceType,
   type GameResult,
+  copyBoard,
 } from "./pieces";
 
 //fen notation
@@ -61,7 +62,8 @@ export class FEN {
   ) {
     let piecePlacement = "";
 
-    for (const row of board) {
+    const rows = copyBoard(board).reverse();
+    for (const row of rows) {
       const rowSymbols = row.map((tile) => {
         return this._resolvePieceToFenSymbol(tile);
       });
@@ -88,8 +90,7 @@ export class FEN {
       piecePlacement += "/";
     }
 
-    piecePlacement = piecePlacement.slice(0, -1);
-    this._piecePlacement = piecePlacement;
+    this._piecePlacement = piecePlacement.slice(0, -1);
 
     this._turn = turnColor;
 
@@ -123,7 +124,7 @@ export class FEN {
   public buildBoard() {
     const board = buildEmptyBoard();
 
-    const rows = this._piecePlacement.split("/");
+    const rows = this._piecePlacement.split("/").reverse();
     let y = 0,
       x = 0;
     for (const row of rows) {
@@ -153,9 +154,9 @@ export class FEN {
       " " +
       this._enPassantTarget +
       " " +
-      this._halfMoveCount.toString() +
+      this._fullMoveCount.toString() +
       " " +
-      this._fullMoveCount.toString()
+      this._halfMoveCount.toString()
     );
   }
 

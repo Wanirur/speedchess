@@ -21,16 +21,65 @@ const config = {
   images: {
     remotePatterns: [
       {
-        hostname: 'avatars.githubusercontent.com',    
+        hostname: "avatars.githubusercontent.com",
       },
       {
-        hostname: 'lh3.googleusercontent.com'
+        hostname: "lh3.googleusercontent.com",
       },
       {
-        hostname: 'cdn.discordapp.com'
-      }
+        hostname: "cdn.discordapp.com",
+      },
     ],
   },
-  output: "standalone"
+  output: "standalone",
+  webpack: (config) => {
+    config.externals.push(/stockfish\.\w*/);
+    return config;
+  },
+  headers: async () => {
+    return [
+      {
+        source: "/stockfish.js",
+        headers: [
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
+          },
+        ],
+      },
+      {
+        source: "/stockfish.wasm",
+        headers: [
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
+          },
+        ],
+      },
+      {
+        source: "/stockfish.worker.js",
+        headers: [
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
+          },
+        ],
+      },
+      {
+        source: "/analyze/:slug",
+        headers: [
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
+          },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+        ],
+      },
+    ];
+  },
 };
+
 export default config;
