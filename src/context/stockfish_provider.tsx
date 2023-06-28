@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import { type FEN } from "~/utils/notations";
@@ -157,27 +154,50 @@ export class StockfishWrapper {
   }
 }
 
-const StockfishContext = createContext<{
+type StockfishContextType = {
   isLoading: boolean;
-  stockfish: StockfishWrapper | null;
-}>({ isLoading: true, stockfish: null });
+  isError: boolean;
+  isSuccess: boolean;
+  stockfish?: StockfishWrapper;
+};
+
+const StockfishContext = createContext<StockfishContextType>({
+  isLoading: true,
+  isError: false,
+  isSuccess: false,
+});
 
 const StockfishProvider = ({ children }: { children: ReactNode }) => {
-  const [context, setContext] = useState<{
-    isLoading: boolean;
-    stockfish: StockfishWrapper | null;
-  }>({ isLoading: true, stockfish: null });
+  const [context, setContext] = useState<StockfishContextType>({
+    isLoading: true,
+    isError: false,
+    isSuccess: false,
+  });
 
   return (
     <StockfishContext.Provider value={context}>
       <Script
         src="./../../../stockfish.js"
         onError={(e: Error) => {
-          console.error("Script failed to load", e);
+          console.log(e);
+
+          setContext({
+            isLoading: false,
+            isError: true,
+            isSuccess: false,
+          });
         }}
         onReady={() => {
           if (!wasmThreadsSupported()) {
-            console.log("wasm threads not supported");
+            console.log(
+              "wasm threads not supported (possibly incorrect headers?)"
+            );
+            setContext({
+              isLoading: false,
+              isError: true,
+              isSuccess: false,
+            });
+
             return;
           }
 
@@ -186,9 +206,12 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
           Stockfish().then((sf: StockfishApi) => {
             setContext({
               isLoading: false,
+              isError: false,
+              isSuccess: true,
               stockfish: new StockfishWrapper(sf),
             });
           });
@@ -199,7 +222,6 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 export const useStockfish = () => useContext(StockfishContext);
 
 export default StockfishProvider;

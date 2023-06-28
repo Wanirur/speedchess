@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
@@ -17,7 +15,6 @@ const AnalyzePage = () => {
   const router = useRouter();
   const { id } = router.query;
   const { data: sessionData } = useSession();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 
   const chessRef = useRef<Chess | null>(null);
   if (chessRef.current === null) {
@@ -38,12 +35,16 @@ const AnalyzePage = () => {
     }
   );
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
+  const [isReadyToAnalyze, setIsReadyToAnalyze] = useState<boolean>(false);
 
-  const { isLoading: isStockfishLoading, stockfish } = useStockfish();
-  const [movesLoaded, setMovesLoaded] = useState<boolean>(false);
+  const {
+    isLoading: isStockfishLoading,
+    isError: isStockfishError,
+    stockfish,
+  } = useStockfish();
 
   useEffect(() => {
-    if (!movesLoaded) {
+    if (!isReadyToAnalyze) {
       return;
     }
 
@@ -52,7 +53,7 @@ const AnalyzePage = () => {
       console.log(stockfish);
       stockfish?.evaluate(position);
     }
-  }, [indexOfBoardToDisplay, stockfish, movesLoaded]);
+  }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze]);
 
   useEffect(() => {
     if (!gameMoves || !chessRef.current) {
@@ -69,7 +70,7 @@ const AnalyzePage = () => {
 
       chessRef.current.playOutFromAlgebraic(algebraicMoves);
       setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
-      setMovesLoaded(true);
+      setIsReadyToAnalyze(true);
     } catch (err) {
       if (err instanceof Error) {
         console.error(err);
@@ -77,7 +78,7 @@ const AnalyzePage = () => {
     }
   }, [gameMoves]);
 
-  if (!sessionData?.user || isError) {
+  if (!sessionData?.user || isError || isStockfishError) {
     return <div> error </div>;
   }
 
