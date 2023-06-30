@@ -6,9 +6,17 @@ const EvalBar: React.FC<
   {
     evaluation: number;
     lines: string[][];
+    evals: number[];
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, evaluation, lines }) => {
-  if (!lines[0] || !lines[1] || !lines[2]) {
+> = ({ className, evaluation, lines, evals }) => {
+  if (
+    !lines[0] ||
+    !lines[1] ||
+    !lines[2] ||
+    !evals[0] ||
+    !evals[1] ||
+    !evals[2]
+  ) {
     return (
       <div className="flex h-1/6 w-full items-center justify-center">
         <Loader className="h-10 w-10 animate-spin stroke-white"></Loader>
@@ -16,9 +24,7 @@ const EvalBar: React.FC<
     );
   }
 
-  const stringifiedLines = lines.map((line) =>
-    line.reduce((prev, curr) => prev + " " + curr)
-  );
+  const stringifiedLines = lines.map((line) => line.join(" "));
 
   let message = "Draw";
   if (evaluation < 0) {
@@ -47,12 +53,27 @@ const EvalBar: React.FC<
       </div>
       <div className="flex h-3/5 flex-col text-xs font-light lg:text-sm">
         <div className="h-1/3 w-full gap-1 truncate p-1">
+          <span className="px-2 font-bold">
+            {new Intl.NumberFormat("en-US", {
+              signDisplay: "exceptZero",
+            }).format(evals[0])}
+          </span>
           {stringifiedLines[0]}
         </div>
         <div className="h-1/3 w-full gap-1 truncate p-1">
+          <span className="px-2 font-bold">
+            {new Intl.NumberFormat("en-US", {
+              signDisplay: "exceptZero",
+            }).format(evals[1])}
+          </span>
           {stringifiedLines[1]}
         </div>
         <div className="h-1/3 w-full gap-1 truncate p-1">
+          <span className="px-2 font-bold">
+            {new Intl.NumberFormat("en-US", {
+              signDisplay: "exceptZero",
+            }).format(evals[2])}
+          </span>
           {stringifiedLines[2]}
         </div>
       </div>

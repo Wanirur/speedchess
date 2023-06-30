@@ -1,7 +1,7 @@
 import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
-import { AlgebraicNotation, type FEN } from "~/utils/notations";
-import { PlayerColor } from "~/utils/pieces";
+import { FEN } from "~/utils/notations";
+import { type PlayerColor } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {
@@ -113,16 +113,16 @@ class StockfishMessageQueue {
   }
 }
 
+export type BestChessLine = {
+  evaluation: number;
+  moves: string[];
+};
+
 class StockfishWrapper {
   private _messageQueue: StockfishMessageQueue;
 
-  private _evaluation = 0;
-  public get evaluation(): number {
-    return this._evaluation;
-  }
-
-  private _bestLines = new Array<string[]>(3);
-  public get bestLines(): string[][] {
+  private _bestLines = new Array<BestChessLine>(3);
+  public get bestLines(): BestChessLine[] {
     return this._bestLines;
   }
 
@@ -133,35 +133,39 @@ class StockfishWrapper {
 
   constructor(stockfishInstance: StockfishApi) {
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
-
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
-      console.log(line);
-      if (line.startsWith("Final evaluation")) {
-        const words = line.split(" ");
-        const evaluation = words[2];
-        if (evaluation) {
-          this._evaluation = Number.parseFloat(evaluation);
-        }
-      } else if (line.startsWith("info") && line.includes("multipv")) {
-        const words = line.split(" ");
-        const variationIndex = Number.parseInt(words[6] ?? "1") - 1;
-        const movesBegginingIndex = 19;
-        const moves = [] as string[];
-        const currentDepth = words[2] ?? "0";
-        for (let i = movesBegginingIndex; i < words.length; i++) {
-          const move = words[i];
-          if (!move) {
-            continue;
-          }
-
-          console.log(move);
-          moves.push(move);
-        }
-
-        this._bestLines[variationIndex] = moves;
-        this._currentDepth = Number.parseInt(currentDepth);
+      if (line.startsWith("info") && line.includes("multipv")) {
+        this._handleCalculation(line);
       }
     });
+  }
+
+  private _handleCalculation(line: string) {
+    const words = line.split(" ");
+    const variationIndex = Number.parseInt(words[6] ?? "1") - 1;
+    const movesBegginingIndex = 17;
+    const moves = [] as string[];
+    const currentDepth = words[2] ?? "0";
+    const evaluation = words[9] ?? "0";
+    for (let i = movesBegginingIndex; i < words.length; i++) {
+      const move = words[i];
+      if (!move) {
+        continue;
+      }
+
+      moves.push(move);
+    }
+
+    this._bestLines[variationIndex] = {
+      evaluation: Number.parseInt(evaluation) / 100,
+      moves: moves,
+    };
+
+    if (variationIndex !== 2) {
+      return;
+    }
+
+    this._currentDepth = Number.parseInt(currentDepth);
   }
 
   setStrength(elo: number) {
@@ -169,15 +173,19 @@ class StockfishWrapper {
     this._messageQueue.sendMessage(`setoption name UCI_Elo ${elo}`);
   }
 
-  evaluate(position: FEN, turn: PlayerColor) {
+  analysisMode() {
     this._messageQueue.sendMessage("setoption name MultiPV value 3");
     this._messageQueue.sendMessage("ucinewgame");
-    if (turn) {
+  }
+
+  calculateBestVariations(position: FEN, turn: PlayerColor, depth: number) {
+    this._messageQueue.sendMessage("ucinewgame");
+    this._messageQueue.sendMessage(`position fen ${position.toString()}`);
+
+    if (turn === "BLACK") {
       this._messageQueue.sendMessage("flip");
     }
-    this._messageQueue.sendMessage(`position fen ${position.toString()}`);
-    this._messageQueue.sendMessage(`eval`);
-    this._messageQueue.sendMessage(`go depth 100`);
+    this._messageQueue.sendMessage(`go depth ${depth}`);
   }
 }
 

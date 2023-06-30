@@ -20,6 +20,7 @@ import {
   type PieceType,
   type GameResult,
   copyBoard,
+  initBoard,
 } from "./pieces";
 
 //fen notation
@@ -119,6 +120,10 @@ export class FEN {
 
     this._halfMoveCount = halfMoves;
     this._fullMoveCount = Math.floor(halfMoves / 2);
+  }
+
+  public static startingPosition() {
+    return new FEN(initBoard(), "WHITE", true, true, true, true, null, 1);
   }
 
   public buildBoard() {
