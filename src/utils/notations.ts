@@ -315,19 +315,9 @@ export class AlgebraicNotation {
     return result;
   }
 
-  public static fromLongNotationString(notation: string) {
-    const pieceTypeString = notation.charAt(0);
-    const pieceType =
-      AlgebraicNotation._resolveSymbolToPieceType(pieceTypeString);
-
-    let charsLeft = pieceType !== "PAWN" ? notation.slice(1) : notation;
-    const fromCoordsString = charsLeft.slice(0, 2);
-    const isCapturing = charsLeft.charAt(2) === "x";
-    charsLeft = isCapturing ? charsLeft.slice(3) : charsLeft.slice(2);
-
-    const toCoordsString = charsLeft.slice(0, 2);
-    const isCheck = charsLeft.charAt(3) === "+";
-    const isMate = charsLeft.charAt(3) === "#";
+  public static getCoordsFromLongAlgebraicString(notation: string) {
+    const fromCoordsString = notation.slice(0, 2);
+    const toCoordsString = notation.slice(2, 4);
 
     const from = Coords.fromNotation(fromCoordsString);
     const to = Coords.fromNotation(toCoordsString);
@@ -336,26 +326,22 @@ export class AlgebraicNotation {
       throw new Error("incorrect coordinates");
     }
 
-    return new AlgebraicNotation(
-      from,
-      to,
-      pieceType,
-      isCapturing,
-      isCheck,
-      isMate
-    );
+    return {
+      from: from,
+      to: to,
+    };
   }
 
-  private static _resolveSymbolToPieceType(symbol: string) {
-    if (symbol === "K") {
+  private static _resolveSymbolToPieceType(symbol: string): PieceType {
+    if (symbol === "k") {
       return "KING";
-    } else if (symbol === "Q") {
+    } else if (symbol === "q") {
       return "QUEEN";
-    } else if (symbol === "R") {
+    } else if (symbol === "r") {
       return "ROOK";
-    } else if (symbol === "N") {
+    } else if (symbol === "n") {
       return "KNIGHT";
-    } else if (symbol === "B") {
+    } else if (symbol === "b") {
       return "BISHOP";
     } else {
       return "PAWN";

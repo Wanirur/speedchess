@@ -506,11 +506,11 @@ class Chess {
     return result.trimEnd();
   }
 
-  public playOutFromAlgebraic(moves: AlgebraicNotation[]) {
+  public playOutFromLongAlgebraicString(moves: string[]) {
     let color = "WHITE" as PlayerColor;
     for (const currentMove of moves) {
-      const from = currentMove.from;
-      const to = currentMove.to;
+      const { from, to } =
+        AlgebraicNotation.getCoordsFromLongAlgebraicString(currentMove);
       this.move(from, to, color);
 
       if (color === "WHITE") {

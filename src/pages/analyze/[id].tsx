@@ -7,9 +7,9 @@ import MovesHistory from "~/components/moves_history";
 import UserBanner from "~/components/user_banner";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
-import { AlgebraicNotation } from "~/utils/notations";
 import { initBoard } from "~/utils/pieces";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
+import EvalBar from "~/components/eval_bar";
 
 const AnalyzePage = () => {
   const router = useRouter();
@@ -34,8 +34,31 @@ const AnalyzePage = () => {
       refetchOnWindowFocus: false,
     }
   );
+
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const [isReadyToAnalyze, setIsReadyToAnalyze] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!gameMoves || !chessRef.current) {
+      return;
+    }
+
+    const moves = gameMoves.split(" ");
+
+    console.log(moves);
+    try {
+      chessRef.current.playOutFromLongAlgebraicString(moves);
+      setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
+      setIsReadyToAnalyze(true);
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error(err);
+      }
+    }
+  }, [gameMoves]);
+
+  const [evaluation, setEvaluation] = useState<number>(0);
+  const [bestLines, setBestLines] = useState<string[][]>([]);
 
   const {
     isLoading: isStockfishLoading,
@@ -48,35 +71,28 @@ const AnalyzePage = () => {
       return;
     }
 
-    const position = chessRef.current?.history[indexOfBoardToDisplay];
+    const position = chessRef.current?.history[indexOfBoardToDisplay + 1];
     if (position) {
-      console.log(stockfish);
-      stockfish?.evaluate(position);
+      stockfish?.evaluate(
+        position,
+        (indexOfBoardToDisplay + 1) % 2 ? "WHITE" : "BLACK"
+      );
     }
   }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze]);
 
   useEffect(() => {
-    if (!gameMoves || !chessRef.current) {
-      return;
+    if (stockfish?.evaluation) {
+      setEvaluation(stockfish?.evaluation);
     }
 
-    const splitMovesString = gameMoves.split(" ");
-
-    console.log(splitMovesString);
-    try {
-      const algebraicMoves = splitMovesString.map((move) =>
-        AlgebraicNotation.fromLongNotationString(move)
-      );
-
-      chessRef.current.playOutFromAlgebraic(algebraicMoves);
-      setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
-      setIsReadyToAnalyze(true);
-    } catch (err) {
-      if (err instanceof Error) {
-        console.error(err);
-      }
+    if (
+      stockfish?.bestLines[0] &&
+      stockfish?.bestLines[1] &&
+      stockfish?.bestLines[2]
+    ) {
+      setBestLines([...stockfish?.bestLines]);
     }
-  }, [gameMoves]);
+  }, [stockfish?.bestLines, stockfish?.currentDepth, stockfish?.evaluation]);
 
   if (!sessionData?.user || isError || isStockfishError) {
     return <div> error </div>;
@@ -109,6 +125,14 @@ const AnalyzePage = () => {
             className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
             user={sessionData?.user}
           ></UserBanner>
+
+          {stockfish && (
+            <EvalBar
+              className="hidden h-1/5 w-full font-os text-white md:flex"
+              evaluation={evaluation}
+              lines={bestLines}
+            ></EvalBar>
+          )}
 
           <MovesHistory
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"

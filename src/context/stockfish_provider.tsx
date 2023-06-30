@@ -1,6 +1,7 @@
 import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
-import { type FEN } from "~/utils/notations";
+import { AlgebraicNotation, type FEN } from "~/utils/notations";
+import { PlayerColor } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {
@@ -112,7 +113,7 @@ class StockfishMessageQueue {
   }
 }
 
-export class StockfishWrapper {
+class StockfishWrapper {
   private _messageQueue: StockfishMessageQueue;
 
   private _evaluation = 0;
@@ -120,9 +121,14 @@ export class StockfishWrapper {
     return this._evaluation;
   }
 
-  private _bestLines = new Array<string>(3);
-  public get bestLines(): string[] {
+  private _bestLines = new Array<string[]>(3);
+  public get bestLines(): string[][] {
     return this._bestLines;
+  }
+
+  private _currentDepth = 0;
+  public get currentDepth(): number {
+    return this._currentDepth;
   }
 
   constructor(stockfishInstance: StockfishApi) {
@@ -130,12 +136,30 @@ export class StockfishWrapper {
 
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
       console.log(line);
-      if (line.includes("Final evaluation")) {
+      if (line.startsWith("Final evaluation")) {
         const words = line.split(" ");
         const evaluation = words[2];
         if (evaluation) {
           this._evaluation = Number.parseFloat(evaluation);
         }
+      } else if (line.startsWith("info") && line.includes("multipv")) {
+        const words = line.split(" ");
+        const variationIndex = Number.parseInt(words[6] ?? "1") - 1;
+        const movesBegginingIndex = 19;
+        const moves = [] as string[];
+        const currentDepth = words[2] ?? "0";
+        for (let i = movesBegginingIndex; i < words.length; i++) {
+          const move = words[i];
+          if (!move) {
+            continue;
+          }
+
+          console.log(move);
+          moves.push(move);
+        }
+
+        this._bestLines[variationIndex] = moves;
+        this._currentDepth = Number.parseInt(currentDepth);
       }
     });
   }
@@ -145,9 +169,12 @@ export class StockfishWrapper {
     this._messageQueue.sendMessage(`setoption name UCI_Elo ${elo}`);
   }
 
-  evaluate(position: FEN) {
+  evaluate(position: FEN, turn: PlayerColor) {
     this._messageQueue.sendMessage("setoption name MultiPV value 3");
     this._messageQueue.sendMessage("ucinewgame");
+    if (turn) {
+      this._messageQueue.sendMessage("flip");
+    }
     this._messageQueue.sendMessage(`position fen ${position.toString()}`);
     this._messageQueue.sendMessage(`eval`);
     this._messageQueue.sendMessage(`go depth 100`);
@@ -202,6 +229,7 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
           }
 
           if (context.stockfish) {
+            setContext({ ...context });
             console.log("stockfish instance already running");
             return;
           }
