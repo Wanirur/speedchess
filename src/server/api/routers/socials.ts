@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 export const socialsRouter = createTRPCRouter({
@@ -118,5 +118,37 @@ export const socialsRouter = createTRPCRouter({
         games,
         nextCursor,
       };
+    }),
+  getPlayersOfAnalyzedGame: publicProcedure
+    .input(z.object({ id: z.number().nonnegative() }))
+    .query(async ({ ctx, input }) => {
+      const data = await ctx.prisma.game.findFirst({
+        where: {
+          id: input.id,
+        },
+        select: {
+          gameToUsers: {
+            select: {
+              color: true,
+              user: {
+                select: {
+                  id: true,
+                  rating: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!data?.gameToUsers[0]?.user || !data?.gameToUsers[1]?.user) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "no user found",
+        });
+      }
+
+      return data;
     }),
 });

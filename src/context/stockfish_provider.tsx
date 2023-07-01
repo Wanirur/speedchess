@@ -135,7 +135,7 @@ class StockfishWrapper extends EventEmitter {
     super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
-      console.log(line);
+      // console.log(line);
       if (line.startsWith("info") && line.includes("multipv")) {
         this._handleCalculation(line);
       }

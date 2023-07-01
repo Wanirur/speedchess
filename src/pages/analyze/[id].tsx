@@ -13,6 +13,7 @@ import StockfishProvider, {
   useStockfish,
 } from "~/context/stockfish_provider";
 import EvalBar from "~/components/eval_bar";
+import { type User } from "next-auth";
 
 const AnalyzePage = () => {
   const router = useRouter();
@@ -37,6 +38,62 @@ const AnalyzePage = () => {
       refetchOnWindowFocus: false,
     }
   );
+
+  const { data: playersData } = api.socials.getPlayersOfAnalyzedGame.useQuery(
+    { id: Number.parseInt(id as string) },
+    {
+      enabled: !!id,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const [whiteData, setWhiteData] = useState<User | undefined>();
+  const [blackData, setBlackData] = useState<User | undefined>();
+
+  useEffect(() => {
+    if (!playersData) {
+      return;
+    }
+
+    const whiteGameToUser = playersData.gameToUsers.filter(
+      (gameToUser) => gameToUser.color === "WHITE"
+    );
+
+    const blackGameToUser = playersData.gameToUsers.filter(
+      (gameToUser) => gameToUser.color === "BLACK"
+    );
+    if (!whiteGameToUser[0] || !blackGameToUser[0]) {
+      return;
+    }
+
+    const whiteData = whiteGameToUser[0].user;
+    const blackData = blackGameToUser[0].user;
+    if (
+      !whiteData?.name ||
+      !whiteData?.rating ||
+      !blackData?.name ||
+      !blackData?.rating
+    ) {
+      return;
+    }
+
+    const whiteFinal = {
+      id: whiteData.id,
+      name: whiteData.name,
+      rating: whiteData.rating,
+    };
+    const blackFinal = {
+      id: blackData.id,
+      name: blackData.name,
+      rating: blackData.rating,
+    };
+
+    setWhiteData(whiteFinal);
+    setBlackData(blackFinal);
+  }, [playersData]);
+
   const [bestLines, setBestLines] = useState<BestChessLine[]>([]);
   const [depth, setDepth] = useState<number>(0);
   const {
@@ -59,8 +116,6 @@ const AnalyzePage = () => {
     }
 
     stockfish.analysisMode();
-    console.log("INDEX:::: ");
-    console.log(indexOfBoardToDisplay);
     stockfish.calculateBestVariations(position, 100);
     stockfish.on("depth_changed", (data) => {
       const { depth, lines } = data as {
@@ -121,10 +176,12 @@ const AnalyzePage = () => {
         </div>
 
         <div className="absolute flex h-full w-full min-w-[15rem] max-w-xs  flex-col items-center justify-center md:static md:m-0 md:w-1/3 md:max-w-md md:px-4 3xl:max-w-xl">
-          <UserBanner
-            className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
-            user={sessionData?.user}
-          ></UserBanner>
+          {blackData && (
+            <UserBanner
+              className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
+              user={blackData}
+            ></UserBanner>
+          )}
 
           {stockfish && (
             <EvalBar
@@ -161,10 +218,12 @@ const AnalyzePage = () => {
               {">"}
             </button>
           </div>
-          <UserBanner
-            className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
-            user={sessionData?.user}
-          ></UserBanner>
+          {whiteData && (
+            <UserBanner
+              className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
+              user={whiteData}
+            ></UserBanner>
+          )}
         </div>
       </div>
     </main>
