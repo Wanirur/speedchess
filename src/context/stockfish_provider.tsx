@@ -120,6 +120,10 @@ export type BestChessLine = {
 
 class StockfishWrapper extends EventEmitter {
   private _messageQueue: StockfishMessageQueue;
+  private _engineName = "";
+  public get engineName(): string {
+    return this._engineName;
+  }
 
   private _bestLines = new Array<BestChessLine>(3);
   public get bestLines(): BestChessLine[] {
@@ -135,9 +139,11 @@ class StockfishWrapper extends EventEmitter {
     super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
-      // console.log(line);
+      console.log(line);
       if (line.startsWith("info") && line.includes("multipv")) {
         this._handleCalculation(line);
+      } else if (line.startsWith("id name")) {
+        this._engineName = line.replace("id name ", "");
       }
     });
   }

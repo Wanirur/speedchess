@@ -185,9 +185,10 @@ const AnalyzePage = () => {
 
           {stockfish && (
             <EvalBar
-              className="hidden h-1/5 w-full font-os text-white md:flex"
+              className="hidden h-1/5 w-full bg-neutral-950 font-os text-white md:flex lg:h-1/4"
               lines={bestLines}
               depth={depth}
+              engineName={stockfish.engineName}
             ></EvalBar>
           )}
 
@@ -198,7 +199,7 @@ const AnalyzePage = () => {
             setIndex={setIndexOfBoardToDisplay}
           ></MovesHistory>
 
-          <div className="absolute bottom-0 m-auto flex h-20 items-center justify-center gap-3 font-os font-extrabold text-white md:static">
+          <div className="absolute bottom-0 m-auto flex h-20 items-center justify-center gap-3 py-2 font-os font-extrabold text-white md:static">
             <button
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {

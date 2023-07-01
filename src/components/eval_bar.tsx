@@ -7,8 +7,9 @@ const EvalBar: React.FC<
   {
     lines: BestChessLine[];
     depth: number;
+    engineName: string;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, lines, depth }) => {
+> = ({ className, lines, engineName, depth }) => {
   if (!lines[0] || !lines[1] || !lines[2]) {
     console.log(lines);
     return (
@@ -38,38 +39,47 @@ const EvalBar: React.FC<
 
   return (
     <div className={twMerge("flex flex-col", className)}>
-      <div className="flex h-2/5 w-full items-center justify-center gap-8 p-3 font-bold">
-        <div className="w-1/3 px-5 md:text-2xl lg:text-3xl">
-          {new Intl.NumberFormat("en-US", { signDisplay: "exceptZero" }).format(
-            evaluation
-          )}
-        </div>
-        <div className="w-2/3 font-semibold md:text-sm">{message}</div>
+      <div className="hidden h-1/5 px-3 py-0.5 text-sm font-thin lg:block">
+        {engineName}
+        <br></br>
+        {`current depth: ${depth}`}{" "}
       </div>
-      <div className="flex h-3/5 flex-col text-xs font-light lg:text-sm">
-        <div className="h-1/3 w-full gap-1 truncate p-1">
-          <span className="px-2 font-bold">
+      <div className={"flex h-full flex-col p-0.5 lg:h-4/5 lg:pt-1.5"}>
+        <div className="flex h-2/5 w-full items-center justify-center gap-8 p-3 font-bold">
+          <div className="w-1/3 px-5 py-3 md:text-2xl lg:text-3xl">
             {new Intl.NumberFormat("en-US", {
               signDisplay: "exceptZero",
-            }).format(lines[0].evaluation)}
-          </span>
-          {stringifiedLines[0]}
+            }).format(evaluation)}
+          </div>
+          <div className="w-2/3 text-xs font-semibold lg:text-base">
+            {message}
+          </div>
         </div>
-        <div className="h-1/3 w-full gap-1 truncate p-1">
-          <span className="px-2 font-bold">
-            {new Intl.NumberFormat("en-US", {
-              signDisplay: "exceptZero",
-            }).format(lines[1].evaluation)}
-          </span>
-          {stringifiedLines[1]}
-        </div>
-        <div className="h-1/3 w-full gap-1 truncate p-1">
-          <span className="px-2 font-bold">
-            {new Intl.NumberFormat("en-US", {
-              signDisplay: "exceptZero",
-            }).format(lines[2].evaluation)}
-          </span>
-          {stringifiedLines[2]}
+        <div className="flex h-3/5 flex-col text-xs font-light lg:text-sm">
+          <div className="h-1/3 w-full gap-1 truncate p-0.5">
+            <span className="px-2 font-bold">
+              {new Intl.NumberFormat("en-US", {
+                signDisplay: "exceptZero",
+              }).format(lines[0].evaluation)}
+            </span>
+            {stringifiedLines[0]}
+          </div>
+          <div className="h-1/3 w-full gap-1 truncate p-0.5">
+            <span className="px-2 font-bold">
+              {new Intl.NumberFormat("en-US", {
+                signDisplay: "exceptZero",
+              }).format(lines[1].evaluation)}
+            </span>
+            {stringifiedLines[1]}
+          </div>
+          <div className="h-1/3 w-full gap-1 truncate p-0.5">
+            <span className="px-2 font-bold">
+              {new Intl.NumberFormat("en-US", {
+                signDisplay: "exceptZero",
+              }).format(lines[2].evaluation)}
+            </span>
+            {stringifiedLines[2]}
+          </div>
         </div>
       </div>
     </div>
