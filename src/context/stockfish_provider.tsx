@@ -2,7 +2,6 @@ import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
 import { type FEN } from "~/utils/notations";
-import { type PlayerColor } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {

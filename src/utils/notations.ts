@@ -344,20 +344,4 @@ export class AlgebraicNotation {
       to: to,
     };
   }
-
-  private static _resolveSymbolToPieceType(symbol: string): PieceType {
-    if (symbol === "k") {
-      return "KING";
-    } else if (symbol === "q") {
-      return "QUEEN";
-    } else if (symbol === "r") {
-      return "ROOK";
-    } else if (symbol === "n") {
-      return "KNIGHT";
-    } else if (symbol === "b") {
-      return "BISHOP";
-    } else {
-      return "PAWN";
-    }
-  }
 }
