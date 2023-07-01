@@ -49,7 +49,14 @@ export class FEN {
   }
 
   private _halfMoveCount: number;
+  public get halfMoveCount(): number {
+    return this._halfMoveCount;
+  }
+
   private _fullMoveCount: number;
+  public get fullMoveCount(): number {
+    return this._fullMoveCount;
+  }
 
   constructor(
     board: Board,
@@ -59,7 +66,8 @@ export class FEN {
     blackShortCastling: boolean,
     blackLongCastling: boolean,
     lastEnPassant: Coords | null,
-    halfMoves: number
+    halfMoves: number,
+    fullMoves: number
   ) {
     let piecePlacement = "";
 
@@ -119,11 +127,11 @@ export class FEN {
       : "-";
 
     this._halfMoveCount = halfMoves;
-    this._fullMoveCount = Math.floor(halfMoves / 2);
+    this._fullMoveCount = fullMoves;
   }
 
   public static startingPosition() {
-    return new FEN(initBoard(), "WHITE", true, true, true, true, null, 1);
+    return new FEN(initBoard(), "WHITE", true, true, true, true, null, 0, 1);
   }
 
   public buildBoard() {

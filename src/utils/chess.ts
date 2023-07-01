@@ -92,6 +92,7 @@ class Chess {
   private _isBlackLongCastlingPossible = true;
 
   private _halfMovesSinceLastCaptureOrPawnMove = 0;
+  private _movesPlayed = 0;
 
   constructor(board?: Board) {
     if (board) {
@@ -321,6 +322,10 @@ class Chess {
       )
     );
 
+    if (playerColor === "BLACK") {
+      this._movesPlayed++;
+    }
+
     const currentBoardFEN = new FEN(
       this._currentBoard,
       playerColor === "WHITE" ? "BLACK" : "WHITE",
@@ -329,7 +334,8 @@ class Chess {
       this._isBlackShortCastlingPossible,
       this._isBlackLongCastlingPossible,
       this._pawnPossibleToEnPassant,
-      this._halfMovesSinceLastCaptureOrPawnMove
+      this._halfMovesSinceLastCaptureOrPawnMove,
+      this._movesPlayed + 1
     );
     this._history.push(currentBoardFEN);
 
@@ -375,7 +381,8 @@ class Chess {
       this._isBlackShortCastlingPossible,
       this._isBlackLongCastlingPossible,
       this._pawnPossibleToEnPassant,
-      this._halfMovesSinceLastCaptureOrPawnMove
+      this._halfMovesSinceLastCaptureOrPawnMove,
+      this._movesPlayed
     );
 
     this._pawnReadyToPromote = null;
@@ -454,7 +461,8 @@ class Chess {
     this._isWhiteLongCastlingPossible = castling.whiteLongCastling;
     this._isBlackShortCastlingPossible = castling.blackShortCastling;
     this._isBlackLongCastlingPossible = castling.blackLongCastling;
-
+    this._movesPlayed = fen.fullMoveCount;
+    this._halfMovesSinceLastCaptureOrPawnMove = fen.halfMoveCount;
     return this.board;
   }
 

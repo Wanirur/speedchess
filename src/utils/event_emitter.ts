@@ -1,4 +1,4 @@
-type Callback = (arg?: object) => void;
+type Callback = (arg: unknown) => void;
 
 class EventEmitter {
   private _listeners: Map<string, Callback>;
@@ -11,7 +11,7 @@ class EventEmitter {
     this._listeners.set(name, callback);
   }
 
-  emit(name: string, data?: object) {
+  emit(name: string, data: unknown) {
     const callback = this._listeners.get(name);
     if (callback) {
       callback(data);
@@ -19,7 +19,7 @@ class EventEmitter {
   }
 
   once(name: string, callback: Callback) {
-    const onceCallback = (data?: object) => {
+    const onceCallback = (data: unknown) => {
       this.removeEventListener(name);
       callback(data);
     };

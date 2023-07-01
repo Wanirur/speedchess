@@ -1,6 +1,7 @@
 import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
-import { FEN } from "~/utils/notations";
+import EventEmitter from "~/utils/event_emitter";
+import { type FEN } from "~/utils/notations";
 import { type PlayerColor } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
@@ -118,7 +119,7 @@ export type BestChessLine = {
   moves: string[];
 };
 
-class StockfishWrapper {
+class StockfishWrapper extends EventEmitter {
   private _messageQueue: StockfishMessageQueue;
 
   private _bestLines = new Array<BestChessLine>(3);
@@ -132,8 +133,10 @@ class StockfishWrapper {
   }
 
   constructor(stockfishInstance: StockfishApi) {
+    super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
+      console.log(line);
       if (line.startsWith("info") && line.includes("multipv")) {
         this._handleCalculation(line);
       }
@@ -142,11 +145,19 @@ class StockfishWrapper {
 
   private _handleCalculation(line: string) {
     const words = line.split(" ");
-    const variationIndex = Number.parseInt(words[6] ?? "1") - 1;
-    const movesBegginingIndex = 17;
+    const multipvIndex = words.findIndex((word) => word === "multipv") + 1;
+    const movesBegginingIndex = words.findIndex((word) => word === "pv") + 1;
+    const depthIndex = words.findIndex((word) => word === "depth") + 1;
+    const evalIndex = words.findIndex((word) => word === "cp") + 1;
     const moves = [] as string[];
-    const currentDepth = words[2] ?? "0";
-    const evaluation = words[9] ?? "0";
+
+    const multipv = words[multipvIndex];
+    const depth = words[depthIndex];
+    const evaluation = words[evalIndex];
+    if (!multipv || !movesBegginingIndex || !depth || !evaluation) {
+      return;
+    }
+
     for (let i = movesBegginingIndex; i < words.length; i++) {
       const move = words[i];
       if (!move) {
@@ -156,16 +167,21 @@ class StockfishWrapper {
       moves.push(move);
     }
 
-    this._bestLines[variationIndex] = {
+    const parsedMultipv = Number.parseInt(multipv) - 1;
+    this._bestLines[parsedMultipv] = {
       evaluation: Number.parseInt(evaluation) / 100,
       moves: moves,
     };
 
-    if (variationIndex !== 2) {
+    if (parsedMultipv !== 2) {
       return;
     }
 
-    this._currentDepth = Number.parseInt(currentDepth);
+    this._currentDepth = Number.parseInt(depth);
+    this.emit("depth_changed", {
+      depth: this._currentDepth,
+      lines: this._bestLines,
+    });
   }
 
   setStrength(elo: number) {
@@ -178,13 +194,13 @@ class StockfishWrapper {
     this._messageQueue.sendMessage("ucinewgame");
   }
 
-  calculateBestVariations(position: FEN, turn: PlayerColor, depth: number) {
+  calculateBestVariations(position: FEN, depth: number) {
     this._messageQueue.sendMessage("ucinewgame");
     this._messageQueue.sendMessage(`position fen ${position.toString()}`);
 
-    if (turn === "BLACK") {
-      this._messageQueue.sendMessage("flip");
-    }
+    this._currentDepth = 0;
+    this._bestLines = new Array<BestChessLine>(3);
+
     this._messageQueue.sendMessage(`go depth ${depth}`);
   }
 }

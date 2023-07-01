@@ -1,22 +1,16 @@
 import { Loader } from "lucide-react";
 import { type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
+import { type BestChessLine } from "~/context/stockfish_provider";
 
 const EvalBar: React.FC<
   {
-    evaluation: number;
-    lines: string[][];
-    evals: number[];
+    lines: BestChessLine[];
+    depth: number;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, evaluation, lines, evals }) => {
-  if (
-    !lines[0] ||
-    !lines[1] ||
-    !lines[2] ||
-    !evals[0] ||
-    !evals[1] ||
-    !evals[2]
-  ) {
+> = ({ className, lines, depth }) => {
+  if (!lines[0] || !lines[1] || !lines[2]) {
+    console.log(lines);
     return (
       <div className="flex h-1/6 w-full items-center justify-center">
         <Loader className="h-10 w-10 animate-spin stroke-white"></Loader>
@@ -24,7 +18,8 @@ const EvalBar: React.FC<
     );
   }
 
-  const stringifiedLines = lines.map((line) => line.join(" "));
+  const stringifiedLines = lines.map((line) => line.moves.join(" "));
+  const evaluation = lines[0].evaluation ?? 0;
 
   let message = "Draw";
   if (evaluation < 0) {
@@ -56,7 +51,7 @@ const EvalBar: React.FC<
           <span className="px-2 font-bold">
             {new Intl.NumberFormat("en-US", {
               signDisplay: "exceptZero",
-            }).format(evals[0])}
+            }).format(lines[0].evaluation)}
           </span>
           {stringifiedLines[0]}
         </div>
@@ -64,7 +59,7 @@ const EvalBar: React.FC<
           <span className="px-2 font-bold">
             {new Intl.NumberFormat("en-US", {
               signDisplay: "exceptZero",
-            }).format(evals[1])}
+            }).format(lines[1].evaluation)}
           </span>
           {stringifiedLines[1]}
         </div>
@@ -72,7 +67,7 @@ const EvalBar: React.FC<
           <span className="px-2 font-bold">
             {new Intl.NumberFormat("en-US", {
               signDisplay: "exceptZero",
-            }).format(evals[2])}
+            }).format(lines[2].evaluation)}
           </span>
           {stringifiedLines[2]}
         </div>

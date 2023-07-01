@@ -48,7 +48,8 @@ export class Coords {
 
   public toString() {
     return (
-      String.fromCharCode("a".charCodeAt(0) + this._x) + this._y.toString()
+      String.fromCharCode("a".charCodeAt(0) + this._x) +
+      (this._y + 1).toString()
     );
   }
 }

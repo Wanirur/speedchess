@@ -8,7 +8,10 @@ import UserBanner from "~/components/user_banner";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
 import { initBoard } from "~/utils/pieces";
-import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
+import StockfishProvider, {
+  type BestChessLine,
+  useStockfish,
+} from "~/context/stockfish_provider";
 import EvalBar from "~/components/eval_bar";
 
 const AnalyzePage = () => {
@@ -34,9 +37,44 @@ const AnalyzePage = () => {
       refetchOnWindowFocus: false,
     }
   );
+  const [bestLines, setBestLines] = useState<BestChessLine[]>([]);
+  const [depth, setDepth] = useState<number>(0);
+  const {
+    isLoading: isStockfishLoading,
+    isError: isStockfishError,
+    stockfish,
+  } = useStockfish();
 
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const [isReadyToAnalyze, setIsReadyToAnalyze] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isReadyToAnalyze || !stockfish || !chessRef.current) {
+      return;
+    }
+
+    const position = chessRef.current.history[indexOfBoardToDisplay];
+    if (!position) {
+      return;
+    }
+
+    stockfish.analysisMode();
+    console.log("INDEX:::: ");
+    console.log(indexOfBoardToDisplay);
+    stockfish.calculateBestVariations(position, 100);
+    stockfish.on("depth_changed", (data) => {
+      const { depth, lines } = data as {
+        depth: number;
+        lines: BestChessLine[];
+      };
+      if (depth) {
+        setDepth(depth);
+      }
+      if (lines) {
+        setBestLines(lines);
+      }
+    });
+  }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze]);
 
   useEffect(() => {
     if (!gameMoves || !chessRef.current) {
@@ -45,7 +83,6 @@ const AnalyzePage = () => {
 
     const moves = gameMoves.split(" ");
 
-    console.log(moves);
     try {
       chessRef.current.playOutFromLongAlgebraicString(moves);
       setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
@@ -56,42 +93,6 @@ const AnalyzePage = () => {
       }
     }
   }, [gameMoves]);
-
-  const [bestLineMoves, setBestLineMoves] = useState<string[][]>([]);
-  const [bestLineEvals, setBestLineEvals] = useState<number[]>([]);
-
-  const {
-    isLoading: isStockfishLoading,
-    isError: isStockfishError,
-    stockfish,
-  } = useStockfish();
-
-  useEffect(() => {
-    if (!isReadyToAnalyze) {
-      return;
-    }
-
-    const position = chessRef.current?.history[indexOfBoardToDisplay + 1];
-    if (position) {
-      stockfish?.analysisMode();
-      stockfish?.calculateBestVariations(
-        position,
-        (indexOfBoardToDisplay + 1) % 2 ? "WHITE" : "BLACK",
-        100
-      );
-    }
-  }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze]);
-
-  useEffect(() => {
-    if (
-      stockfish?.bestLines[0] &&
-      stockfish?.bestLines[1] &&
-      stockfish?.bestLines[2]
-    ) {
-      setBestLineMoves(stockfish?.bestLines.map((line) => line.moves));
-      setBestLineEvals(stockfish?.bestLines.map((line) => line.evaluation));
-    }
-  }, [stockfish?.bestLines, stockfish?.currentDepth]);
 
   if (!sessionData?.user || isError || isStockfishError) {
     return <div> error </div>;
@@ -128,9 +129,8 @@ const AnalyzePage = () => {
           {stockfish && (
             <EvalBar
               className="hidden h-1/5 w-full font-os text-white md:flex"
-              evaluation={bestLineEvals[0] ?? 0}
-              lines={bestLineMoves}
-              evals={bestLineEvals}
+              lines={bestLines}
+              depth={depth}
             ></EvalBar>
           )}
 
