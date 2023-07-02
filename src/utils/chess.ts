@@ -92,6 +92,7 @@ class Chess {
   private _isBlackLongCastlingPossible = true;
 
   private _halfMovesSinceLastCaptureOrPawnMove = 0;
+  private _movesPlayed = 0;
 
   constructor(board?: Board) {
     if (board) {
@@ -105,9 +106,7 @@ class Chess {
     this._whiteKingCoords = this._findKing("WHITE");
     this._blackKingCoords = this._findKing("BLACK");
 
-    this._history = [
-      new FEN(this._currentBoard, "BLACK", true, true, true, true, null, 0),
-    ];
+    this._history = [] as FEN[];
   }
 
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {
@@ -276,8 +275,6 @@ class Chess {
           to,
           movedPiece.pieceType,
           toTile !== null,
-          true,
-          true,
           playerColor === "WHITE"
             ? this._isBlackKingChecked
             : this._isWhiteKingChecked,
@@ -318,14 +315,16 @@ class Chess {
         to,
         movedPiece.pieceType,
         toTile !== null,
-        true,
-        true,
         playerColor === "WHITE"
           ? this._isBlackKingChecked
           : this._isWhiteKingChecked,
-        !!this._gameResult
+        this._gameResult?.reason === "MATE"
       )
     );
+
+    if (playerColor === "BLACK") {
+      this._movesPlayed++;
+    }
 
     const currentBoardFEN = new FEN(
       this._currentBoard,
@@ -335,7 +334,8 @@ class Chess {
       this._isBlackShortCastlingPossible,
       this._isBlackLongCastlingPossible,
       this._pawnPossibleToEnPassant,
-      this._halfMovesSinceLastCaptureOrPawnMove
+      this._halfMovesSinceLastCaptureOrPawnMove,
+      this._movesPlayed + 1
     );
     this._history.push(currentBoardFEN);
 
@@ -381,7 +381,8 @@ class Chess {
       this._isBlackShortCastlingPossible,
       this._isBlackLongCastlingPossible,
       this._pawnPossibleToEnPassant,
-      this._halfMovesSinceLastCaptureOrPawnMove
+      this._halfMovesSinceLastCaptureOrPawnMove,
+      this._movesPlayed
     );
 
     this._pawnReadyToPromote = null;
@@ -446,7 +447,7 @@ class Chess {
   }
 
   public revertLastMove() {
-    if (this.history.length < 2) {
+    if (this.history.length <= 0) {
       throw new Error("no moves to revert");
     }
 
@@ -460,7 +461,8 @@ class Chess {
     this._isWhiteLongCastlingPossible = castling.whiteLongCastling;
     this._isBlackShortCastlingPossible = castling.blackShortCastling;
     this._isBlackLongCastlingPossible = castling.blackLongCastling;
-
+    this._movesPlayed = fen.fullMoveCount;
+    this._halfMovesSinceLastCaptureOrPawnMove = fen.halfMoveCount;
     return this.board;
   }
 
@@ -496,9 +498,35 @@ class Chess {
     let result = "";
     this._algebraic.forEach((move) => {
       result += move.toString();
+      result += " ";
     });
 
-    return result;
+    return result.trimEnd();
+  }
+
+  public getFullLongAlgebraicHistory() {
+    let result = "";
+    this._algebraic.forEach((move) => {
+      result += move.toLongNotationString();
+      result += " ";
+    });
+
+    return result.trimEnd();
+  }
+
+  public playOutFromLongAlgebraicString(moves: string[]) {
+    let color = "WHITE" as PlayerColor;
+    for (const currentMove of moves) {
+      const { from, to } =
+        AlgebraicNotation.getCoordsFromLongAlgebraicString(currentMove);
+      this.move(from, to, color);
+
+      if (color === "WHITE") {
+        color = "BLACK";
+      } else {
+        color = "WHITE";
+      }
+    }
   }
 
   private _calculateAttackedTiles() {

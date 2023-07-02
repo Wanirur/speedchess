@@ -19,6 +19,8 @@ import {
   whiteKing,
   type PieceType,
   type GameResult,
+  copyBoard,
+  initBoard,
 } from "./pieces";
 
 //fen notation
@@ -47,7 +49,14 @@ export class FEN {
   }
 
   private _halfMoveCount: number;
+  public get halfMoveCount(): number {
+    return this._halfMoveCount;
+  }
+
   private _fullMoveCount: number;
+  public get fullMoveCount(): number {
+    return this._fullMoveCount;
+  }
 
   constructor(
     board: Board,
@@ -57,11 +66,13 @@ export class FEN {
     blackShortCastling: boolean,
     blackLongCastling: boolean,
     lastEnPassant: Coords | null,
-    halfMoves: number
+    halfMoves: number,
+    fullMoves: number
   ) {
     let piecePlacement = "";
 
-    for (const row of board) {
+    const rows = copyBoard(board).reverse();
+    for (const row of rows) {
       const rowSymbols = row.map((tile) => {
         return this._resolvePieceToFenSymbol(tile);
       });
@@ -88,8 +99,7 @@ export class FEN {
       piecePlacement += "/";
     }
 
-    piecePlacement = piecePlacement.slice(0, -1);
-    this._piecePlacement = piecePlacement;
+    this._piecePlacement = piecePlacement.slice(0, -1);
 
     this._turn = turnColor;
 
@@ -117,13 +127,17 @@ export class FEN {
       : "-";
 
     this._halfMoveCount = halfMoves;
-    this._fullMoveCount = Math.floor(halfMoves / 2);
+    this._fullMoveCount = fullMoves;
+  }
+
+  public static startingPosition() {
+    return new FEN(initBoard(), "WHITE", true, true, true, true, null, 0, 1);
   }
 
   public buildBoard() {
     const board = buildEmptyBoard();
 
-    const rows = this._piecePlacement.split("/");
+    const rows = this._piecePlacement.split("/").reverse();
     let y = 0,
       x = 0;
     for (const row of rows) {
@@ -153,9 +167,9 @@ export class FEN {
       " " +
       this._enPassantTarget +
       " " +
-      this._halfMoveCount.toString() +
+      this._fullMoveCount.toString() +
       " " +
-      this._fullMoveCount.toString()
+      this._halfMoveCount.toString()
     );
   }
 
@@ -230,8 +244,6 @@ export class AlgebraicNotation {
   }
   private _pieceType: PieceType;
   private _isCapturing: boolean;
-  private _isXDisambiguous: boolean;
-  private _isYDisambiguous: boolean;
 
   private _isCheck: boolean;
   private _isMate: boolean;
@@ -244,23 +256,40 @@ export class AlgebraicNotation {
     to: Coords,
     piece: PieceType,
     isCapturing: boolean,
-    isXDisambiguous: boolean,
-    isYDisambiguous: boolean,
     isCheck: boolean,
     isMate: boolean,
-    gameResult?: GameResult,
     promotedTo?: PieceType
   ) {
     this._from = from;
     this._to = to;
     this._pieceType = piece;
     this._isCapturing = isCapturing;
-    this._isXDisambiguous = isXDisambiguous;
-    this._isYDisambiguous = isYDisambiguous;
     this._promotedTo = promotedTo;
-    this._gameResult = gameResult;
     this._isCheck = isCheck;
     this._isMate = isMate;
+  }
+
+  //version used by UCI https://en.wikipedia.org/wiki/Universal_Chess_Interface
+  public toLongNotationString() {
+    let result = "";
+
+    const from = this._from.toString();
+    result += from.slice(0, 2);
+    result += this._to.toString();
+
+    if (this._promotedTo) {
+      if (this._promotedTo === "QUEEN") {
+        result += "q";
+      } else if (this._promotedTo === "KNIGHT") {
+        result += "n";
+      } else if (this._promotedTo === "ROOK") {
+        result += "r";
+      } else {
+        result += "b";
+      }
+    }
+
+    return result;
   }
 
   public toString() {
@@ -275,7 +304,7 @@ export class AlgebraicNotation {
     }
 
     if (this._promotedTo) {
-      return this._to.toNotation() + "=" + this._promotedTo === "KNIGHT"
+      return this._to.toString() + "=" + this._promotedTo === "KNIGHT"
         ? "N"
         : this._promotedTo.charAt(0);
     }
@@ -285,20 +314,10 @@ export class AlgebraicNotation {
       result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
     }
 
-    const from = this._from.toNotation();
-    if (
-      !this._isXDisambiguous ||
-      (this._pieceType === "PAWN" && this._isCapturing)
-    ) {
-      result += from.charAt(0);
-    }
-    if (!this._isYDisambiguous) {
-      result += from.charAt(1);
-    }
     if (this._isCapturing) {
       result += "x";
     }
-    result += this._to.toNotation();
+    result += this._to.toString();
 
     if (this._isMate) {
       result += "#";
@@ -307,5 +326,22 @@ export class AlgebraicNotation {
     }
 
     return result;
+  }
+
+  public static getCoordsFromLongAlgebraicString(notation: string) {
+    const fromCoordsString = notation.slice(0, 2);
+    const toCoordsString = notation.slice(2, 4);
+
+    const from = Coords.fromNotation(fromCoordsString);
+    const to = Coords.fromNotation(toCoordsString);
+
+    if (!from || !to) {
+      throw new Error("incorrect coordinates");
+    }
+
+    return {
+      from: from,
+      to: to,
+    };
   }
 }

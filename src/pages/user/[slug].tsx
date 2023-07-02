@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { type NextPage } from "next";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -9,7 +10,11 @@ const Profile: NextPage = () => {
   const router = useRouter();
   const { slug: userId } = router.query;
 
-  const { isSuccess, data: userData } = api.socials.getUser.useQuery(
+  const {
+    isLoading,
+    isError,
+    data: userData,
+  } = api.socials.getUser.useQuery(
     {
       playerId: userId as string,
     },
@@ -52,6 +57,13 @@ const Profile: NextPage = () => {
     void fetchPage();
   }, [fetchNextPage, inView, userData]);
 
+  if (isError) {
+    return <div> error occured </div>;
+  }
+
+  if (isLoading) {
+    return <div> loading... </div>;
+  }
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-900">
       <div className="flex items-end ">
@@ -167,9 +179,11 @@ const Profile: NextPage = () => {
                       </div>
                     </div>
                     <div className="flex w-1/5 items-center justify-center">
-                      <button className="rounded-md bg-green-700 p-2 hover:bg-green-800 md:px-4 md:py-3">
-                        Analyze
-                      </button>
+                      <Link href={`/analyze/${game.id}`}>
+                        <button className="rounded-md bg-green-700 p-2 hover:bg-green-800 md:px-4 md:py-3">
+                          Analyze
+                        </button>
+                      </Link>
                     </div>
                   </div>
                 );

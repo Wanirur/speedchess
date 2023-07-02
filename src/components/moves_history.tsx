@@ -31,14 +31,15 @@ const MovesHistory: React.FC<
         return (
           <div
             key={index}
-            className={`h-fit w-fit cursor-pointer whitespace-nowrap rounded-sm p-1 hover:bg-neutral-500 ${
-              index === indexToSelect
-                ? "bg-neutral-400 text-green-800 hover:text-green-900"
-                : ""
-            }`}
+            className={twMerge(
+              "h-fit w-fit cursor-pointer whitespace-nowrap rounded-sm p-1 hover:bg-neutral-500",
+              index === indexToSelect &&
+                "bg-neutral-400 text-green-800 hover:text-green-900"
+            )}
             onClick={() => {
               const fen = chess.history[index + 1];
               if (!fen) {
+                setIndex(chess.history.length - 1);
                 return;
               }
 
