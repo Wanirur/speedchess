@@ -123,6 +123,11 @@ export class Game {
 
     clearTimeout(this._timeout);
 
+    if (this._chess.gameResult) {
+      await this.finishGame();
+      return timeLeft;
+    }
+
     this._turn.timeLeftInMilis += this._increment * 1000;
     timeLeft = this._turn.timeLeftInMilis;
 

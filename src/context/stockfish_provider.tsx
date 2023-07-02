@@ -1,5 +1,4 @@
 import Script from "next/script";
-import { parse } from "path";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
 import { type FEN } from "~/utils/notations";
@@ -115,7 +114,8 @@ class StockfishMessageQueue {
 }
 
 export type BestChessLine = {
-  evaluation: number;
+  evaluation?: number;
+  mateIn?: number;
   moves: string[];
 };
 
@@ -140,6 +140,7 @@ class StockfishWrapper extends EventEmitter {
     super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
+      console.log(line);
       if (line.startsWith("info") && line.includes("multipv")) {
         this._handleCalculation(line);
       } else if (line.startsWith("id name")) {
@@ -153,15 +154,23 @@ class StockfishWrapper extends EventEmitter {
     const multipvIndex = words.findIndex((word) => word === "multipv") + 1;
     const movesBegginingIndex = words.findIndex((word) => word === "pv") + 1;
     const depthIndex = words.findIndex((word) => word === "depth") + 1;
+    const mateIndex = words.findIndex((word) => word === "mate") + 1;
     const evalIndex = words.findIndex((word) => word === "cp") + 1;
     const moves = [] as string[];
 
     const multipv = words[multipvIndex];
     const depth = words[depthIndex];
-    const evaluation = words[evalIndex];
-    if (!multipv || !movesBegginingIndex || !depth || !evaluation) {
+
+    if (!multipv || !movesBegginingIndex || !depth) {
       return;
     }
+
+    if (!mateIndex && !evalIndex) {
+      return;
+    }
+
+    const evaluation = words[evalIndex];
+    const mateIn = words[mateIndex];
 
     const parsedDepth = Number.parseInt(depth);
 
@@ -176,7 +185,8 @@ class StockfishWrapper extends EventEmitter {
 
     const parsedMultipv = Number.parseInt(multipv) - 1;
     this._bestLines[parsedMultipv] = {
-      evaluation: Number.parseInt(evaluation) / 100,
+      evaluation: evaluation ? Number.parseInt(evaluation) / 100 : undefined,
+      mateIn: mateIn ? Number.parseInt(mateIn) : undefined,
       moves: moves,
     };
 

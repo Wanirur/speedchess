@@ -21,7 +21,6 @@ const EvalBar: React.FC<
 
   const stringifiedLines = lines.map((line) => line.moves.join(" "));
   const evaluation = lines[0].evaluation ?? 0;
-
   let message = "Draw";
   if (evaluation < 0) {
     if (Math.abs(evaluation) < 1) {
@@ -35,6 +34,8 @@ const EvalBar: React.FC<
     } else {
       message = "White is winning";
     }
+  } else if (lines[0].mateIn) {
+    message = `Mate in ${lines[0].mateIn}`;
   }
 
   return (
@@ -47,9 +48,11 @@ const EvalBar: React.FC<
       <div className={"flex h-full flex-col p-0.5 lg:h-4/5 lg:pt-1.5"}>
         <div className="flex h-2/5 w-full items-center justify-center gap-8 p-3 font-bold">
           <div className="w-1/3 px-5 py-3 md:text-2xl lg:text-3xl">
-            {new Intl.NumberFormat("en-US", {
-              signDisplay: "exceptZero",
-            }).format(evaluation)}
+            {evaluation
+              ? new Intl.NumberFormat("en-US", {
+                  signDisplay: "exceptZero",
+                }).format(evaluation)
+              : `M${lines[0].mateIn!}`}
           </div>
           <div className="w-2/3 text-xs font-semibold lg:text-base">
             {message}
@@ -58,25 +61,31 @@ const EvalBar: React.FC<
         <div className="flex h-3/5 flex-col text-xs font-light lg:text-sm">
           <div className="h-1/3 w-full gap-1 truncate p-0.5">
             <span className="px-2 font-bold">
-              {new Intl.NumberFormat("en-US", {
-                signDisplay: "exceptZero",
-              }).format(lines[0].evaluation)}
+              {lines[0].evaluation
+                ? new Intl.NumberFormat("en-US", {
+                    signDisplay: "exceptZero",
+                  }).format(lines[0].evaluation)
+                : `M${lines[0].mateIn!}`}
             </span>
             {stringifiedLines[0]}
           </div>
           <div className="h-1/3 w-full gap-1 truncate p-0.5">
             <span className="px-2 font-bold">
-              {new Intl.NumberFormat("en-US", {
-                signDisplay: "exceptZero",
-              }).format(lines[1].evaluation)}
+              {lines[1].evaluation
+                ? new Intl.NumberFormat("en-US", {
+                    signDisplay: "exceptZero",
+                  }).format(lines[1].evaluation)
+                : `M${lines[1].mateIn!}`}
             </span>
             {stringifiedLines[1]}
           </div>
           <div className="h-1/3 w-full gap-1 truncate p-0.5">
             <span className="px-2 font-bold">
-              {new Intl.NumberFormat("en-US", {
-                signDisplay: "exceptZero",
-              }).format(lines[2].evaluation)}
+              {lines[2].evaluation
+                ? new Intl.NumberFormat("en-US", {
+                    signDisplay: "exceptZero",
+                  }).format(lines[2].evaluation)
+                : `M${lines[2].mateIn!}`}
             </span>
             {stringifiedLines[2]}
           </div>

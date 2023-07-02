@@ -41,7 +41,7 @@ export class Coords {
 
   public static fromNotation(notation: string) {
     const x = notation.charCodeAt(0) - "a".charCodeAt(0);
-    const y = Number.parseInt(notation.charAt(1));
+    const y = Number.parseInt(notation.charAt(1)) - 1;
 
     return Coords._pool[y]?.[x];
   }
