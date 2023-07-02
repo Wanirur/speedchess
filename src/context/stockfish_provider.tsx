@@ -1,3 +1,4 @@
+import { PlayerColor } from "@prisma/client";
 import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
@@ -126,9 +127,25 @@ class StockfishWrapper extends EventEmitter {
     return this._engineName;
   }
 
+  private _color: PlayerColor = "WHITE";
+
   private _bestLines = new Array<BestChessLine>(3);
   public get bestLines(): BestChessLine[] {
-    return this._bestLines;
+    return this._bestLines.sort((a, b) => {
+      const dir = this._color === "WHITE" ? -1 : 1;
+      if (a.mateIn && b.mateIn) {
+        return dir * (a.mateIn - b.mateIn);
+      } else if (a.mateIn) {
+        return dir * -1;
+      } else if (b.mateIn) {
+        return dir;
+      } else if (a.evaluation !== undefined && b.evaluation !== undefined) {
+        return dir * (a.evaluation - b.evaluation);
+      } else {
+        //will never happen
+        return dir * -1;
+      }
+    });
   }
 
   private _currentDepth = 0;
@@ -184,9 +201,11 @@ class StockfishWrapper extends EventEmitter {
     }
 
     const parsedMultipv = Number.parseInt(multipv) - 1;
+
     this._bestLines[parsedMultipv] = {
-      evaluation: evaluation ? Number.parseInt(evaluation) / 100 : undefined,
-      mateIn: mateIn ? Number.parseInt(mateIn) : undefined,
+      evaluation:
+        evalIndex && evaluation ? Number.parseInt(evaluation) / 100 : undefined,
+      mateIn: mateIndex && mateIn ? Number.parseInt(mateIn) : undefined,
       moves: moves,
     };
 
@@ -197,7 +216,7 @@ class StockfishWrapper extends EventEmitter {
     this._currentDepth = parsedDepth;
     this.emit("depth_changed", {
       depth: this._currentDepth,
-      lines: this._bestLines,
+      lines: this.bestLines,
     });
   }
 
@@ -211,7 +230,8 @@ class StockfishWrapper extends EventEmitter {
     this._messageQueue.sendMessage("ucinewgame");
   }
 
-  calculateBestVariations(position: FEN, depth: number) {
+  calculateBestVariations(position: FEN, depth: number, color: PlayerColor) {
+    this._color = color;
     this._messageQueue.sendMessage("ucinewgame");
     this._messageQueue.sendMessage(`position fen ${position.toString()}`);
 

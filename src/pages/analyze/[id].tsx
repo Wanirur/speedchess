@@ -124,7 +124,11 @@ const AnalyzePage = () => {
     }
 
     stockfish.analysisMode();
-    stockfish.calculateBestVariations(position, 100);
+    stockfish.calculateBestVariations(
+      position,
+      100,
+      indexOfBoardToDisplay % 2 ? "WHITE" : "BLACK"
+    );
     stockfish.on("depth_changed", (data) => {
       const { depth, lines } = data as {
         depth: number;
