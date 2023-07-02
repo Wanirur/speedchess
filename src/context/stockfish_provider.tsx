@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { parse } from "path";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
 import { type FEN } from "~/utils/notations";
@@ -139,7 +140,6 @@ class StockfishWrapper extends EventEmitter {
     super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
-      console.log(line);
       if (line.startsWith("info") && line.includes("multipv")) {
         this._handleCalculation(line);
       } else if (line.startsWith("id name")) {
@@ -163,6 +163,8 @@ class StockfishWrapper extends EventEmitter {
       return;
     }
 
+    const parsedDepth = Number.parseInt(depth);
+
     for (let i = movesBegginingIndex; i < words.length; i++) {
       const move = words[i];
       if (!move) {
@@ -182,7 +184,7 @@ class StockfishWrapper extends EventEmitter {
       return;
     }
 
-    this._currentDepth = Number.parseInt(depth);
+    this._currentDepth = parsedDepth;
     this.emit("depth_changed", {
       depth: this._currentDepth,
       lines: this._bestLines,

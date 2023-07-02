@@ -7,7 +7,7 @@ import MovesHistory from "~/components/moves_history";
 import UserBanner from "~/components/user_banner";
 import { api } from "~/utils/api";
 import Chess from "~/utils/chess";
-import { initBoard } from "~/utils/pieces";
+import { type PlayerColor, initBoard } from "~/utils/pieces";
 import StockfishProvider, {
   type BestChessLine,
   useStockfish,
@@ -51,6 +51,7 @@ const AnalyzePage = () => {
 
   const [whiteData, setWhiteData] = useState<User | undefined>();
   const [blackData, setBlackData] = useState<User | undefined>();
+  const [boardAlignment, setBoardAlignment] = useState<PlayerColor>("WHITE");
 
   useEffect(() => {
     if (!playersData) {
@@ -84,6 +85,7 @@ const AnalyzePage = () => {
       name: whiteData.name,
       rating: whiteData.rating,
     };
+
     const blackFinal = {
       id: blackData.id,
       name: blackData.name,
@@ -93,6 +95,12 @@ const AnalyzePage = () => {
     setWhiteData(whiteFinal);
     setBlackData(blackFinal);
   }, [playersData]);
+
+  useEffect(() => {
+    if (sessionData?.user.id === blackData?.id) {
+      setBoardAlignment("BLACK");
+    }
+  }, [sessionData, blackData]);
 
   const [bestLines, setBestLines] = useState<BestChessLine[]>([]);
   const [depth, setDepth] = useState<number>(0);
@@ -153,7 +161,14 @@ const AnalyzePage = () => {
     return <div> error </div>;
   }
 
-  if (!chessRef.current || !router.isReady || isLoading || isStockfishLoading) {
+  if (
+    !chessRef.current ||
+    !router.isReady ||
+    isLoading ||
+    isStockfishLoading ||
+    !blackData ||
+    !whiteData
+  ) {
     return <div> loading...</div>;
   }
 
@@ -167,7 +182,7 @@ const AnalyzePage = () => {
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
           <Chessboard
             uuid={"analyze"}
-            color={"WHITE"}
+            color={boardAlignment}
             isYourTurn={false}
             chess={chessRef.current}
             board={boardToDisplay}
@@ -176,12 +191,10 @@ const AnalyzePage = () => {
         </div>
 
         <div className="absolute flex h-full w-full min-w-[15rem] max-w-xs  flex-col items-center justify-center md:static md:m-0 md:w-1/3 md:max-w-md md:px-4 3xl:max-w-xl">
-          {blackData && (
-            <UserBanner
-              className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
-              user={blackData}
-            ></UserBanner>
-          )}
+          <UserBanner
+            className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
+            user={boardAlignment === "WHITE" ? blackData : whiteData}
+          ></UserBanner>
 
           {stockfish && (
             <EvalBar
@@ -219,12 +232,10 @@ const AnalyzePage = () => {
               {">"}
             </button>
           </div>
-          {whiteData && (
-            <UserBanner
-              className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
-              user={whiteData}
-            ></UserBanner>
-          )}
+          <UserBanner
+            className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
+            user={boardAlignment === "WHITE" ? whiteData : blackData}
+          ></UserBanner>
         </div>
       </div>
     </main>
