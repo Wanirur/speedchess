@@ -2,17 +2,25 @@ import type { Channel } from "pusher-js";
 import { useEffect, useState, type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 import { type Coords } from "~/utils/coords";
+import type EventEmitter from "~/utils/event_emitter";
 import type { PlayerColor } from "~/utils/pieces";
 
 const Timer: React.FC<
   {
-    channel: Channel;
+    subscribable: Channel | EventEmitter;
     color: PlayerColor;
     initial: number;
     isLocked: boolean;
     chessTimeoutFunc: (color: PlayerColor) => void;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, channel, color, initial, isLocked, chessTimeoutFunc }) => {
+> = ({
+  className,
+  subscribable,
+  color,
+  initial,
+  isLocked,
+  chessTimeoutFunc,
+}) => {
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
@@ -44,11 +52,11 @@ const Timer: React.FC<
       }
     };
 
-    channel.bind("move_made", onMove);
+    subscribable.bind("move_made", onMove);
     return () => {
-      channel.unbind("move_made", onMove);
+      subscribable.unbind("move_made", onMove);
     };
-  }, [channel, isLocked]);
+  }, [subscribable, isLocked]);
 
   const textColor = seconds <= 10 ? "text-red-900" : "text-white";
 
