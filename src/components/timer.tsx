@@ -7,20 +7,13 @@ import type { PlayerColor } from "~/utils/pieces";
 
 const Timer: React.FC<
   {
-    subscribable: Channel | EventEmitter;
+    channel?: Channel;
     color: PlayerColor;
     initial: number;
     isLocked: boolean;
     chessTimeoutFunc: (color: PlayerColor) => void;
   } & HTMLAttributes<HTMLDivElement>
-> = ({
-  className,
-  subscribable,
-  color,
-  initial,
-  isLocked,
-  chessTimeoutFunc,
-}) => {
+> = ({ className, channel, color, initial, isLocked, chessTimeoutFunc }) => {
   const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
 
   useEffect(() => {
@@ -47,16 +40,16 @@ const Timer: React.FC<
       toTile: Coords;
       timeLeftInMilis: number;
     }) => {
-      if (!isLocked) {
+      if (move.timeLeftInMilis && !isLocked) {
         setSeconds(Math.ceil(move.timeLeftInMilis / 1000));
       }
     };
 
-    subscribable.bind("move_made", onMove);
+    channel?.bind("move_made", onMove);
     return () => {
-      subscribable.unbind("move_made", onMove);
+      channel?.unbind("move_made", onMove);
     };
-  }, [subscribable, isLocked]);
+  }, [channel, isLocked]);
 
   const textColor = seconds <= 10 ? "text-red-900" : "text-white";
 

@@ -34,6 +34,7 @@ const Chessboard: React.FC<
     locked: boolean;
     unlockFunction?: Dispatch<SetStateAction<number>>;
     mutate?: boolean;
+    onMove?: () => void;
   } & HTMLAttributes<HTMLDivElement>
 > = ({
   uuid,
@@ -44,6 +45,7 @@ const Chessboard: React.FC<
   locked,
   unlockFunction,
   mutate = false,
+  onMove,
   className,
 }) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
@@ -163,6 +165,7 @@ const Chessboard: React.FC<
                   ) {
                     setPromotedPawn(moveTo);
                   }
+                  onMove?.();
 
                   if (mutate) {
                     moveMutation.mutate({
@@ -232,6 +235,7 @@ const Chessboard: React.FC<
                     ) {
                       setPromotedPawn(moveTo);
                     }
+                    onMove?.();
 
                     if (mutate) {
                       moveMutation.mutate({

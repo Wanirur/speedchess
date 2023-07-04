@@ -1,8 +1,9 @@
-import { PlayerColor } from "@prisma/client";
+import { type PlayerColor } from "@prisma/client";
 import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
-import { type FEN } from "~/utils/notations";
+import { AlgebraicNotation, type FEN } from "~/utils/notations";
+import { type TimeControl } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {
@@ -126,8 +127,16 @@ class StockfishWrapper extends EventEmitter {
   public get engineName(): string {
     return this._engineName;
   }
+  private _mode: "ANALYSIS" | "PLAY" | undefined;
 
+  private _gameMoves: string[] = [];
+  private _timeControl: TimeControl = { initialTime: 1, increment: 1 };
   private _color: PlayerColor = "WHITE";
+  public get color(): PlayerColor {
+    return this._color;
+  }
+
+  private _ponder = "";
 
   private _bestLines = new Array<BestChessLine>(3);
   public get bestLines(): BestChessLine[] {
@@ -158,8 +167,14 @@ class StockfishWrapper extends EventEmitter {
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
     this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
       console.log(line);
-      if (line.startsWith("info") && line.includes("multipv")) {
+      if (
+        this._mode === "ANALYSIS" &&
+        line.startsWith("info") &&
+        line.includes("multipv")
+      ) {
         this._handleCalculation(line);
+      } else if (this._mode === "PLAY" && line.startsWith("bestmove")) {
+        this._handleGameplay(line);
       } else if (line.startsWith("id name")) {
         this._engineName = line.replace("id name ", "");
       }
@@ -220,14 +235,64 @@ class StockfishWrapper extends EventEmitter {
     });
   }
 
+  private _handleGameplay(line: string) {
+    const words = line.split(" ");
+    const bestMoveIndex = words.findIndex((word) => word === "bestmove") + 1;
+    const ponderIndex = words.findIndex((word) => word === "ponder") + 1;
+
+    if (!bestMoveIndex) {
+      return;
+    }
+
+    const bestMove = words[bestMoveIndex];
+    const ponder = words[ponderIndex];
+    if (!bestMove) {
+      return;
+    }
+
+    if (ponder) {
+      this._ponder = ponder;
+    }
+    this._gameMoves.push(bestMove);
+    const { from, to } =
+      AlgebraicNotation.getCoordsFromLongAlgebraicString(bestMove);
+    this.emit("move_made", { from: from, to: to });
+  }
+
   setStrength(elo: number) {
     this._messageQueue.sendMessage("setoption name UCI_LimitStrength true");
     this._messageQueue.sendMessage(`setoption name UCI_Elo ${elo}`);
   }
 
   analysisMode() {
+    this._mode = "ANALYSIS";
     this._messageQueue.sendMessage("setoption name MultiPV value 3");
+    this._messageQueue.sendMessage("setoption name Ponder false");
     this._messageQueue.sendMessage("ucinewgame");
+  }
+
+  playMode(timeControl: TimeControl, color: PlayerColor) {
+    this._mode = "PLAY";
+    this._messageQueue.sendMessage("setoption name MultiPV value 1");
+    // this._messageQueue.sendMessage("setoption name Ponder value true");
+    this._timeControl = timeControl;
+    this._messageQueue.sendMessage("ucinewgame");
+    if (color === "WHITE") {
+      this._messageQueue.sendMessage("position startpos");
+      this._messageQueue.sendMessage("go ponder movetime 1000");
+    }
+  }
+
+  playResponseTo(move: string) {
+    this._gameMoves.push(move);
+
+    if (move === this._ponder) {
+      this._messageQueue.sendMessage("ponderhit");
+    }
+
+    const moves = this._gameMoves.join(" ");
+    this._messageQueue.sendMessage(`position startpos moves ${moves}`);
+    this._messageQueue.sendMessage("go movetime 1000");
   }
 
   calculateBestVariations(position: FEN, depth: number, color: PlayerColor) {
@@ -239,6 +304,14 @@ class StockfishWrapper extends EventEmitter {
     this._bestLines = new Array<BestChessLine>(3);
 
     this._messageQueue.sendMessage(`go depth ${depth}`);
+  }
+
+  terminate() {
+    /* there seems to be no reliable way to kill the stockfish process
+     without killing the main thread so the instance is kept for future use 
+     https://github.com/lichess-org/stockfish.wasm/issues/38
+     */
+    this._messageQueue.sendMessage("stop");
   }
 }
 

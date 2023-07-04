@@ -1,7 +1,7 @@
 import { type PlayerColor } from "@prisma/client";
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/draw_resign_panel";
 import GameSummary from "~/components/game_summary";
@@ -10,7 +10,8 @@ import Timer from "~/components/timer";
 import UserBanner from "~/components/user_banner";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
 import Chess from "~/utils/chess";
-import { TimeControl, initBoard } from "~/utils/pieces";
+import { type Coords } from "~/utils/coords";
+import { type TimeControl, initBoard } from "~/utils/pieces";
 
 const PlayBot: React.FC = () => {
   const { data: sessionData } = useSession();
@@ -21,16 +22,16 @@ const PlayBot: React.FC = () => {
   const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
 
-  const [gameState, setGameState] = useState<
-    | {
-        whiteMilisLeft: number;
-        blackMilisLeft: number;
-        timeControl: TimeControl;
-        color: PlayerColor;
-        turn: PlayerColor;
-      }
-    | undefined
-  >({
+  const onPlayerMove = useCallback(() => {
+    setIsYourTurn(true);
+  }, []);
+  const [gameState, setGameState] = useState<{
+    whiteMilisLeft: number;
+    blackMilisLeft: number;
+    timeControl: TimeControl;
+    color: PlayerColor;
+    turn: PlayerColor;
+  }>({
     whiteMilisLeft: 180000,
     blackMilisLeft: 180000,
     timeControl: { initialTime: 3, increment: 0 },
@@ -38,15 +39,42 @@ const PlayBot: React.FC = () => {
     turn: "WHITE",
   });
 
-  // useEffect(() => {}, []);
-
+  const [isYourTurn, setIsYourTurn] = useState<boolean>(
+    gameState.color === gameState.turn
+  );
   const [opponentsData, setOpponentsData] = useState<
     { id: string; name: string; rating: number } | undefined
   >({ id: "-1", name: "stockfish", rating: 1400 });
 
   const { isError, stockfish } = useStockfish();
-
   const opponentsColor = gameState?.color === "WHITE" ? "BLACK" : "WHITE";
+
+  useEffect(() => {
+    stockfish?.playMode({ initialTime: 3, increment: 0 }, "BLACK");
+  }, [stockfish]);
+
+  useEffect(() => {
+    if (!stockfish || !chess) {
+      return;
+    }
+
+    const onMove = ({ from, to }: { from: Coords; to: Coords }) => {
+      try {
+        chess.move(from, to, opponentsColor);
+      } catch (e) {
+        if (e instanceof Error) {
+          console.log(e);
+        }
+        return;
+      }
+
+      setIsYourTurn(true);
+      setIndexOfBoardToDisplay((x) => x + 1);
+    };
+    stockfish.bind("move_made", onMove);
+
+    return () => stockfish.unbind("move_made", onMove);
+  }, [stockfish, chess, opponentsColor]);
 
   if (isError) {
     return <div className="text-red"> error </div>;
@@ -86,12 +114,18 @@ const PlayBot: React.FC = () => {
             <Chessboard
               uuid={"play_bot"}
               color={gameState.color}
-              isYourTurn={gameState.turn === gameState.color}
+              isYourTurn={isYourTurn}
               chess={chess}
               board={boardToDisplay}
               locked={!isDisplayedBoardLatest}
               unlockFunction={setIndexOfBoardToDisplay}
-              mutate
+              onMove={() => {
+                setIsYourTurn(false);
+                const move = chess.algebraic.at(-1)?.toLongNotationString();
+                if (move) {
+                  stockfish?.playResponseTo(move);
+                }
+              }}
             ></Chessboard>
           )}
         </div>
@@ -99,14 +133,13 @@ const PlayBot: React.FC = () => {
         <div className="absolute flex h-full w-full min-w-[15rem] max-w-xs  flex-col justify-center md:static md:m-0 md:w-1/3 md:max-w-md md:px-4 3xl:max-w-xl">
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
-            subscribable={stockfish}
             color={opponentsColor}
             initial={
               opponentsColor === "WHITE"
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === gameState.color || !!chess.gameResult}
+            isLocked={isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
               setIsGameFinished(true);
@@ -144,14 +177,13 @@ const PlayBot: React.FC = () => {
 
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
-            subscribable={stockfish}
             color={gameState.color}
             initial={
               gameState.color === "WHITE"
                 ? gameState.whiteMilisLeft
                 : gameState.blackMilisLeft
             }
-            isLocked={gameState.turn === opponentsColor || !!chess.gameResult}
+            isLocked={!isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
               setIsGameFinished(true);

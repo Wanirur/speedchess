@@ -300,7 +300,7 @@ const Play: NextPage = () => {
         <div className="absolute flex h-full w-full min-w-[15rem] max-w-xs  flex-col justify-center md:static md:m-0 md:w-1/3 md:max-w-md md:px-4 3xl:max-w-xl">
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
-            subscribable={channelRef.current}
+            channel={channelRef.current}
             color={opponentsColor}
             initial={
               opponentsColor === "WHITE"
@@ -348,7 +348,7 @@ const Play: NextPage = () => {
 
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
-            subscribable={channelRef.current}
+            channel={channelRef.current}
             color={gameState.color}
             initial={
               gameState.color === "WHITE"
