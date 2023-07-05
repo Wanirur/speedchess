@@ -9,7 +9,7 @@ import { type User } from "next-auth";
 import { api } from "~/utils/api";
 import { calculateRatingDiff } from "~/utils/elo";
 import { type HTMLAttributes, useMemo, useState } from "react";
-import QueueDisplay from "./queue";
+import Queue from "./queue";
 import { useRouter } from "next/router";
 import { twMerge } from "tailwind-merge";
 import { Cpu } from "lucide-react";
@@ -116,11 +116,12 @@ const GameSummary: React.FC<
           </button>
         </>
       ) : (
-        <QueueDisplay
+        <Queue
           className="h-52 w-72 text-sm md:h-96 md:w-72"
           gameId={queueUpMutation.data.uuid}
+          timeControl={queueUpTimeControl}
           setIsInQueue={setIsInQueue}
-        ></QueueDisplay>
+        ></Queue>
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import { type NextPage } from "next";
 import { signIn, useSession } from "next-auth/react";
 import { api } from "~/utils/api";
 import { useRouter } from "next/router";
-import QueueDisplay from "~/components/queue";
+import Queue from "~/components/queue";
 import { type TimeControl } from "~/utils/pieces";
 import { HelpCircle } from "lucide-react";
 import { type HTMLAttributes, useState, useEffect } from "react";
@@ -87,6 +87,9 @@ const UserLoggedInView: React.FC = () => {
   });
 
   const [isInQueue, setIsInQueue] = useState<boolean>(false);
+  const [queueUpTimeControl, setQueueUpTimeControl] = useState<
+    TimeControl | undefined
+  >();
 
   useEffect(() => {
     pusherClient?.signin();
@@ -107,43 +110,49 @@ const UserLoggedInView: React.FC = () => {
         </div>
       )}
 
-      {queueUpMutation?.data && isInQueue ? (
-        <QueueDisplay
+      {queueUpMutation?.data && isInQueue && queueUpTimeControl ? (
+        <Queue
           className="h-96 w-72 3xl:h-[36rem] 3xl:w-96 3xl:text-xl"
           gameId={queueUpMutation.data.uuid}
           setIsInQueue={setIsInQueue}
-        ></QueueDisplay>
+          timeControl={queueUpTimeControl}
+        ></Queue>
       ) : (
         <div className="flex h-[19.25rem] w-[16.75rem] flex-wrap items-center justify-center gap-3 md:h-[24.75rem] md:w-[50rem] 3xl:h-[33rem] 3xl:w-[74rem] 3xl:gap-4">
           <QueueUpCard
             timeControl={{ initialTime: 1, increment: 0 }}
-            onClick={() =>
-              queueUpMutation.mutate({ initialTime: 60, increment: 0 })
-            }
+            onClick={() => {
+              queueUpMutation.mutate({ initialTime: 60, increment: 0 });
+              setQueueUpTimeControl({ initialTime: 1, increment: 0 });
+            }}
           ></QueueUpCard>
           <QueueUpCard
             timeControl={{ initialTime: 1, increment: 1 }}
-            onClick={() =>
-              queueUpMutation.mutate({ initialTime: 60, increment: 1 })
-            }
+            onClick={() => {
+              queueUpMutation.mutate({ initialTime: 60, increment: 0 });
+              setQueueUpTimeControl({ initialTime: 1, increment: 1 });
+            }}
           ></QueueUpCard>
           <QueueUpCard
             timeControl={{ initialTime: 2, increment: 1 }}
-            onClick={() =>
-              queueUpMutation.mutate({ initialTime: 120, increment: 1 })
-            }
+            onClick={() => {
+              queueUpMutation.mutate({ initialTime: 60, increment: 0 });
+              setQueueUpTimeControl({ initialTime: 2, increment: 1 });
+            }}
           ></QueueUpCard>
           <QueueUpCard
             timeControl={{ initialTime: 3, increment: 0 }}
-            onClick={() =>
-              queueUpMutation.mutate({ initialTime: 180, increment: 0 })
-            }
+            onClick={() => {
+              queueUpMutation.mutate({ initialTime: 60, increment: 0 });
+              setQueueUpTimeControl({ initialTime: 3, increment: 0 });
+            }}
           ></QueueUpCard>
           <QueueUpCard
             timeControl={{ initialTime: 3, increment: 2 }}
-            onClick={() =>
-              queueUpMutation.mutate({ initialTime: 180, increment: 2 })
-            }
+            onClick={() => {
+              queueUpMutation.mutate({ initialTime: 60, increment: 0 });
+              setQueueUpTimeControl({ initialTime: 3, increment: 2 });
+            }}
           ></QueueUpCard>
         </div>
       )}
