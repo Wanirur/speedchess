@@ -79,7 +79,7 @@ const config = {
         ],
       },
       {
-        source: "/bot/:slug",
+        source: "/play_bot",
         headers: [
           {
             key: "Cross-Origin-Embedder-Policy",

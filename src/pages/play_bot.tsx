@@ -1,6 +1,7 @@
 import { type PlayerColor } from "@prisma/client";
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/draw_resign_panel";
@@ -14,16 +15,15 @@ import { type Coords } from "~/utils/coords";
 import { type TimeControl, initBoard } from "~/utils/pieces";
 
 const PlayBot: React.FC = () => {
+  const router = useRouter();
+  const { color, time, increment } = router.query;
+
   const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
   const [gameState, setGameState] = useState<{
-    whiteMilisLeft: number;
-    blackMilisLeft: number;
     timeControl: TimeControl;
     color: PlayerColor;
     turn: PlayerColor;
   }>({
-    whiteMilisLeft: 180000,
-    blackMilisLeft: 180000,
     timeControl: { initialTime: 3, increment: 0 },
     color: "WHITE",
     turn: "WHITE",
@@ -39,6 +39,21 @@ const PlayBot: React.FC = () => {
     name: string;
     rating: number;
   }>({ id: "-1", name: "stockfish", rating: 1200 });
+
+  useEffect(() => {
+    if (!router.isReady) {
+      return;
+    }
+
+    setGameState({
+      timeControl: {
+        initialTime: +(time as string),
+        increment: +(increment as string),
+      },
+      color: (color as string).toUpperCase() as PlayerColor,
+      turn: "WHITE",
+    });
+  }, [router.isReady, color, increment, time]);
 
   useEffect(() => {
     if (sessionData && stockfish) {
@@ -139,11 +154,7 @@ const PlayBot: React.FC = () => {
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             color={opponentsColor}
-            initial={
-              opponentsColor === "WHITE"
-                ? gameState.whiteMilisLeft
-                : gameState.blackMilisLeft
-            }
+            initial={gameState.timeControl.initialTime * 60 * 1000}
             isLocked={isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
@@ -183,11 +194,7 @@ const PlayBot: React.FC = () => {
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             color={gameState.color}
-            initial={
-              gameState.color === "WHITE"
-                ? gameState.whiteMilisLeft
-                : gameState.blackMilisLeft
-            }
+            initial={gameState.timeControl.initialTime * 60 * 1000}
             isLocked={!isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
