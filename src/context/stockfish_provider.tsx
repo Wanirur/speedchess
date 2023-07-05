@@ -127,6 +127,11 @@ class StockfishWrapper extends EventEmitter {
   public get engineName(): string {
     return this._engineName;
   }
+  private _rating = 2800;
+  public get rating(): number {
+    return this._rating;
+  }
+
   private _mode: "ANALYSIS" | "PLAY" | undefined;
 
   private _gameMoves: string[] = [];
@@ -260,8 +265,11 @@ class StockfishWrapper extends EventEmitter {
   }
 
   setStrength(elo: number) {
-    this._messageQueue.sendMessage("setoption name UCI_LimitStrength true");
-    this._messageQueue.sendMessage(`setoption name UCI_Elo ${elo}`);
+    this._rating = elo;
+    this._messageQueue.sendMessage(
+      "setoption name UCI_LimitStrength value true"
+    );
+    this._messageQueue.sendMessage(`setoption name UCI_Elo value ${elo}`);
   }
 
   analysisMode() {
