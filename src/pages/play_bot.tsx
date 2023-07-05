@@ -38,7 +38,7 @@ const PlayBot: React.FC = () => {
     id: string;
     name: string;
     rating: number;
-  }>({ id: "-1", name: "stockfish", rating: 1200 });
+  }>({ id: "bot", name: "stockfish", rating: 1200 });
 
   useEffect(() => {
     if (!router.isReady) {

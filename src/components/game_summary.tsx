@@ -12,6 +12,7 @@ import { type HTMLAttributes, useMemo, useState } from "react";
 import QueueDisplay from "./queue";
 import { useRouter } from "next/router";
 import { twMerge } from "tailwind-merge";
+import { Cpu } from "lucide-react";
 
 const GameSummary: React.FC<
   {
@@ -87,6 +88,9 @@ const GameSummary: React.FC<
                 height={80}
                 alt="player avatar"
               ></Image>
+            )}
+            {user.id === "bot" && (
+              <Cpu className="h-20 w-20 stroke-neutral-400"></Cpu>
             )}
           </div>
           <h1 className="text-4xl font-semibold md:text-5xl"> {msg} </h1>
