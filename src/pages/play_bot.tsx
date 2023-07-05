@@ -12,13 +12,21 @@ import UserBanner from "~/components/user_banner";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
 import Chess from "~/utils/chess";
 import { type Coords } from "~/utils/coords";
-import { type TimeControl, initBoard } from "~/utils/pieces";
+import { FEN } from "~/utils/notations";
+import {
+  type TimeControl,
+  initBoard,
+  PieceType,
+  PromotedPieceType,
+} from "~/utils/pieces";
 
 const PlayBot: React.FC = () => {
   const router = useRouter();
   const { color, time, increment } = router.query;
 
-  const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
+  const [chess, setChess] = useState<Chess>(
+    new Chess(FEN.fromString("4K3/p7/8/8/8/8/7P/4k3 w - - 0 1")?.buildBoard())
+  );
   const [gameState, setGameState] = useState<{
     timeControl: TimeControl;
     color: PlayerColor;
@@ -78,12 +86,39 @@ const PlayBot: React.FC = () => {
         return;
       }
 
+      if (chess.gameResult) {
+        setTimeout(() => {
+          setIsGameFinished(true);
+        }, 1000);
+      }
+
       setIsYourTurn(true);
       setIndexOfBoardToDisplay((x) => x + 1);
     };
-    stockfish.bind("move_made", onMove);
 
-    return () => stockfish.unbind("move_made", onMove);
+    const onPromote = ({ promotedTo }: { promotedTo: PromotedPieceType }) => {
+      try {
+        chess.promote(promotedTo, opponentsColor);
+      } catch (e) {
+        if (e instanceof Error) {
+          console.log(e);
+        }
+      }
+
+      if (chess.gameResult) {
+        setTimeout(() => {
+          setIsGameFinished(true);
+        }, 1000);
+      }
+    };
+
+    stockfish.bind("move_made", onMove);
+    stockfish.bind("piece_promoted", onPromote);
+
+    return () => {
+      stockfish.unbind("move_made", onMove);
+      stockfish.unbind("piece_promoted", onPromote);
+    };
   }, [stockfish, chess, opponentsColor]);
 
   const [showDrawResignPanel, setShowDrawResignPanel] =
@@ -141,6 +176,13 @@ const PlayBot: React.FC = () => {
               unlockFunction={setIndexOfBoardToDisplay}
               onMove={() => {
                 setIsYourTurn(false);
+                if (chess.gameResult) {
+                  setTimeout(() => {
+                    setIsGameFinished(true);
+                  }, 1000);
+
+                  return;
+                }
                 const move = chess.algebraic.at(-1)?.toLongNotationString();
                 if (move) {
                   stockfish?.playResponseTo(move);

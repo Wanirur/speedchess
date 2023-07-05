@@ -23,6 +23,7 @@ import { api } from "~/utils/api";
 import type Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import { twMerge } from "tailwind-merge";
+import { on } from "events";
 
 const Chessboard: React.FC<
   {
@@ -164,8 +165,9 @@ const Chessboard: React.FC<
                       (color === "BLACK" && moveTo.y === 0))
                   ) {
                     setPromotedPawn(moveTo);
+                  } else {
+                    onMove?.();
                   }
-                  onMove?.();
 
                   if (mutate) {
                     moveMutation.mutate({
@@ -234,8 +236,9 @@ const Chessboard: React.FC<
                         (color === "BLACK" && moveTo.y === 0))
                     ) {
                       setPromotedPawn(moveTo);
+                    } else {
+                      onMove?.();
                     }
-                    onMove?.();
 
                     if (mutate) {
                       moveMutation.mutate({
@@ -291,6 +294,8 @@ const Chessboard: React.FC<
                       uuid={uuid}
                       chess={chess}
                       setPromotedPawn={setPromotedPawn}
+                      mutate={mutate}
+                      onPromote={onMove}
                     ></PromotionPieceList>
                   )}
                 </>
@@ -308,13 +313,18 @@ const PromotionPieceList: React.FC<
     color: PlayerColor;
     uuid: string;
     chess: Chess;
+    mutate: boolean;
+    onPromote?: () => void;
     setPromotedPawn: Dispatch<SetStateAction<Coords | null>>;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, color, uuid, chess, setPromotedPawn }) => {
+> = ({ className, color, uuid, chess, mutate, onPromote, setPromotedPawn }) => {
   const promoteMutation = api.chess.promoteTo.useMutation();
   const promote = (pieceType: PromotedPieceType) => {
     chess.promote(pieceType, color);
-    promoteMutation.mutate({ uuid: uuid, promoteTo: pieceType });
+    if (mutate) {
+      promoteMutation.mutate({ uuid: uuid, promoteTo: pieceType });
+    }
+    onPromote?.();
     setPromotedPawn(null);
   };
   return (

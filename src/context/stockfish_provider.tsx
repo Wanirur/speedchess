@@ -259,9 +259,13 @@ class StockfishWrapper extends EventEmitter {
       this._ponder = ponder;
     }
     this._gameMoves.push(bestMove);
-    const { from, to } =
-      AlgebraicNotation.getCoordsFromLongAlgebraicString(bestMove);
+    const { from, to, promotedTo } =
+      AlgebraicNotation.getDataFromLANString(bestMove);
     this.emit("move_made", { from: from, to: to });
+
+    if (promotedTo) {
+      this.emit("piece_promoted", { promotedTo: promotedTo });
+    }
   }
 
   setStrength(elo: number) {
@@ -297,9 +301,12 @@ class StockfishWrapper extends EventEmitter {
     if (move === this._ponder) {
       this._messageQueue.sendMessage("ponderhit");
     }
+    //
 
     const moves = this._gameMoves.join(" ");
-    this._messageQueue.sendMessage(`position startpos moves ${moves}`);
+    this._messageQueue.sendMessage(
+      `position fen 4k3/7P/8/8/8/8/p7/4K3 w - - 0 1 moves ${moves}`
+    );
     this._messageQueue.sendMessage("go movetime 1000");
   }
 
