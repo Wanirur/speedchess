@@ -182,7 +182,6 @@ const Chessboard: React.FC<
                       },
                     });
                   }
-                  unlockFunction?.(chess.algebraic.length - 1);
                 }}
                 onClick={(e) => {
                   if (locked) {
@@ -253,7 +252,6 @@ const Chessboard: React.FC<
                         },
                       });
                     }
-                    unlockFunction?.(chess.algebraic.length - 1);
 
                     return;
                   }

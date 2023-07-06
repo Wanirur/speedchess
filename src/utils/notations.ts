@@ -21,7 +21,7 @@ import {
   type GameResult,
   copyBoard,
   initBoard,
-  PromotedPieceType,
+  type PromotedPieceType,
 } from "./pieces";
 
 //fen notation

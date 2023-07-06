@@ -47,6 +47,7 @@ const wasmThreadsSupported = () => {
 type StockfishApi = {
   postMessage: (arg: string) => void;
   addMessageListener: (arg: (line: string) => void) => void;
+  removeMessageListener: (arg: (line: string) => void) => void;
 };
 
 class StockfishMessageQueue {
@@ -103,6 +104,11 @@ class StockfishMessageQueue {
     }
   }
 
+  clear() {
+    this._stopCalculating();
+    this._queue = [];
+  }
+
   private _stopCalculating() {
     if (!this._isCalculating) {
       return;
@@ -127,6 +133,12 @@ class StockfishWrapper extends EventEmitter {
   public get engineName(): string {
     return this._engineName;
   }
+
+  private _isInitialized = false;
+  public get isInitialized() {
+    return this._isInitialized;
+  }
+
   private _rating = 2800;
   public get rating(): number {
     return this._rating;
@@ -167,23 +179,39 @@ class StockfishWrapper extends EventEmitter {
     return this._currentDepth;
   }
 
+  private _boundMessageListener = this._messageListener.bind(this);
+
   constructor(stockfishInstance: StockfishApi) {
     super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
-    this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
-      console.log(line);
-      if (
-        this._mode === "ANALYSIS" &&
-        line.startsWith("info") &&
-        line.includes("multipv")
-      ) {
-        this._handleCalculation(line);
-      } else if (this._mode === "PLAY" && line.startsWith("bestmove")) {
-        this._handleGameplay(line);
-      } else if (line.startsWith("id name")) {
-        this._engineName = line.replace("id name ", "");
-      }
-    });
+    this._messageQueue.stockfishInstance.addMessageListener(
+      this._boundMessageListener
+    );
+
+    this._isInitialized = true;
+  }
+
+  public reinitialize() {
+    this._messageQueue.stockfishInstance.addMessageListener(
+      this._boundMessageListener
+    );
+
+    this._isInitialized = true;
+  }
+
+  private _messageListener(line: string) {
+    console.log(line);
+    if (
+      this._mode === "ANALYSIS" &&
+      line.startsWith("info") &&
+      line.includes("multipv")
+    ) {
+      this._handleCalculation(line);
+    } else if (this._mode === "PLAY" && line.startsWith("bestmove")) {
+      this._handleGameplay(line);
+    } else if (line.startsWith("id name")) {
+      this._engineName = line.replace("id name ", "");
+    }
   }
 
   private _handleCalculation(line: string) {
@@ -283,30 +311,30 @@ class StockfishWrapper extends EventEmitter {
     this._messageQueue.sendMessage("ucinewgame");
   }
 
-  playMode(timeControl: TimeControl, color: PlayerColor) {
+  playMode(timeControl: TimeControl) {
     this._mode = "PLAY";
     this._messageQueue.sendMessage("setoption name MultiPV value 1");
     // this._messageQueue.sendMessage("setoption name Ponder value true");
     this._timeControl = timeControl;
     this._messageQueue.sendMessage("ucinewgame");
-    if (color === "WHITE") {
-      this._messageQueue.sendMessage("position startpos");
-      this._messageQueue.sendMessage("go ponder movetime 1000");
-    }
   }
 
   playResponseTo(move: string) {
-    this._gameMoves.push(move);
+    if (move !== "") {
+      this._gameMoves.push(move);
+    }
 
     if (move === this._ponder) {
       this._messageQueue.sendMessage("ponderhit");
     }
-    //
 
-    const moves = this._gameMoves.join(" ");
-    this._messageQueue.sendMessage(
-      `position fen 4k3/7P/8/8/8/8/p7/4K3 w - - 0 1 moves ${moves}`
-    );
+    if (this._gameMoves.length) {
+      const moves = this._gameMoves.join(" ");
+      this._messageQueue.sendMessage(`position startpos moves ${moves}`);
+    } else {
+      this._messageQueue.sendMessage(`position startpos`);
+    }
+
     this._messageQueue.sendMessage("go movetime 1000");
   }
 
@@ -326,7 +354,13 @@ class StockfishWrapper extends EventEmitter {
      without killing the main thread so the instance is kept for future use 
      https://github.com/lichess-org/stockfish.wasm/issues/38
      */
-    this._messageQueue.sendMessage("stop");
+    this._isInitialized = false;
+
+    this._gameMoves = [];
+    this._messageQueue.clear();
+    this._messageQueue.stockfishInstance.removeMessageListener(
+      this._boundMessageListener
+    );
   }
 }
 

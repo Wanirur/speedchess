@@ -94,6 +94,9 @@ class Chess {
   private _halfMovesSinceLastCaptureOrPawnMove = 0;
   private _movesPlayed = 0;
 
+  private _lastMoveFrom: Coords | undefined;
+  private _lastMoveTo: Coords | undefined;
+
   constructor(board?: Board) {
     if (board) {
       this._currentBoard = board;
@@ -215,6 +218,9 @@ class Chess {
 
       throw new Error("failed to defend check");
     }
+
+    this._lastMoveFrom = from;
+    this._lastMoveTo = to;
 
     if (
       playerColor === "WHITE" &&
@@ -407,10 +413,7 @@ class Chess {
       this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
     }
 
-    const from =
-      playerColor === "WHITE"
-        ? Coords.getInstance(coords.x, coords.y - 1)
-        : Coords.getInstance(coords.x, coords.y + 1);
+    const from = this._lastMoveFrom;
 
     if (!from) {
       throw new Error("????");
@@ -421,7 +424,7 @@ class Chess {
         from,
         coords,
         "PAWN",
-        false,
+        from.x - coords.x !== 0,
         playerColor === "WHITE"
           ? this._isBlackKingChecked
           : this._isWhiteKingChecked,

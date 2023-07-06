@@ -2,7 +2,7 @@ import { type PlayerColor } from "@prisma/client";
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/draw_resign_panel";
 import GameSummary from "~/components/game_summary";
@@ -12,67 +12,83 @@ import UserBanner from "~/components/user_banner";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
 import Chess from "~/utils/chess";
 import { type Coords } from "~/utils/coords";
-import { FEN } from "~/utils/notations";
 import {
   type TimeControl,
   initBoard,
-  PieceType,
-  PromotedPieceType,
+  type PromotedPieceType,
 } from "~/utils/pieces";
 
 const PlayBot: React.FC = () => {
   const router = useRouter();
   const { color, time, increment } = router.query;
 
-  const [chess, setChess] = useState<Chess>(
-    new Chess(FEN.fromString("4K3/p7/8/8/8/8/7P/4k3 w - - 0 1")?.buildBoard())
-  );
-  const [gameState, setGameState] = useState<{
-    timeControl: TimeControl;
-    color: PlayerColor;
-    turn: PlayerColor;
-  }>({
-    timeControl: { initialTime: 3, increment: 0 },
-    color: "WHITE",
-    turn: "WHITE",
-  });
+  const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
+  const stockfishInitialized = useRef<boolean>(false);
+  const [gameState, setGameState] = useState<
+    | {
+        timeControl: TimeControl;
+        color: PlayerColor;
+        turn: PlayerColor;
+      }
+    | undefined
+  >();
 
   const { data: sessionData } = useSession();
 
   const { isError, stockfish } = useStockfish();
-  const opponentsColor = gameState?.color === "WHITE" ? "BLACK" : "WHITE";
 
   const [opponentsData, setOpponentsData] = useState<{
     id: string;
     name: string;
     rating: number;
   }>({ id: "bot", name: "stockfish", rating: 1200 });
+  const [opponentsColor, setOpponentsColor] = useState<
+    PlayerColor | undefined
+  >();
 
   useEffect(() => {
     if (!router.isReady) {
       return;
     }
 
+    const playerColor = (color as string).toUpperCase() as PlayerColor;
     setGameState({
       timeControl: {
         initialTime: +(time as string),
         increment: +(increment as string),
       },
-      color: (color as string).toUpperCase() as PlayerColor,
+      color: playerColor,
       turn: "WHITE",
     });
+
+    setOpponentsColor(playerColor === "WHITE" ? "BLACK" : "WHITE");
+    setIsYourTurn(playerColor === "WHITE");
   }, [router.isReady, color, increment, time]);
 
   useEffect(() => {
-    if (sessionData && stockfish) {
-      stockfish.setStrength(Math.round(sessionData.user.rating / 100) * 100);
-      setOpponentsData((old) => ({ ...old, rating: stockfish.rating }));
+    if (
+      stockfishInitialized.current ||
+      !stockfish ||
+      !sessionData ||
+      !gameState ||
+      !opponentsColor
+    ) {
+      return;
     }
-    stockfish?.playMode({ initialTime: 3, increment: 0 }, "BLACK");
-  }, [stockfish, sessionData]);
+
+    stockfish.setStrength(Math.round(sessionData.user.rating / 100) * 100);
+    setOpponentsData((old) => ({ ...old, rating: stockfish.rating }));
+
+    stockfish.playMode(gameState.timeControl);
+    stockfishInitialized.current = true;
+
+    if (opponentsColor === "WHITE") {
+      stockfish.playResponseTo("");
+    }
+  }, [stockfish, sessionData, gameState, opponentsColor]);
 
   useEffect(() => {
-    if (!stockfish || !chess) {
+    if (!stockfish || !chess || !opponentsColor) {
       return;
     }
 
@@ -93,7 +109,7 @@ const PlayBot: React.FC = () => {
       }
 
       setIsYourTurn(true);
-      setIndexOfBoardToDisplay((x) => x + 1);
+      setIndexOfBoardToDisplay(chess.algebraic.length - 1);
     };
 
     const onPromote = ({ promotedTo }: { promotedTo: PromotedPieceType }) => {
@@ -128,7 +144,7 @@ const PlayBot: React.FC = () => {
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
 
   const [isYourTurn, setIsYourTurn] = useState<boolean>(
-    gameState.color === gameState.turn
+    gameState?.color === gameState?.turn
   );
 
   if (isError) {
@@ -137,6 +153,7 @@ const PlayBot: React.FC = () => {
   if (
     !chess ||
     !sessionData?.user ||
+    !opponentsColor ||
     !gameState ||
     !opponentsData ||
     !stockfish
@@ -176,6 +193,8 @@ const PlayBot: React.FC = () => {
               unlockFunction={setIndexOfBoardToDisplay}
               onMove={() => {
                 setIsYourTurn(false);
+                setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+
                 if (chess.gameResult) {
                   setTimeout(() => {
                     setIsGameFinished(true);
@@ -183,9 +202,10 @@ const PlayBot: React.FC = () => {
 
                   return;
                 }
+
                 const move = chess.algebraic.at(-1)?.toLongNotationString();
                 if (move) {
-                  stockfish?.playResponseTo(move);
+                  stockfish.playResponseTo(move);
                 }
               }}
             ></Chessboard>
