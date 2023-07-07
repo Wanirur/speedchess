@@ -390,11 +390,14 @@ export class AlgebraicNotation {
     }
 
     let result = "";
-    if (this._pieceType != "PAWN") {
+    if (this._pieceType !== "PAWN") {
       result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
     }
 
     if (this._isCapturing) {
+      if (this._pieceType === "PAWN") {
+        result += this._from.toString().at(0);
+      }
       result += "x";
     }
     result += this._to.toString();
