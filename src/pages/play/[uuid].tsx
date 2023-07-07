@@ -293,6 +293,11 @@ const Play: NextPage = () => {
               locked={!isDisplayedBoardLatest}
               unlockFunction={setIndexOfBoardToDisplay}
               mutate
+              onMove={() => {
+                setIndexOfBoardToDisplay(
+                  chessRef.current!.algebraic.length - 1
+                );
+              }}
             ></Chessboard>
           )}
         </div>
@@ -335,10 +340,11 @@ const Play: NextPage = () => {
             uuid={uuid as string}
             isUserDisconnected={isUserDisconnected}
             isEnemyDisconnected={isEnemyDisconnected}
-            chessAbandonFunc={() => {
+            onAbandon={() => {
               chessRef.current?.abandon(opponentsColor);
               setIsGameFinished(true);
             }}
+            mutate
           ></DrawResignPanel>
 
           <UserBanner

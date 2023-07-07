@@ -3,7 +3,6 @@ import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
 import { AlgebraicNotation, type FEN } from "~/utils/notations";
-import { type TimeControl } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {
@@ -44,15 +43,15 @@ const wasmThreadsSupported = () => {
   return true;
 };
 
-type StockfishApi = {
+type Stockfish = {
   postMessage: (arg: string) => void;
   addMessageListener: (arg: (line: string) => void) => void;
   removeMessageListener: (arg: (line: string) => void) => void;
 };
 
 class StockfishMessageQueue {
-  private _stockfishInstance: StockfishApi;
-  get stockfishInstance(): StockfishApi {
+  private _stockfishInstance: Stockfish;
+  get stockfishInstance(): Stockfish {
     return this._stockfishInstance;
   }
 
@@ -61,7 +60,7 @@ class StockfishMessageQueue {
 
   private _queue = [] as string[];
 
-  constructor(stockfish: StockfishApi) {
+  constructor(stockfish: Stockfish) {
     this._stockfishInstance = stockfish;
 
     this._stockfishInstance.addMessageListener((line) => {
@@ -121,11 +120,19 @@ class StockfishMessageQueue {
   }
 }
 
+export type Evaluation =
+  | {
+      evaluation: number;
+      mateIn?: number;
+    }
+  | {
+      evaluation?: number;
+      mateIn: number;
+    };
+
 export type BestChessLine = {
-  evaluation?: number;
-  mateIn?: number;
   moves: string[];
-};
+} & Evaluation;
 
 class StockfishWrapper extends EventEmitter {
   private _messageQueue: StockfishMessageQueue;
@@ -147,13 +154,14 @@ class StockfishWrapper extends EventEmitter {
   private _mode: "ANALYSIS" | "PLAY" | undefined;
 
   private _gameMoves: string[] = [];
-  private _timeControl: TimeControl = { initialTime: 1, increment: 1 };
   private _color: PlayerColor = "WHITE";
   public get color(): PlayerColor {
     return this._color;
   }
 
   private _ponder = "";
+  private _eval: Evaluation = { evaluation: 0 };
+  private _isDrawOffered = false;
 
   private _bestLines = new Array<BestChessLine>(3);
   public get bestLines(): BestChessLine[] {
@@ -181,17 +189,9 @@ class StockfishWrapper extends EventEmitter {
 
   private _boundMessageListener = this._messageListener.bind(this);
 
-  constructor(stockfishInstance: StockfishApi) {
+  constructor(stockfishInstance: Stockfish) {
     super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
-    this._messageQueue.stockfishInstance.addMessageListener(
-      this._boundMessageListener
-    );
-
-    this._isInitialized = true;
-  }
-
-  public reinitialize() {
     this._messageQueue.stockfishInstance.addMessageListener(
       this._boundMessageListener
     );
@@ -206,15 +206,17 @@ class StockfishWrapper extends EventEmitter {
       line.startsWith("info") &&
       line.includes("multipv")
     ) {
-      this._handleCalculation(line);
+      this._handleAnalysis(line);
     } else if (this._mode === "PLAY" && line.startsWith("bestmove")) {
-      this._handleGameplay(line);
+      this._handleBestMove(line);
+    } else if (this._mode === "PLAY" && line.startsWith("info")) {
+      this._handleDrawOfferEval(line);
     } else if (line.startsWith("id name")) {
       this._engineName = line.replace("id name ", "");
     }
   }
 
-  private _handleCalculation(line: string) {
+  private _handleAnalysis(line: string) {
     const words = line.split(" ");
     const multipvIndex = words.findIndex((word) => word === "multipv") + 1;
     const movesBegginingIndex = words.findIndex((word) => word === "pv") + 1;
@@ -250,12 +252,17 @@ class StockfishWrapper extends EventEmitter {
 
     const parsedMultipv = Number.parseInt(multipv) - 1;
 
-    this._bestLines[parsedMultipv] = {
-      evaluation:
-        evalIndex && evaluation ? Number.parseInt(evaluation) / 100 : undefined,
-      mateIn: mateIndex && mateIn ? Number.parseInt(mateIn) : undefined,
-      moves: moves,
-    };
+    if (evalIndex && evaluation) {
+      this._bestLines[parsedMultipv] = {
+        moves: moves,
+        evaluation: Number.parseInt(evaluation) / 100,
+      };
+    } else if (mateIndex && mateIn) {
+      this._bestLines[parsedMultipv] = {
+        moves: moves,
+        mateIn: Number.parseInt(mateIn),
+      };
+    }
 
     if (parsedMultipv !== 2) {
       return;
@@ -268,11 +275,10 @@ class StockfishWrapper extends EventEmitter {
     });
   }
 
-  private _handleGameplay(line: string) {
+  private _handleBestMove(line: string) {
     const words = line.split(" ");
     const bestMoveIndex = words.findIndex((word) => word === "bestmove") + 1;
     const ponderIndex = words.findIndex((word) => word === "ponder") + 1;
-
     if (!bestMoveIndex) {
       return;
     }
@@ -296,12 +302,59 @@ class StockfishWrapper extends EventEmitter {
     }
   }
 
-  setStrength(elo: number) {
-    this._rating = elo;
-    this._messageQueue.sendMessage(
-      "setoption name UCI_LimitStrength value true"
-    );
-    this._messageQueue.sendMessage(`setoption name UCI_Elo value ${elo}`);
+  private _handleDrawOfferEval(line: string) {
+    const words = line.split(" ");
+    const evalIndex = words.findIndex((word) => word === "cp") + 1;
+    const mateIndex = words.findIndex((word) => word === "mate") + 1;
+    const depthIndex = words.findIndex((word) => word === "depth") + 1;
+    if ((!evalIndex && !mateIndex) || !depthIndex) {
+      return;
+    }
+
+    const depth = words[depthIndex];
+    if (!depth) {
+      return;
+    }
+
+    const evaluation = words[evalIndex] ? words[evalIndex] : words[mateIndex];
+    if (evaluation === undefined) {
+      return;
+    }
+
+    if (evalIndex) {
+      this._eval = { evaluation: Number.parseInt(evaluation) };
+    } else {
+      this._eval = { mateIn: Number.parseInt(evaluation) };
+    }
+
+    this._currentDepth = Number.parseInt(depth);
+    if (!this._isDrawOffered || this._currentDepth < 10) {
+      return;
+    }
+
+    if (this._isDrawOptimal()) {
+      this.emit("draw_accepted", {});
+    } else {
+      this.emit("draw_refused", {});
+    }
+
+    this._isDrawOffered = false;
+  }
+
+  private _isDrawOptimal() {
+    const evalBadForWhiteOrDrawish =
+      this._eval.evaluation !== undefined && this._eval.evaluation <= -0.5;
+
+    const evalBadForBlackOrDrawish =
+      this._eval.evaluation !== undefined && this._eval.evaluation >= 0.5;
+
+    const evalDrawishOrLosing =
+      (this.color === "WHITE" && evalBadForWhiteOrDrawish) ||
+      (this.color === "BLACK" && evalBadForBlackOrDrawish);
+
+    const getsMated = this._eval.mateIn !== undefined && this._eval.mateIn < 0;
+
+    return getsMated || evalDrawishOrLosing;
   }
 
   analysisMode() {
@@ -311,11 +364,29 @@ class StockfishWrapper extends EventEmitter {
     this._messageQueue.sendMessage("ucinewgame");
   }
 
-  playMode(timeControl: TimeControl) {
+  calculateBestVariations(position: FEN, depth: number, color: PlayerColor) {
+    this._color = color;
+    this._messageQueue.sendMessage("ucinewgame");
+    this._messageQueue.sendMessage(`position fen ${position.toString()}`);
+
+    this._currentDepth = 0;
+    this._bestLines = new Array<BestChessLine>(3);
+
+    this._messageQueue.sendMessage(`go depth ${depth}`);
+  }
+
+  setStrength(elo: number) {
+    this._rating = elo;
+    this._messageQueue.sendMessage(
+      "setoption name UCI_LimitStrength value true"
+    );
+    this._messageQueue.sendMessage(`setoption name UCI_Elo value ${elo}`);
+  }
+
+  playMode() {
     this._mode = "PLAY";
     this._messageQueue.sendMessage("setoption name MultiPV value 1");
-    // this._messageQueue.sendMessage("setoption name Ponder value true");
-    this._timeControl = timeControl;
+
     this._messageQueue.sendMessage("ucinewgame");
   }
 
@@ -338,15 +409,22 @@ class StockfishWrapper extends EventEmitter {
     this._messageQueue.sendMessage("go movetime 1000");
   }
 
-  calculateBestVariations(position: FEN, depth: number, color: PlayerColor) {
-    this._color = color;
-    this._messageQueue.sendMessage("ucinewgame");
-    this._messageQueue.sendMessage(`position fen ${position.toString()}`);
+  offerDraw() {
+    if (this._gameMoves.length < 20) {
+      this.emit("draw_refused", {});
+      return;
+    }
 
-    this._currentDepth = 0;
-    this._bestLines = new Array<BestChessLine>(3);
+    if (this._currentDepth < 10) {
+      this._isDrawOffered = true;
+      return;
+    }
 
-    this._messageQueue.sendMessage(`go depth ${depth}`);
+    if (this._isDrawOptimal()) {
+      this.emit("draw_accepted", {});
+    } else {
+      this.emit("draw_refused", {});
+    }
   }
 
   terminate() {
@@ -361,6 +439,14 @@ class StockfishWrapper extends EventEmitter {
     this._messageQueue.stockfishInstance.removeMessageListener(
       this._boundMessageListener
     );
+  }
+
+  reinitialize() {
+    this._messageQueue.stockfishInstance.addMessageListener(
+      this._boundMessageListener
+    );
+
+    this._isInitialized = true;
   }
 }
 
@@ -418,7 +504,7 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
           }
 
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          Stockfish().then((sf: StockfishApi) => {
+          Stockfish().then((sf: Stockfish) => {
             setContext({
               isLoading: false,
               isError: false,

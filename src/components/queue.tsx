@@ -79,7 +79,9 @@ const Queue: React.FC<
           onClick={() => {
             const color = Math.random() > 0.5 ? "white" : "black";
             void router.push(
-              `/play_bot?color=${color}&time=${timeControl.initialTime}&increment=${timeControl.increment}`
+              `/play_bot?color=${color}&time=${
+                timeControl.initialTime / 60
+              }&increment=${timeControl.increment}`
             );
           }}
         >

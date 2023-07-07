@@ -54,7 +54,7 @@ const PlayBot: React.FC = () => {
     const playerColor = (color as string).toUpperCase() as PlayerColor;
     setGameState({
       timeControl: {
-        initialTime: +(time as string),
+        initialTime: +(time as string) * 60,
         increment: +(increment as string),
       },
       color: playerColor,
@@ -79,7 +79,7 @@ const PlayBot: React.FC = () => {
     stockfish.setStrength(Math.round(sessionData.user.rating / 100) * 100);
     setOpponentsData((old) => ({ ...old, rating: stockfish.rating }));
 
-    stockfish.playMode(gameState.timeControl);
+    stockfish.playMode();
     stockfishInitialized.current = true;
 
     if (opponentsColor === "WHITE") {
@@ -128,12 +128,25 @@ const PlayBot: React.FC = () => {
       }
     };
 
+    const onDraw = () => {
+      chess.drawAgreement();
+      setIsGameFinished(true);
+    };
+
+    const onDrawRefuse = () => {
+      setShowDrawResignPanel(false);
+    };
+
     stockfish.bind("move_made", onMove);
     stockfish.bind("piece_promoted", onPromote);
+    stockfish.bind("draw_accepted", onDraw);
+    stockfish.bind("draw_refused", onDrawRefuse);
 
     return () => {
       stockfish.unbind("move_made", onMove);
       stockfish.unbind("piece_promoted", onPromote);
+      stockfish.unbind("draw_accepted", onDraw);
+      stockfish.unbind("draw_refused", onDrawRefuse);
     };
   }, [stockfish, chess, opponentsColor]);
 
@@ -150,9 +163,10 @@ const PlayBot: React.FC = () => {
   if (isError) {
     return <div className="text-red"> error </div>;
   }
+
   if (
     !chess ||
-    !sessionData?.user ||
+    !sessionData ||
     !opponentsColor ||
     !gameState ||
     !opponentsData ||
@@ -216,7 +230,7 @@ const PlayBot: React.FC = () => {
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             color={opponentsColor}
-            initial={gameState.timeControl.initialTime * 60 * 1000}
+            initial={gameState.timeControl.initialTime * 1000}
             isLocked={isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
@@ -242,9 +256,16 @@ const PlayBot: React.FC = () => {
             uuid={"bot_game"}
             isUserDisconnected={false}
             isEnemyDisconnected={false}
-            chessAbandonFunc={() => {
+            onAbandon={() => {
               chess.abandon(opponentsColor);
               setIsGameFinished(true);
+            }}
+            onResign={() => {
+              chess.resign(gameState.color);
+              setIsGameFinished(true);
+            }}
+            onDrawOffer={() => {
+              stockfish.offerDraw();
             }}
           ></DrawResignPanel>
 
@@ -256,7 +277,7 @@ const PlayBot: React.FC = () => {
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             color={gameState.color}
-            initial={gameState.timeControl.initialTime * 60 * 1000}
+            initial={gameState.timeControl.initialTime * 1000}
             isLocked={!isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
