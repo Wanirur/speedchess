@@ -132,7 +132,7 @@ const PlayBot: React.FC = () => {
     stockfish.setStrength(Math.round(sessionData.user.rating / 100) * 100);
     setOpponentsData((old) => ({ ...old, rating: stockfish.rating }));
 
-    stockfish.playMode();
+    stockfish.playMode(gameState.timeControl);
     isStockfishInitialized.current = true;
 
     if (!isYourTurn) {

@@ -3,6 +3,7 @@ import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
 import { AlgebraicNotation, type FEN } from "~/utils/notations";
+import { TimeControl } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {
@@ -163,6 +164,7 @@ class StockfishWrapper extends EventEmitter {
     return this._color;
   }
 
+  private _secondsPerMove = 0;
   private _ponder = "";
   private _eval: Evaluation = { evaluation: 0 };
   private _isDrawOffered = false;
@@ -387,10 +389,16 @@ class StockfishWrapper extends EventEmitter {
     this._messageQueue.sendMessage(`setoption name UCI_Elo value ${elo}`);
   }
 
-  playMode() {
+  playMode(timeControl: TimeControl) {
     this._mode = "PLAY";
-    this._messageQueue.sendMessage("setoption name MultiPV value 1");
 
+    let timePerMove = timeControl.initialTime / 60;
+    timePerMove += timeControl.increment;
+    timePerMove %= 4;
+
+    this._secondsPerMove = timePerMove;
+
+    this._messageQueue.sendMessage("setoption name MultiPV value 1");
     this._messageQueue.sendMessage("ucinewgame");
   }
 
@@ -407,10 +415,12 @@ class StockfishWrapper extends EventEmitter {
       const moves = this._gameMoves.join(" ");
       this._messageQueue.sendMessage(`position startpos moves ${moves}`);
     } else {
-      this._messageQueue.sendMessage(`position startpos`);
+      this._messageQueue.sendMessage("position startpos");
     }
 
-    this._messageQueue.sendMessage("go movetime 1000");
+    this._messageQueue.sendMessage(
+      `go movetime ${this._secondsPerMove * 1000}`
+    );
   }
 
   offerDraw() {
