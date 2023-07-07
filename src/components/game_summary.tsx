@@ -21,8 +21,17 @@ const GameSummary: React.FC<
     user: User;
     queueUpTimeControl: TimeControl;
     rating: number;
+    ranked?: boolean;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, gameResult, color, user, queueUpTimeControl, rating }) => {
+> = ({
+  className,
+  gameResult,
+  color,
+  user,
+  queueUpTimeControl,
+  rating,
+  ranked = false,
+}) => {
   const { data: sessionData } = useSession();
 
   const [isInQueue, setIsInQueue] = useState<boolean>(false);
@@ -50,13 +59,16 @@ const GameSummary: React.FC<
   }
 
   const ratingDiff = useMemo(() => {
+    if (!ranked) {
+      return 0;
+    }
     const ratingDiffs = calculateRatingDiff(gameResult, 1200, 1200);
     if (color === "WHITE") {
       return ratingDiffs.white;
     } else {
       return ratingDiffs.black;
     }
-  }, [gameResult, color]);
+  }, [gameResult, color, ranked]);
 
   return (
     <div
@@ -99,6 +111,7 @@ const GameSummary: React.FC<
             <h3 className="text-xl md:text-2xl"> New rating: </h3>
             <h2 className="text-2xl font-semibold md:text-3xl">
               {rating + ratingDiff}
+
               <span className="text-green-500 opacity-50">
                 {ratingDiff >= 0 && "+"}
                 {ratingDiff}

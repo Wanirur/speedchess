@@ -282,6 +282,7 @@ const Play: NextPage = () => {
               color={gameState.color}
               queueUpTimeControl={gameState.timeControl}
               rating={gameSummaryRating}
+              ranked
             ></GameSummary>
           ) : (
             <Chessboard
