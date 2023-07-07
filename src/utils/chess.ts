@@ -548,6 +548,7 @@ class Chess {
   public playOutFromLongAlgebraicString(moves: string[]) {
     let color = "WHITE" as PlayerColor;
     for (const currentMove of moves) {
+      console.log(currentMove);
       const { from, to } = AlgebraicNotation.getDataFromLANString(currentMove);
       this.move(from, to, color);
 

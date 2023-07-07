@@ -11,21 +11,35 @@ const Timer: React.FC<
     initial: number;
     isLocked: boolean;
     chessTimeoutFunc: (color: PlayerColor) => void;
+    onTimeChange?: (secondsLeft: number) => void;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, channel, color, initial, isLocked, chessTimeoutFunc }) => {
-  const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
+> = ({
+  className,
+  channel,
+  color,
+  initial,
+  isLocked,
+  chessTimeoutFunc,
+  onTimeChange: onChange,
+}) => {
+  const [seconds, setSeconds] = useState<number>(Math.floor(initial));
 
   useEffect(() => {
-    const timeout = setInterval(() => {
+    const timeout = setTimeout(() => {
       if (!isLocked) {
-        setSeconds((x) => (x === 0 ? 0 : x - 1));
+        let secondsLeft = seconds - 1;
+        if (secondsLeft < 0) {
+          secondsLeft = 0;
+        }
+        setSeconds(secondsLeft);
+        onChange?.(secondsLeft);
       }
     }, 1000);
 
     return () => {
-      clearInterval(timeout);
+      clearTimeout(timeout);
     };
-  }, [isLocked]);
+  }, [isLocked, onChange, seconds]);
 
   useEffect(() => {
     if (seconds <= 0) {

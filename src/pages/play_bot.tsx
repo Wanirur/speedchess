@@ -2,7 +2,7 @@ import { type PlayerColor } from "@prisma/client";
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/draw_resign_panel";
 import GameSummary from "~/components/game_summary";
@@ -23,19 +23,26 @@ const PlayBot: React.FC = () => {
   const { color, time, increment } = router.query;
 
   const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
-  const stockfishInitialized = useRef<boolean>(false);
+  const isStockfishInitialized = useRef<boolean>(false);
   const [gameState, setGameState] = useState<
     | {
         timeControl: TimeControl;
         color: PlayerColor;
         turn: PlayerColor;
+        whiteTimeLeft: number;
+        blackTimeLeft: number;
       }
     | undefined
   >();
 
   const { data: sessionData } = useSession();
-
   const { isError, stockfish } = useStockfish();
+
+  const storageCleanupFunction = useCallback(() => {
+    sessionStorage.removeItem("white_time");
+    sessionStorage.removeItem("black_time");
+    sessionStorage.removeItem("game");
+  }, []);
 
   const [opponentsData, setOpponentsData] = useState<{
     id: string;
@@ -46,32 +53,78 @@ const PlayBot: React.FC = () => {
     PlayerColor | undefined
   >();
 
+  const [showDrawResignPanel, setShowDrawResignPanel] =
+    useState<boolean>(false);
+
+  const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
+  const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
+
+  const [isYourTurn, setIsYourTurn] = useState<boolean>(
+    gameState?.color === gameState?.turn
+  );
+  useEffect(() => {
+    if (!chess || !stockfish) {
+      return;
+    }
+
+    const game = sessionStorage.getItem("game");
+    if (!game) {
+      return;
+    }
+
+    const moves = game.split(" ");
+    chess.playOutFromLongAlgebraicString(moves);
+    setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+    stockfish.gameMoves = moves;
+
+    return () => {
+      setChess(new Chess(initBoard()));
+      stockfish.gameMoves = [];
+    };
+  }, [chess, stockfish]);
+
   useEffect(() => {
     if (!router.isReady) {
       return;
     }
 
+    const timeControl = {
+      initialTime: +(time as string) * 60,
+      increment: +(increment as string),
+    };
     const playerColor = (color as string).toUpperCase() as PlayerColor;
+    const whiteTimeString = sessionStorage.getItem("white_time");
+    const whiteTime = whiteTimeString
+      ? +whiteTimeString
+      : timeControl.initialTime;
+    const blackTimeString = sessionStorage.getItem("black_time");
+    const blackTime = blackTimeString
+      ? +blackTimeString
+      : timeControl.initialTime;
+
+    const game = sessionStorage.getItem("game");
+    const moves = game?.split(" ");
+    console.log(moves);
+    //if moves is undefined it still correctly assigns turn as white, not an overlook
+    const turn = (moves?.length ?? 0) % 2 === 1 ? "BLACK" : "WHITE";
     setGameState({
-      timeControl: {
-        initialTime: +(time as string) * 60,
-        increment: +(increment as string),
-      },
+      timeControl: timeControl,
       color: playerColor,
-      turn: "WHITE",
+      turn: turn,
+      whiteTimeLeft: whiteTime,
+      blackTimeLeft: blackTime,
     });
 
     setOpponentsColor(playerColor === "WHITE" ? "BLACK" : "WHITE");
-    setIsYourTurn(playerColor === "WHITE");
+    setIsYourTurn(playerColor === turn);
   }, [router.isReady, color, increment, time]);
 
   useEffect(() => {
     if (
-      stockfishInitialized.current ||
+      isStockfishInitialized.current ||
       !stockfish ||
       !sessionData ||
-      !gameState ||
-      !opponentsColor
+      !gameState
     ) {
       return;
     }
@@ -80,12 +133,12 @@ const PlayBot: React.FC = () => {
     setOpponentsData((old) => ({ ...old, rating: stockfish.rating }));
 
     stockfish.playMode();
-    stockfishInitialized.current = true;
+    isStockfishInitialized.current = true;
 
-    if (opponentsColor === "WHITE") {
+    if (!isYourTurn) {
       stockfish.playResponseTo("");
     }
-  }, [stockfish, sessionData, gameState, opponentsColor]);
+  }, [stockfish, sessionData, gameState, isYourTurn]);
 
   useEffect(() => {
     if (!stockfish || !chess || !opponentsColor) {
@@ -105,11 +158,17 @@ const PlayBot: React.FC = () => {
       if (chess.gameResult) {
         setTimeout(() => {
           setIsGameFinished(true);
+          storageCleanupFunction();
         }, 1000);
+        return;
       }
 
+      if (chess.pawnReadyToPromote) {
+        return;
+      }
       setIsYourTurn(true);
       setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+      sessionStorage.setItem("game", chess.getFullLongAlgebraicHistory());
     };
 
     const onPromote = ({ promotedTo }: { promotedTo: PromotedPieceType }) => {
@@ -118,19 +177,27 @@ const PlayBot: React.FC = () => {
       } catch (e) {
         if (e instanceof Error) {
           console.log(e);
+          return;
         }
       }
 
       if (chess.gameResult) {
         setTimeout(() => {
           setIsGameFinished(true);
+          storageCleanupFunction();
         }, 1000);
+        return;
       }
+
+      sessionStorage.setItem("game", chess.getFullLongAlgebraicHistory());
+      setIsYourTurn(true);
+      setIndexOfBoardToDisplay(chess.algebraic.length - 1);
     };
 
     const onDraw = () => {
       chess.drawAgreement();
       setIsGameFinished(true);
+      storageCleanupFunction();
     };
 
     const onDrawRefuse = () => {
@@ -148,17 +215,7 @@ const PlayBot: React.FC = () => {
       stockfish.unbind("draw_accepted", onDraw);
       stockfish.unbind("draw_refused", onDrawRefuse);
     };
-  }, [stockfish, chess, opponentsColor]);
-
-  const [showDrawResignPanel, setShowDrawResignPanel] =
-    useState<boolean>(false);
-
-  const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
-  const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
-
-  const [isYourTurn, setIsYourTurn] = useState<boolean>(
-    gameState?.color === gameState?.turn
-  );
+  }, [stockfish, chess, opponentsColor, storageCleanupFunction]);
 
   if (isError) {
     return <div className="text-red"> error </div>;
@@ -212,11 +269,16 @@ const PlayBot: React.FC = () => {
                 if (chess.gameResult) {
                   setTimeout(() => {
                     setIsGameFinished(true);
+                    storageCleanupFunction();
                   }, 1000);
 
                   return;
                 }
 
+                sessionStorage.setItem(
+                  "game",
+                  chess.getFullLongAlgebraicHistory()
+                );
                 const move = chess.algebraic.at(-1)?.toLongNotationString();
                 if (move) {
                   stockfish.playResponseTo(move);
@@ -230,11 +292,21 @@ const PlayBot: React.FC = () => {
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             color={opponentsColor}
-            initial={gameState.timeControl.initialTime * 1000}
+            initial={
+              opponentsColor === "WHITE"
+                ? gameState.whiteTimeLeft
+                : gameState.blackTimeLeft
+            }
             isLocked={isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
               setIsGameFinished(true);
+              storageCleanupFunction();
+            }}
+            onTimeChange={(secondsLeft: number) => {
+              const key =
+                gameState.color === "WHITE" ? "black_time" : "white_time";
+              sessionStorage.setItem(key, secondsLeft.toString());
             }}
           ></Timer>
 
@@ -259,10 +331,12 @@ const PlayBot: React.FC = () => {
             onAbandon={() => {
               chess.abandon(opponentsColor);
               setIsGameFinished(true);
+              storageCleanupFunction();
             }}
             onResign={() => {
               chess.resign(gameState.color);
               setIsGameFinished(true);
+              storageCleanupFunction();
             }}
             onDrawOffer={() => {
               stockfish.offerDraw();
@@ -277,11 +351,21 @@ const PlayBot: React.FC = () => {
           <Timer
             className="h-16 w-full md:h-32 3xl:h-44 3xl:text-6xl"
             color={gameState.color}
-            initial={gameState.timeControl.initialTime * 1000}
+            initial={
+              gameState.color === "WHITE"
+                ? gameState.whiteTimeLeft
+                : gameState.blackTimeLeft
+            }
             isLocked={!isYourTurn || !!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
               setIsGameFinished(true);
+              storageCleanupFunction();
+            }}
+            onTimeChange={(secondsLeft: number) => {
+              const key =
+                gameState.color === "WHITE" ? "white_time" : "black_time";
+              sessionStorage.setItem(key, secondsLeft.toString());
             }}
           ></Timer>
         </div>

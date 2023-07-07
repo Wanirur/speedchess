@@ -154,6 +154,10 @@ class StockfishWrapper extends EventEmitter {
   private _mode: "ANALYSIS" | "PLAY" | undefined;
 
   private _gameMoves: string[] = [];
+  public set gameMoves(moves: string[]) {
+    this._gameMoves = moves;
+  }
+
   private _color: PlayerColor = "WHITE";
   public get color(): PlayerColor {
     return this._color;

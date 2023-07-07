@@ -309,8 +309,8 @@ const Play: NextPage = () => {
             color={opponentsColor}
             initial={
               opponentsColor === "WHITE"
-                ? gameState.whiteMilisLeft
-                : gameState.blackMilisLeft
+                ? gameState.whiteMilisLeft / 1000
+                : gameState.blackMilisLeft / 1000
             }
             isLocked={
               gameState.turn === gameState.color ||
@@ -358,8 +358,8 @@ const Play: NextPage = () => {
             color={gameState.color}
             initial={
               gameState.color === "WHITE"
-                ? gameState.whiteMilisLeft
-                : gameState.blackMilisLeft
+                ? gameState.whiteMilisLeft / 1000
+                : gameState.blackMilisLeft / 1000
             }
             isLocked={
               gameState.turn === opponentsColor || !!chessRef.current.gameResult
