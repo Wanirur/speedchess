@@ -9,9 +9,10 @@ import { type User } from "next-auth";
 import { api } from "~/utils/api";
 import { calculateRatingDiff } from "~/utils/elo";
 import { type HTMLAttributes, useMemo, useState } from "react";
-import QueueDisplay from "./queue";
+import Queue from "./queue";
 import { useRouter } from "next/router";
 import { twMerge } from "tailwind-merge";
+import { Cpu } from "lucide-react";
 
 const GameSummary: React.FC<
   {
@@ -20,8 +21,17 @@ const GameSummary: React.FC<
     user: User;
     queueUpTimeControl: TimeControl;
     rating: number;
+    ranked?: boolean;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, gameResult, color, user, queueUpTimeControl, rating }) => {
+> = ({
+  className,
+  gameResult,
+  color,
+  user,
+  queueUpTimeControl,
+  rating,
+  ranked = false,
+}) => {
   const { data: sessionData } = useSession();
 
   const [isInQueue, setIsInQueue] = useState<boolean>(false);
@@ -49,13 +59,16 @@ const GameSummary: React.FC<
   }
 
   const ratingDiff = useMemo(() => {
+    if (!ranked) {
+      return 0;
+    }
     const ratingDiffs = calculateRatingDiff(gameResult, 1200, 1200);
     if (color === "WHITE") {
       return ratingDiffs.white;
     } else {
       return ratingDiffs.black;
     }
-  }, [gameResult, color]);
+  }, [gameResult, color, ranked]);
 
   return (
     <div
@@ -88,6 +101,9 @@ const GameSummary: React.FC<
                 alt="player avatar"
               ></Image>
             )}
+            {user.id === "bot" && (
+              <Cpu className="h-20 w-20 stroke-neutral-400"></Cpu>
+            )}
           </div>
           <h1 className="text-4xl font-semibold md:text-5xl"> {msg} </h1>
 
@@ -95,6 +111,7 @@ const GameSummary: React.FC<
             <h3 className="text-xl md:text-2xl"> New rating: </h3>
             <h2 className="text-2xl font-semibold md:text-3xl">
               {rating + ratingDiff}
+
               <span className="text-green-500 opacity-50">
                 {ratingDiff >= 0 && "+"}
                 {ratingDiff}
@@ -112,11 +129,12 @@ const GameSummary: React.FC<
           </button>
         </>
       ) : (
-        <QueueDisplay
+        <Queue
           className="h-52 w-72 text-sm md:h-96 md:w-72"
           gameId={queueUpMutation.data.uuid}
+          timeControl={queueUpTimeControl}
           setIsInQueue={setIsInQueue}
-        ></QueueDisplay>
+        ></Queue>
       )}
     </div>
   );

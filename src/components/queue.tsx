@@ -9,13 +9,15 @@ import {
 } from "react";
 import { twMerge } from "tailwind-merge";
 import { usePusher } from "~/context/pusher_provider";
+import { type TimeControl } from "~/utils/pieces";
 
-const QueueDisplay: React.FC<
+const Queue: React.FC<
   {
     gameId: string;
     setIsInQueue: Dispatch<SetStateAction<boolean>>;
+    timeControl: TimeControl;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, gameId, setIsInQueue }) => {
+> = ({ className, gameId, setIsInQueue, timeControl }) => {
   const router = useRouter();
   const pusherClient = usePusher();
 
@@ -28,7 +30,6 @@ const QueueDisplay: React.FC<
       void router.push(`/play/${data.matchId}`);
     };
 
-    console.log(pusherClient);
     const channel = pusherClient?.subscribe(gameId);
     pusherClient?.subscribe(`presence-${gameId}`);
     channel?.bind("match_start", onStart);
@@ -75,6 +76,14 @@ const QueueDisplay: React.FC<
           className={`rounded-md bg-green-700 p-3 hover:bg-green-800 md:p-4 ${
             isQueueLong ? "animate-pulse" : ""
           }`}
+          onClick={() => {
+            const color = Math.random() > 0.5 ? "white" : "black";
+            void router.push(
+              `/play_bot?color=${color}&time=${
+                timeControl.initialTime / 60
+              }&increment=${timeControl.increment}`
+            );
+          }}
         >
           play a bot
         </button>
@@ -91,4 +100,4 @@ const QueueDisplay: React.FC<
   );
 };
 
-export default QueueDisplay;
+export default Queue;

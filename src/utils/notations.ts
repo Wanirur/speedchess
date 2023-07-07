@@ -21,6 +21,7 @@ import {
   type GameResult,
   copyBoard,
   initBoard,
+  type PromotedPieceType,
 } from "./pieces";
 
 //fen notation
@@ -74,7 +75,7 @@ export class FEN {
     const rows = copyBoard(board).reverse();
     for (const row of rows) {
       const rowSymbols = row.map((tile) => {
-        return this._resolvePieceToFenSymbol(tile);
+        return FEN._resolvePieceToFenSymbol(tile);
       });
 
       let longestSequence = 0;
@@ -134,6 +135,89 @@ export class FEN {
     return new FEN(initBoard(), "WHITE", true, true, true, true, null, 0, 1);
   }
 
+  public static fromString(fen: string) {
+    const [
+      boardString,
+      turnString,
+      castlingString,
+      enPassantString,
+      halfsString,
+      movesString,
+    ] = fen.split(" ");
+
+    if (
+      !boardString ||
+      !turnString ||
+      !castlingString ||
+      !enPassantString ||
+      !movesString ||
+      !halfsString
+    ) {
+      throw new Error("incorrect fen string");
+    }
+
+    const rows = boardString.split("/");
+    if (!rows) {
+      throw new Error("incorrect piece placement");
+    }
+
+    const board = buildEmptyBoard();
+    for (let i = 0; i < 8; i++) {
+      const row = rows[i];
+      if (!row) {
+        throw new Error("incorrect piece placement");
+      }
+
+      const tiles = row.split("");
+      let symbolIndex = 0;
+      for (let j = 0; j < 8; j++, symbolIndex++) {
+        const tile = tiles[symbolIndex];
+        if (!tile) {
+          throw new Error("incorrect piece");
+        }
+        const parsed = Number.parseInt(tile);
+        if (!Number.isNaN(parsed)) {
+          j += parsed - 1;
+          continue;
+        }
+
+        const piece = FEN._resolveFenSymbolToPiece(tile);
+        if (typeof piece === "string") {
+          throw new Error("incorrect piece");
+        }
+
+        const coords = Coords.getInstance(j, i);
+
+        addPieceToBoard(board, piece, coords);
+      }
+    }
+
+    const turn = turnString === "w" ? "WHITE" : "BLACK";
+    const whiteShort = castlingString.includes("K");
+    const whiteLong = castlingString.includes("Q");
+
+    const blackShort = castlingString.includes("k");
+    const blackLong = castlingString.includes("q");
+
+    const lastEnPassant = Coords.fromNotation(enPassantString) ?? null;
+    const halfs = Number.parseInt(halfsString);
+    const moves = Number.parseInt(movesString);
+
+    const result = new FEN(
+      board,
+      turn,
+      whiteShort,
+      whiteLong,
+      blackShort,
+      blackLong,
+      lastEnPassant,
+      halfs,
+      moves
+    );
+
+    return result;
+  }
+
   public buildBoard() {
     const board = buildEmptyBoard();
 
@@ -142,7 +226,7 @@ export class FEN {
       x = 0;
     for (const row of rows) {
       for (const symbol of row) {
-        const tile = this._resolveFenSymbolToPiece(symbol);
+        const tile = FEN._resolveFenSymbolToPiece(symbol);
         if (typeof tile === "string") {
           x += Number.parseInt(tile);
           continue;
@@ -173,7 +257,7 @@ export class FEN {
     );
   }
 
-  private _resolvePieceToFenSymbol(piece: Tile) {
+  private static _resolvePieceToFenSymbol(piece: Tile) {
     if (piece === null) {
       return 1;
     }
@@ -200,7 +284,7 @@ export class FEN {
     return result;
   }
 
-  private _resolveFenSymbolToPiece(symbol: string) {
+  private static _resolveFenSymbolToPiece(symbol: string) {
     if (symbol === "p") {
       return blackPawn;
     } else if (symbol === "P") {
@@ -248,7 +332,7 @@ export class AlgebraicNotation {
   private _isCheck: boolean;
   private _isMate: boolean;
 
-  private _promotedTo: PieceType | undefined;
+  private _promotedTo: PromotedPieceType | undefined;
   private _gameResult: GameResult | undefined;
 
   constructor(
@@ -258,7 +342,7 @@ export class AlgebraicNotation {
     isCapturing: boolean,
     isCheck: boolean,
     isMate: boolean,
-    promotedTo?: PieceType
+    promotedTo?: PromotedPieceType
   ) {
     this._from = from;
     this._to = to;
@@ -289,6 +373,8 @@ export class AlgebraicNotation {
       }
     }
 
+    console.log(result);
+
     return result;
   }
 
@@ -303,12 +389,6 @@ export class AlgebraicNotation {
       }
     }
 
-    if (this._promotedTo) {
-      return this._to.toString() + "=" + this._promotedTo === "KNIGHT"
-        ? "N"
-        : this._promotedTo.charAt(0);
-    }
-
     let result = "";
     if (this._pieceType != "PAWN") {
       result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
@@ -319,6 +399,12 @@ export class AlgebraicNotation {
     }
     result += this._to.toString();
 
+    if (this._promotedTo) {
+      result += "=";
+      result +=
+        this._promotedTo === "KNIGHT" ? "N" : this._promotedTo.charAt(0);
+    }
+
     if (this._isMate) {
       result += "#";
     } else if (this._isCheck) {
@@ -328,9 +414,10 @@ export class AlgebraicNotation {
     return result;
   }
 
-  public static getCoordsFromLongAlgebraicString(notation: string) {
+  public static getDataFromLANString(notation: string) {
     const fromCoordsString = notation.slice(0, 2);
     const toCoordsString = notation.slice(2, 4);
+    const promotionSymbol = notation.charAt(4);
 
     const from = Coords.fromNotation(fromCoordsString);
     const to = Coords.fromNotation(toCoordsString);
@@ -339,9 +426,23 @@ export class AlgebraicNotation {
       throw new Error("incorrect coordinates");
     }
 
+    let promotedTo;
+    if (promotionSymbol) {
+      if (promotionSymbol === "q") {
+        promotedTo = "QUEEN";
+      } else if (promotionSymbol === "n") {
+        promotedTo = "KNIGHT";
+      } else if (promotionSymbol === "r") {
+        promotedTo = "ROOK";
+      } else {
+        promotedTo = "BISHOP";
+      }
+    }
+
     return {
       from: from,
       to: to,
+      promotedTo: promotedTo,
     };
   }
 }

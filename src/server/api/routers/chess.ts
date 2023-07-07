@@ -364,6 +364,7 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
+      match.refuseDraw();
       await pusher.trigger(match.id, "draw_refused", {});
     }),
   getOpponentsData: protectedProcedure

@@ -1,37 +1,52 @@
-type Callback = (arg: unknown) => void;
+export type Callback = (arg: any) => void;
 
 class EventEmitter {
-  private _listeners: Map<string, Callback>;
+  private _callbacks: Map<string, Callback[]>;
 
   constructor() {
-    this._listeners = new Map<string, Callback>();
+    this._callbacks = new Map<string, Callback[]>();
   }
 
-  on(name: string, callback: Callback) {
-    this._listeners.set(name, callback);
+  bind(name: string, callback: Callback) {
+    let callbacks = this._callbacks.get(name);
+    if (!callbacks) {
+      callbacks = [];
+      this._callbacks.set(name, callbacks);
+    }
+    callbacks.push(callback);
   }
 
   emit(name: string, data: unknown) {
-    const callback = this._listeners.get(name);
-    if (callback) {
-      callback(data);
+    const callbacks = this._callbacks.get(name);
+    if (callbacks) {
+      callbacks.forEach((callback) => callback(data));
     }
   }
 
-  once(name: string, callback: Callback) {
+  bindOnce(name: string, callback: Callback) {
     const onceCallback = (data: unknown) => {
-      this.removeEventListener(name);
+      this.unbind(name, callback);
       callback(data);
     };
-    this.on(name, onceCallback);
+
+    this.bind(name, onceCallback);
   }
 
   addEventListener(name: string, callback: Callback) {
-    this.on(name, callback);
+    this.bind(name, callback);
   }
 
   removeEventListener(name: string) {
-    this._listeners.delete(name);
+    this._callbacks.delete(name);
+  }
+
+  unbind(name: string, callback: Callback) {
+    const callbacks = this._callbacks.get(name);
+    if (!callbacks) {
+      return;
+    }
+
+    callbacks.filter((current) => current !== callback);
   }
 }
 

@@ -1,4 +1,4 @@
-import { User as UserIcon } from "lucide-react";
+import { Cpu, User as UserIcon } from "lucide-react";
 import { type User } from "next-auth";
 import Link from "next/link";
 import { type HTMLAttributes } from "react";
@@ -18,9 +18,13 @@ const UserBanner: React.FC<
     >
       <div className="flex w-1/2 items-center gap-3">
         {user.name}
-        <Link href={`/user/${user.id}`} target="_blank">
-          <UserIcon className="h-5 w-5 fill-gray-600 stroke-gray-600 hover:fill-white hover:stroke-white"></UserIcon>
-        </Link>
+        {user.id === "bot" ? (
+          <Cpu className="h-5 w-5  stroke-gray-600  hover:stroke-white"></Cpu>
+        ) : (
+          <Link href={`/user/${user.id}`} target="_blank">
+            <UserIcon className="h-5 w-5 fill-gray-600 stroke-gray-600 hover:fill-white hover:stroke-white"></UserIcon>
+          </Link>
+        )}
       </div>
       <div className="w-1/2 text-right">{user.rating}</div>
     </div>

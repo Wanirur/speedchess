@@ -282,6 +282,7 @@ const Play: NextPage = () => {
               color={gameState.color}
               queueUpTimeControl={gameState.timeControl}
               rating={gameSummaryRating}
+              ranked
             ></GameSummary>
           ) : (
             <Chessboard
@@ -293,6 +294,11 @@ const Play: NextPage = () => {
               locked={!isDisplayedBoardLatest}
               unlockFunction={setIndexOfBoardToDisplay}
               mutate
+              onMove={() => {
+                setIndexOfBoardToDisplay(
+                  chessRef.current!.algebraic.length - 1
+                );
+              }}
             ></Chessboard>
           )}
         </div>
@@ -304,13 +310,12 @@ const Play: NextPage = () => {
             color={opponentsColor}
             initial={
               opponentsColor === "WHITE"
-                ? gameState.whiteMilisLeft
-                : gameState.blackMilisLeft
+                ? gameState.whiteMilisLeft / 1000
+                : gameState.blackMilisLeft / 1000
             }
-            isLocked={
-              gameState.turn === gameState.color ||
-              !!chessRef.current.gameResult
-            }
+            increment={gameState.timeControl.increment}
+            isLocked={gameState.turn === gameState.color}
+            isGameFinished={!!chessRef.current.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chessRef.current?.timeExpired(color);
               setIsGameFinished(true);
@@ -335,10 +340,11 @@ const Play: NextPage = () => {
             uuid={uuid as string}
             isUserDisconnected={isUserDisconnected}
             isEnemyDisconnected={isEnemyDisconnected}
-            chessAbandonFunc={() => {
+            onAbandon={() => {
               chessRef.current?.abandon(opponentsColor);
               setIsGameFinished(true);
             }}
+            mutate
           ></DrawResignPanel>
 
           <UserBanner
@@ -352,12 +358,12 @@ const Play: NextPage = () => {
             color={gameState.color}
             initial={
               gameState.color === "WHITE"
-                ? gameState.whiteMilisLeft
-                : gameState.blackMilisLeft
+                ? gameState.whiteMilisLeft / 1000
+                : gameState.blackMilisLeft / 1000
             }
-            isLocked={
-              gameState.turn === opponentsColor || !!chessRef.current.gameResult
-            }
+            increment={gameState.timeControl.increment}
+            isLocked={gameState.turn === opponentsColor}
+            isGameFinished={!!chessRef.current.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chessRef.current?.timeExpired(color);
               setIsGameFinished(true);

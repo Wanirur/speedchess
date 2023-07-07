@@ -23,6 +23,7 @@ import { api } from "~/utils/api";
 import type Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import { twMerge } from "tailwind-merge";
+import { on } from "events";
 
 const Chessboard: React.FC<
   {
@@ -34,6 +35,7 @@ const Chessboard: React.FC<
     locked: boolean;
     unlockFunction?: Dispatch<SetStateAction<number>>;
     mutate?: boolean;
+    onMove?: () => void;
   } & HTMLAttributes<HTMLDivElement>
 > = ({
   uuid,
@@ -44,6 +46,7 @@ const Chessboard: React.FC<
   locked,
   unlockFunction,
   mutate = false,
+  onMove,
   className,
 }) => {
   const [highlightedTile, setHighlightedTile] = useState<Coords | null>(null);
@@ -162,6 +165,8 @@ const Chessboard: React.FC<
                       (color === "BLACK" && moveTo.y === 0))
                   ) {
                     setPromotedPawn(moveTo);
+                  } else {
+                    onMove?.();
                   }
 
                   if (mutate) {
@@ -177,7 +182,6 @@ const Chessboard: React.FC<
                       },
                     });
                   }
-                  unlockFunction?.(chess.algebraic.length - 1);
                 }}
                 onClick={(e) => {
                   if (locked) {
@@ -231,6 +235,8 @@ const Chessboard: React.FC<
                         (color === "BLACK" && moveTo.y === 0))
                     ) {
                       setPromotedPawn(moveTo);
+                    } else {
+                      onMove?.();
                     }
 
                     if (mutate) {
@@ -246,7 +252,6 @@ const Chessboard: React.FC<
                         },
                       });
                     }
-                    unlockFunction?.(chess.algebraic.length - 1);
 
                     return;
                   }
@@ -287,6 +292,8 @@ const Chessboard: React.FC<
                       uuid={uuid}
                       chess={chess}
                       setPromotedPawn={setPromotedPawn}
+                      mutate={mutate}
+                      onPromote={onMove}
                     ></PromotionPieceList>
                   )}
                 </>
@@ -304,13 +311,18 @@ const PromotionPieceList: React.FC<
     color: PlayerColor;
     uuid: string;
     chess: Chess;
+    mutate: boolean;
+    onPromote?: () => void;
     setPromotedPawn: Dispatch<SetStateAction<Coords | null>>;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, color, uuid, chess, setPromotedPawn }) => {
+> = ({ className, color, uuid, chess, mutate, onPromote, setPromotedPawn }) => {
   const promoteMutation = api.chess.promoteTo.useMutation();
   const promote = (pieceType: PromotedPieceType) => {
     chess.promote(pieceType, color);
-    promoteMutation.mutate({ uuid: uuid, promoteTo: pieceType });
+    if (mutate) {
+      promoteMutation.mutate({ uuid: uuid, promoteTo: pieceType });
+    }
+    onPromote?.();
     setPromotedPawn(null);
   };
   return (

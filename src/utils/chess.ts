@@ -94,6 +94,9 @@ class Chess {
   private _halfMovesSinceLastCaptureOrPawnMove = 0;
   private _movesPlayed = 0;
 
+  private _lastMoveFrom: Coords | undefined;
+  private _lastMoveTo: Coords | undefined;
+
   constructor(board?: Board) {
     if (board) {
       this._currentBoard = board;
@@ -216,6 +219,9 @@ class Chess {
       throw new Error("failed to defend check");
     }
 
+    this._lastMoveFrom = from;
+    this._lastMoveTo = to;
+
     if (
       playerColor === "WHITE" &&
       (this._isWhiteShortCastlingPossible || this._isWhiteLongCastlingPossible)
@@ -263,6 +269,7 @@ class Chess {
         (playerColor === "BLACK" && to.y === 0)
       ) {
         this._pawnReadyToPromote = to;
+        return this._currentBoard;
       }
     }
     if (
@@ -281,7 +288,7 @@ class Chess {
           !!this._gameResult
         )
       );
-      return this._currentBoard;
+      return this.board;
     }
 
     //check stalemates
@@ -372,6 +379,10 @@ class Chess {
       color: playerColor,
     };
 
+    if (playerColor === "BLACK") {
+      this._movesPlayed++;
+    }
+
     this._calculateAttackedTiles();
     this._history[-1] = new FEN(
       this.board,
@@ -401,6 +412,26 @@ class Chess {
     ) {
       this._gameResult = { winner: "DRAW", reason: "STALEMATE" };
     }
+
+    const from = this._lastMoveFrom;
+
+    if (!from) {
+      throw new Error("????");
+    }
+
+    this._algebraic.push(
+      new AlgebraicNotation(
+        from,
+        coords,
+        "PAWN",
+        from.x - coords.x !== 0,
+        playerColor === "WHITE"
+          ? this._isBlackKingChecked
+          : this._isWhiteKingChecked,
+        this.gameResult?.reason === "MATE",
+        promoteTo
+      )
+    );
 
     return this.board;
   }
@@ -517,8 +548,8 @@ class Chess {
   public playOutFromLongAlgebraicString(moves: string[]) {
     let color = "WHITE" as PlayerColor;
     for (const currentMove of moves) {
-      const { from, to } =
-        AlgebraicNotation.getCoordsFromLongAlgebraicString(currentMove);
+      console.log(currentMove);
+      const { from, to } = AlgebraicNotation.getDataFromLANString(currentMove);
       this.move(from, to, color);
 
       if (color === "WHITE") {

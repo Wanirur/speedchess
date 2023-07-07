@@ -129,7 +129,7 @@ const AnalyzePage = () => {
       100,
       indexOfBoardToDisplay % 2 ? "WHITE" : "BLACK"
     );
-    stockfish.on("depth_changed", (data) => {
+    stockfish.bind("depth_changed", (data) => {
       const { depth, lines } = data as {
         depth: number;
         lines: BestChessLine[];

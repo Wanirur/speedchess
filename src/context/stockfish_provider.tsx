@@ -1,8 +1,9 @@
-import { PlayerColor } from "@prisma/client";
+import { type PlayerColor } from "@prisma/client";
 import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
-import { type FEN } from "~/utils/notations";
+import { AlgebraicNotation, type FEN } from "~/utils/notations";
+import { TimeControl } from "~/utils/pieces";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {
@@ -43,14 +44,15 @@ const wasmThreadsSupported = () => {
   return true;
 };
 
-type StockfishApi = {
+type Stockfish = {
   postMessage: (arg: string) => void;
   addMessageListener: (arg: (line: string) => void) => void;
+  removeMessageListener: (arg: (line: string) => void) => void;
 };
 
 class StockfishMessageQueue {
-  private _stockfishInstance: StockfishApi;
-  get stockfishInstance(): StockfishApi {
+  private _stockfishInstance: Stockfish;
+  get stockfishInstance(): Stockfish {
     return this._stockfishInstance;
   }
 
@@ -59,7 +61,7 @@ class StockfishMessageQueue {
 
   private _queue = [] as string[];
 
-  constructor(stockfish: StockfishApi) {
+  constructor(stockfish: Stockfish) {
     this._stockfishInstance = stockfish;
 
     this._stockfishInstance.addMessageListener((line) => {
@@ -102,6 +104,11 @@ class StockfishMessageQueue {
     }
   }
 
+  clear() {
+    this._stopCalculating();
+    this._queue = [];
+  }
+
   private _stopCalculating() {
     if (!this._isCalculating) {
       return;
@@ -114,11 +121,19 @@ class StockfishMessageQueue {
   }
 }
 
+export type Evaluation =
+  | {
+      evaluation: number;
+      mateIn?: number;
+    }
+  | {
+      evaluation?: number;
+      mateIn: number;
+    };
+
 export type BestChessLine = {
-  evaluation?: number;
-  mateIn?: number;
   moves: string[];
-};
+} & Evaluation;
 
 class StockfishWrapper extends EventEmitter {
   private _messageQueue: StockfishMessageQueue;
@@ -127,7 +142,32 @@ class StockfishWrapper extends EventEmitter {
     return this._engineName;
   }
 
+  private _isInitialized = false;
+  public get isInitialized() {
+    return this._isInitialized;
+  }
+
+  private _rating = 2800;
+  public get rating(): number {
+    return this._rating;
+  }
+
+  private _mode: "ANALYSIS" | "PLAY" | undefined;
+
+  private _gameMoves: string[] = [];
+  public set gameMoves(moves: string[]) {
+    this._gameMoves = moves;
+  }
+
   private _color: PlayerColor = "WHITE";
+  public get color(): PlayerColor {
+    return this._color;
+  }
+
+  private _secondsPerMove = 0;
+  private _ponder = "";
+  private _eval: Evaluation = { evaluation: 0 };
+  private _isDrawOffered = false;
 
   private _bestLines = new Array<BestChessLine>(3);
   public get bestLines(): BestChessLine[] {
@@ -153,20 +193,36 @@ class StockfishWrapper extends EventEmitter {
     return this._currentDepth;
   }
 
-  constructor(stockfishInstance: StockfishApi) {
+  private _boundMessageListener = this._messageListener.bind(this);
+
+  constructor(stockfishInstance: Stockfish) {
     super();
     this._messageQueue = new StockfishMessageQueue(stockfishInstance);
-    this._messageQueue.stockfishInstance.addMessageListener((line: string) => {
-      console.log(line);
-      if (line.startsWith("info") && line.includes("multipv")) {
-        this._handleCalculation(line);
-      } else if (line.startsWith("id name")) {
-        this._engineName = line.replace("id name ", "");
-      }
-    });
+    this._messageQueue.stockfishInstance.addMessageListener(
+      this._boundMessageListener
+    );
+
+    this._isInitialized = true;
   }
 
-  private _handleCalculation(line: string) {
+  private _messageListener(line: string) {
+    console.log(line);
+    if (
+      this._mode === "ANALYSIS" &&
+      line.startsWith("info") &&
+      line.includes("multipv")
+    ) {
+      this._handleAnalysis(line);
+    } else if (this._mode === "PLAY" && line.startsWith("bestmove")) {
+      this._handleBestMove(line);
+    } else if (this._mode === "PLAY" && line.startsWith("info")) {
+      this._handleDrawOfferEval(line);
+    } else if (line.startsWith("id name")) {
+      this._engineName = line.replace("id name ", "");
+    }
+  }
+
+  private _handleAnalysis(line: string) {
     const words = line.split(" ");
     const multipvIndex = words.findIndex((word) => word === "multipv") + 1;
     const movesBegginingIndex = words.findIndex((word) => word === "pv") + 1;
@@ -202,12 +258,17 @@ class StockfishWrapper extends EventEmitter {
 
     const parsedMultipv = Number.parseInt(multipv) - 1;
 
-    this._bestLines[parsedMultipv] = {
-      evaluation:
-        evalIndex && evaluation ? Number.parseInt(evaluation) / 100 : undefined,
-      mateIn: mateIndex && mateIn ? Number.parseInt(mateIn) : undefined,
-      moves: moves,
-    };
+    if (evalIndex && evaluation) {
+      this._bestLines[parsedMultipv] = {
+        moves: moves,
+        evaluation: Number.parseInt(evaluation) / 100,
+      };
+    } else if (mateIndex && mateIn) {
+      this._bestLines[parsedMultipv] = {
+        moves: moves,
+        mateIn: Number.parseInt(mateIn),
+      };
+    }
 
     if (parsedMultipv !== 2) {
       return;
@@ -220,13 +281,92 @@ class StockfishWrapper extends EventEmitter {
     });
   }
 
-  setStrength(elo: number) {
-    this._messageQueue.sendMessage("setoption name UCI_LimitStrength true");
-    this._messageQueue.sendMessage(`setoption name UCI_Elo ${elo}`);
+  private _handleBestMove(line: string) {
+    const words = line.split(" ");
+    const bestMoveIndex = words.findIndex((word) => word === "bestmove") + 1;
+    const ponderIndex = words.findIndex((word) => word === "ponder") + 1;
+    if (!bestMoveIndex) {
+      return;
+    }
+
+    const bestMove = words[bestMoveIndex];
+    const ponder = words[ponderIndex];
+    if (!bestMove) {
+      return;
+    }
+
+    if (ponder) {
+      this._ponder = ponder;
+    }
+    this._gameMoves.push(bestMove);
+    const { from, to, promotedTo } =
+      AlgebraicNotation.getDataFromLANString(bestMove);
+    this.emit("move_made", { from: from, to: to });
+
+    if (promotedTo) {
+      this.emit("piece_promoted", { promotedTo: promotedTo });
+    }
+  }
+
+  private _handleDrawOfferEval(line: string) {
+    const words = line.split(" ");
+    const evalIndex = words.findIndex((word) => word === "cp") + 1;
+    const mateIndex = words.findIndex((word) => word === "mate") + 1;
+    const depthIndex = words.findIndex((word) => word === "depth") + 1;
+    if ((!evalIndex && !mateIndex) || !depthIndex) {
+      return;
+    }
+
+    const depth = words[depthIndex];
+    if (!depth) {
+      return;
+    }
+
+    const evaluation = words[evalIndex] ? words[evalIndex] : words[mateIndex];
+    if (evaluation === undefined) {
+      return;
+    }
+
+    if (evalIndex) {
+      this._eval = { evaluation: Number.parseInt(evaluation) };
+    } else {
+      this._eval = { mateIn: Number.parseInt(evaluation) };
+    }
+
+    this._currentDepth = Number.parseInt(depth);
+    if (!this._isDrawOffered || this._currentDepth < 10) {
+      return;
+    }
+
+    if (this._isDrawOptimal()) {
+      this.emit("draw_accepted", {});
+    } else {
+      this.emit("draw_refused", {});
+    }
+
+    this._isDrawOffered = false;
+  }
+
+  private _isDrawOptimal() {
+    const evalBadForWhiteOrDrawish =
+      this._eval.evaluation !== undefined && this._eval.evaluation <= -0.5;
+
+    const evalBadForBlackOrDrawish =
+      this._eval.evaluation !== undefined && this._eval.evaluation >= 0.5;
+
+    const evalDrawishOrLosing =
+      (this.color === "WHITE" && evalBadForWhiteOrDrawish) ||
+      (this.color === "BLACK" && evalBadForBlackOrDrawish);
+
+    const getsMated = this._eval.mateIn !== undefined && this._eval.mateIn < 0;
+
+    return getsMated || evalDrawishOrLosing;
   }
 
   analysisMode() {
+    this._mode = "ANALYSIS";
     this._messageQueue.sendMessage("setoption name MultiPV value 3");
+    this._messageQueue.sendMessage("setoption name Ponder false");
     this._messageQueue.sendMessage("ucinewgame");
   }
 
@@ -239,6 +379,88 @@ class StockfishWrapper extends EventEmitter {
     this._bestLines = new Array<BestChessLine>(3);
 
     this._messageQueue.sendMessage(`go depth ${depth}`);
+  }
+
+  setStrength(elo: number) {
+    this._rating = elo;
+    this._messageQueue.sendMessage(
+      "setoption name UCI_LimitStrength value true"
+    );
+    this._messageQueue.sendMessage(`setoption name UCI_Elo value ${elo}`);
+  }
+
+  playMode(timeControl: TimeControl) {
+    this._mode = "PLAY";
+
+    let timePerMove = timeControl.initialTime / 60;
+    timePerMove += timeControl.increment;
+    timePerMove %= 4;
+
+    this._secondsPerMove = timePerMove;
+
+    this._messageQueue.sendMessage("setoption name MultiPV value 1");
+    this._messageQueue.sendMessage("ucinewgame");
+  }
+
+  playResponseTo(move: string) {
+    if (move !== "") {
+      this._gameMoves.push(move);
+    }
+
+    if (move === this._ponder) {
+      this._messageQueue.sendMessage("ponderhit");
+    }
+
+    if (this._gameMoves.length) {
+      const moves = this._gameMoves.join(" ");
+      this._messageQueue.sendMessage(`position startpos moves ${moves}`);
+    } else {
+      this._messageQueue.sendMessage("position startpos");
+    }
+
+    this._messageQueue.sendMessage(
+      `go movetime ${this._secondsPerMove * 1000}`
+    );
+  }
+
+  offerDraw() {
+    if (this._gameMoves.length < 20) {
+      this.emit("draw_refused", {});
+      return;
+    }
+
+    if (this._currentDepth < 10) {
+      this._isDrawOffered = true;
+      return;
+    }
+
+    if (this._isDrawOptimal()) {
+      this.emit("draw_accepted", {});
+    } else {
+      this.emit("draw_refused", {});
+    }
+  }
+
+  terminate() {
+    /* there seems to be no reliable way to kill the stockfish process
+     without killing the main thread so the instance is kept for future use 
+     https://github.com/lichess-org/stockfish.wasm/issues/38
+     */
+    this._isInitialized = false;
+
+    this._gameMoves = [];
+    this._messageQueue.clear();
+    this._messageQueue.stockfishInstance.removeMessageListener(
+      this._boundMessageListener
+    );
+  }
+
+  reinitialize() {
+    this._messageQueue.stockfishInstance.addMessageListener(
+      this._boundMessageListener
+    );
+
+    this._isInitialized = true;
   }
 }
 
@@ -296,7 +518,7 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
           }
 
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          Stockfish().then((sf: StockfishApi) => {
+          Stockfish().then((sf: Stockfish) => {
             setContext({
               isLoading: false,
               isError: false,

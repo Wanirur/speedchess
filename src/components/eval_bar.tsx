@@ -57,7 +57,7 @@ const EvalBar: React.FC<
               ? new Intl.NumberFormat("en-US", {
                   signDisplay: "exceptZero",
                 }).format(evaluation)
-              : `M${lines[0].mateIn!}`}
+              : `M${lines[0].mateIn ?? 0}`}
           </div>
           <div className="w-2/3 text-xs font-semibold lg:text-base">
             {message}
@@ -70,7 +70,7 @@ const EvalBar: React.FC<
                 ? new Intl.NumberFormat("en-US", {
                     signDisplay: "exceptZero",
                   }).format(lines[0].evaluation)
-                : `M${lines[0].mateIn!}`}
+                : `M${lines[0].mateIn ?? 0}`}
             </span>
             {stringifiedLines[0]}
           </div>
@@ -80,7 +80,7 @@ const EvalBar: React.FC<
                 ? new Intl.NumberFormat("en-US", {
                     signDisplay: "exceptZero",
                   }).format(lines[1].evaluation)
-                : `M${lines[1].mateIn!}`}
+                : `M${lines[1].mateIn ?? 0}`}
             </span>
             {stringifiedLines[1]}
           </div>
@@ -90,7 +90,7 @@ const EvalBar: React.FC<
                 ? new Intl.NumberFormat("en-US", {
                     signDisplay: "exceptZero",
                   }).format(lines[2].evaluation)
-                : `M${lines[2].mateIn!}`}
+                : `M${lines[2].mateIn ?? 0}`}
             </span>
             {stringifiedLines[2]}
           </div>
