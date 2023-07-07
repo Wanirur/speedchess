@@ -9,7 +9,9 @@ const Timer: React.FC<
     channel?: Channel;
     color: PlayerColor;
     initial: number;
+    increment: number;
     isLocked: boolean;
+    isGameFinished: boolean;
     chessTimeoutFunc: (color: PlayerColor) => void;
     onTimeChange?: (secondsLeft: number) => void;
   } & HTMLAttributes<HTMLDivElement>
@@ -18,7 +20,9 @@ const Timer: React.FC<
   channel,
   color,
   initial,
+  increment,
   isLocked,
+  isGameFinished,
   chessTimeoutFunc,
   onTimeChange: onChange,
 }) => {
@@ -26,11 +30,13 @@ const Timer: React.FC<
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (!isLocked) {
-        let secondsLeft = seconds - 1;
-        if (secondsLeft < 0) {
-          secondsLeft = 0;
+      if (!isLocked && !isGameFinished) {
+        if (seconds <= 0) {
+          return;
         }
+
+        const secondsLeft = seconds - 1;
+
         setSeconds(secondsLeft);
         onChange?.(secondsLeft);
       }
@@ -39,7 +45,7 @@ const Timer: React.FC<
     return () => {
       clearTimeout(timeout);
     };
-  }, [isLocked, onChange, seconds]);
+  }, [isLocked, onChange, seconds, increment, isGameFinished]);
 
   useEffect(() => {
     if (seconds <= 0) {
@@ -48,6 +54,10 @@ const Timer: React.FC<
   }, [seconds, chessTimeoutFunc, color]);
 
   useEffect(() => {
+    if (!channel) {
+      return;
+    }
+
     const onMove = (move: {
       fromTile: Coords;
       toTile: Coords;
@@ -63,6 +73,12 @@ const Timer: React.FC<
       channel?.unbind("move_made", onMove);
     };
   }, [channel, isLocked]);
+
+  useEffect(() => {
+    if (isLocked) {
+      setSeconds((sec) => (sec < initial ? sec + increment : sec));
+    }
+  }, [isLocked, increment, initial]);
 
   const textColor = seconds <= 10 ? "text-red-900" : "text-white";
 

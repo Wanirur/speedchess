@@ -297,7 +297,9 @@ const PlayBot: React.FC = () => {
                 ? gameState.whiteTimeLeft
                 : gameState.blackTimeLeft
             }
-            isLocked={isYourTurn || !!chess.gameResult}
+            increment={gameState.timeControl.increment}
+            isLocked={isYourTurn}
+            isGameFinished={!!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
               setIsGameFinished(true);
@@ -356,7 +358,9 @@ const PlayBot: React.FC = () => {
                 ? gameState.whiteTimeLeft
                 : gameState.blackTimeLeft
             }
-            isLocked={!isYourTurn || !!chess.gameResult}
+            increment={gameState.timeControl.increment}
+            isLocked={!isYourTurn}
+            isGameFinished={!!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chess.timeExpired(color);
               setIsGameFinished(true);

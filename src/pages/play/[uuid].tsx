@@ -312,10 +312,9 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft / 1000
                 : gameState.blackMilisLeft / 1000
             }
-            isLocked={
-              gameState.turn === gameState.color ||
-              !!chessRef.current.gameResult
-            }
+            increment={gameState.timeControl.increment}
+            isLocked={gameState.turn === gameState.color}
+            isGameFinished={!!chessRef.current.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chessRef.current?.timeExpired(color);
               setIsGameFinished(true);
@@ -361,9 +360,9 @@ const Play: NextPage = () => {
                 ? gameState.whiteMilisLeft / 1000
                 : gameState.blackMilisLeft / 1000
             }
-            isLocked={
-              gameState.turn === opponentsColor || !!chessRef.current.gameResult
-            }
+            increment={gameState.timeControl.increment}
+            isLocked={gameState.turn === opponentsColor}
+            isGameFinished={!!chessRef.current.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
               chessRef.current?.timeExpired(color);
               setIsGameFinished(true);
