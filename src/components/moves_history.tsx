@@ -28,7 +28,7 @@ const MovesHistory: React.FC<
     <div
       ref={lastMoveRef}
       className={twMerge(
-        "font-white flex flex-wrap content-start gap-0.5 overflow-y-auto bg-neutral-700 px-2 py-3  font-os text-white",
+        "scroll-thin flex flex-wrap content-start gap-0.5 overflow-y-auto bg-neutral-700 px-2  py-3 font-os text-white [scrollbar-width:thin]",
         className
       )}
     >
