@@ -1,5 +1,5 @@
 import { Check, X } from "lucide-react";
-import { useEffect, useRef, type HTMLAttributes } from "react";
+import { useEffect, useRef, type HTMLAttributes, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { api } from "~/utils/api";
 
@@ -30,6 +30,7 @@ const DrawResignPanel: React.FC<
   const drawRefuseMutation = api.chess.refuseDraw.useMutation();
 
   const enemyTimeoutRef = useRef<number | null>(null);
+  const [isDrawOfferYours, setIsDrawOfferYours] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isEnemyDisconnected && enemyTimeoutRef.current !== null) {
@@ -45,6 +46,12 @@ const DrawResignPanel: React.FC<
       chessAbandonFunc();
     }, 10_000);
   }, [isEnemyDisconnected, chessAbandonFunc]);
+
+  useEffect(() => {
+    if (!isDrawOffered) {
+      setIsDrawOfferYours(false);
+    }
+  }, [isDrawOffered]);
 
   if (isUserDisconnected) {
     return (
@@ -86,7 +93,9 @@ const DrawResignPanel: React.FC<
       {isDrawOffered ? (
         <>
           <p className="font-os text-white">
-            Your opponent offered a draw. Do you accept?
+            {isDrawOfferYours
+              ? "Waiting for opponent's decision..."
+              : "Your opponent offered a draw. Do you accept?"}
           </p>
           <button
             className="rounded-md bg-green-700 hover:bg-green-800"
@@ -117,6 +126,7 @@ const DrawResignPanel: React.FC<
               if (mutate) {
                 drawOfferMutation.mutate({ uuid: uuid });
               }
+              setIsDrawOfferYours(true);
               onDrawOffer?.();
             }}
           >

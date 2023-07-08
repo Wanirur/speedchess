@@ -333,7 +333,6 @@ export class AlgebraicNotation {
   private _isMate: boolean;
 
   private _promotedTo: PromotedPieceType | undefined;
-  private _gameResult: GameResult | undefined;
 
   constructor(
     from: Coords,
@@ -379,22 +378,41 @@ export class AlgebraicNotation {
   }
 
   public toString() {
-    if (this._gameResult) {
-      if (this._gameResult.winner === "DRAW") {
-        return "1/2-1/2";
-      } else if (this._gameResult.winner === "WHITE") {
-        return "1-0";
-      } else {
-        return "0-1";
+    let result = "";
+
+    if (this._pieceType === "KING") {
+      const diff = Math.abs(this._from.x - this._to.x);
+      if (diff === 3) {
+        result += "O-O-O";
+
+        if (this._isMate) {
+          result += "#";
+        } else if (this._isCheck) {
+          result += "+";
+        }
+
+        return result;
+      } else if (diff === 2) {
+        result += "O-O";
+
+        if (this._isMate) {
+          result += "#";
+        } else if (this._isCheck) {
+          result += "+";
+        }
+
+        return result;
       }
     }
 
-    let result = "";
-    if (this._pieceType != "PAWN") {
+    if (this._pieceType !== "PAWN") {
       result = this._pieceType === "KNIGHT" ? "N" : this._pieceType.charAt(0);
     }
 
     if (this._isCapturing) {
+      if (this._pieceType === "PAWN") {
+        result += this._from.toString().at(0);
+      }
       result += "x";
     }
     result += this._to.toString();

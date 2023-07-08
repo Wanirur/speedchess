@@ -23,7 +23,6 @@ import { api } from "~/utils/api";
 import type Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import { twMerge } from "tailwind-merge";
-import { on } from "events";
 
 const Chessboard: React.FC<
   {
@@ -33,7 +32,9 @@ const Chessboard: React.FC<
     chess: Chess;
     board: Board;
     locked: boolean;
-    unlockFunction?: Dispatch<SetStateAction<number>>;
+    unlockFunction?: () => void;
+    lastMovedFrom?: Coords;
+    lastMovedTo?: Coords;
     mutate?: boolean;
     onMove?: () => void;
   } & HTMLAttributes<HTMLDivElement>
@@ -45,6 +46,8 @@ const Chessboard: React.FC<
   board,
   locked,
   unlockFunction,
+  lastMovedFrom,
+  lastMovedTo,
   mutate = false,
   onMove,
   className,
@@ -67,15 +70,15 @@ const Chessboard: React.FC<
     <div
       className={twMerge("flex h-full w-full gap-0", colOrderStyle, className)}
     >
-      {board.map((row, row_index) => (
+      {board.map((row, rowIndex) => (
         <div
-          key={-row_index}
+          key={-rowIndex}
           className={twMerge("flex h-[12.5%] w-full", rowOrderStyle)}
         >
           {row.map((tile, index) => {
             let isWhite = false;
 
-            if (row_index % 2) {
+            if (rowIndex % 2) {
               isWhite = !isWhite;
             }
 
@@ -89,21 +92,33 @@ const Chessboard: React.FC<
             if (
               highlightedTile &&
               highlightedTile.x === index &&
-              highlightedTile.y === row_index
+              highlightedTile.y === rowIndex
             ) {
               highlightStyle = "w-full h-full bg-black bg-opacity-25";
             } else if (
               possibleMoves?.find(
-                (tile) => tile.x === index && tile.y === row_index
+                (tile) => tile.x === index && tile.y === rowIndex
               ) !== undefined
             ) {
               highlightStyle =
-                "w-1/2 h-1/2 bg-black bg-opacity-25 rounded-full m-auto";
+                "w-1/3 h-1/3 bg-black bg-opacity-25 rounded-full m-auto";
+            } else if (
+              lastMovedFrom &&
+              lastMovedFrom.x === index &&
+              lastMovedFrom.y === rowIndex
+            ) {
+              highlightStyle = "w-full h-full bg-lime-300 bg-opacity-25";
+            } else if (
+              lastMovedTo &&
+              lastMovedTo.x === index &&
+              lastMovedTo.y === rowIndex
+            ) {
+              highlightStyle = "w-full h-full bg-lime-300 bg-opacity-50";
             }
 
             return (
               <div
-                key={index * row_index + index}
+                key={index * rowIndex + index}
                 className={twMerge(
                   "relative flex h-full w-[12.5%]",
                   tileBgStyle
@@ -113,7 +128,7 @@ const Chessboard: React.FC<
                 }}
                 onDrag={(e) => {
                   if (locked) {
-                    unlockFunction?.(chess.algebraic.length - 1);
+                    unlockFunction?.();
                     return;
                   }
                   if (!isYourTurn) {
@@ -128,7 +143,7 @@ const Chessboard: React.FC<
                   if (!chess.board[index]) {
                     return;
                   }
-                  const coords = Coords.getInstance(index, row_index);
+                  const coords = Coords.getInstance(index, rowIndex);
                   if (!coords) {
                     return;
                   }
@@ -136,7 +151,7 @@ const Chessboard: React.FC<
                 }}
                 onDrop={() => {
                   if (locked) {
-                    unlockFunction?.(chess.algebraic.length - 1);
+                    unlockFunction?.();
                     return;
                   }
                   if (draggedPiece === null) {
@@ -145,7 +160,9 @@ const Chessboard: React.FC<
 
                   const coords = draggedPiece;
                   setDraggedPiece(null);
-                  const moveTo = Coords.getInstance(index, row_index);
+                  setHighlightedTile(null);
+                  setPossibleMoves(null);
+                  const moveTo = Coords.getInstance(index, rowIndex);
                   if (!moveTo) {
                     return;
                   }
@@ -158,6 +175,7 @@ const Chessboard: React.FC<
 
                     return;
                   }
+
                   if (
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     board[moveTo.y]![moveTo.x]?.pieceType === "PAWN" &&
@@ -178,14 +196,14 @@ const Chessboard: React.FC<
                       },
                       toTile: {
                         x: index,
-                        y: row_index,
+                        y: rowIndex,
                       },
                     });
                   }
                 }}
                 onClick={(e) => {
                   if (locked) {
-                    unlockFunction?.(chess.algebraic.length - 1);
+                    unlockFunction?.();
                     return;
                   }
 
@@ -210,7 +228,7 @@ const Chessboard: React.FC<
                   }
 
                   if (highlightedTile !== null) {
-                    const moveTo = Coords.getInstance(index, row_index);
+                    const moveTo = Coords.getInstance(index, rowIndex);
                     if (!moveTo) {
                       return;
                     }
@@ -248,7 +266,7 @@ const Chessboard: React.FC<
                         },
                         toTile: {
                           x: index,
-                          y: row_index,
+                          y: rowIndex,
                         },
                       });
                     }
@@ -256,7 +274,7 @@ const Chessboard: React.FC<
                     return;
                   }
 
-                  const coords = Coords.getInstance(index, row_index);
+                  const coords = Coords.getInstance(index, rowIndex);
                   if (!coords) {
                     return;
                   }
@@ -275,7 +293,7 @@ const Chessboard: React.FC<
                   {!(
                     promotedPawn &&
                     index === promotedPawn.x &&
-                    row_index === promotedPawn.y
+                    rowIndex === promotedPawn.y
                   ) ? (
                     tile && (
                       <Image

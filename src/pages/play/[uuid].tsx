@@ -292,7 +292,11 @@ const Play: NextPage = () => {
               chess={chessRef.current}
               board={boardToDisplay}
               locked={!isDisplayedBoardLatest}
-              unlockFunction={setIndexOfBoardToDisplay}
+              unlockFunction={() =>
+                setIndexOfBoardToDisplay(chessRef.current!.algebraic.length - 1)
+              }
+              lastMovedFrom={chessRef.current.lastMoveFrom}
+              lastMovedTo={chessRef.current.lastMoveTo}
               mutate
               onMove={() => {
                 setIndexOfBoardToDisplay(

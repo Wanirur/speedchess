@@ -95,7 +95,14 @@ class Chess {
   private _movesPlayed = 0;
 
   private _lastMoveFrom: Coords | undefined;
+  public get lastMoveFrom(): Coords | undefined {
+    return this._lastMoveFrom;
+  }
+
   private _lastMoveTo: Coords | undefined;
+  public get lastMoveTo(): Coords | undefined {
+    return this._lastMoveTo;
+  }
 
   constructor(board?: Board) {
     if (board) {
