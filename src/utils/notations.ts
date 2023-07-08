@@ -384,17 +384,25 @@ export class AlgebraicNotation {
       const diff = Math.abs(this._from.x - this._to.x);
       if (diff === 3) {
         result += "O-O-O";
+
+        if (this._isMate) {
+          result += "#";
+        } else if (this._isCheck) {
+          result += "+";
+        }
+
+        return result;
       } else if (diff === 2) {
         result += "O-O";
-      }
 
-      if (this._isMate) {
-        result += "#";
-      } else if (this._isCheck) {
-        result += "+";
-      }
+        if (this._isMate) {
+          result += "#";
+        } else if (this._isCheck) {
+          result += "+";
+        }
 
-      return result;
+        return result;
+      }
     }
 
     if (this._pieceType !== "PAWN") {
