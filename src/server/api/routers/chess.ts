@@ -401,7 +401,6 @@ export const chessgameRouter = createTRPCRouter({
 
       return { ...opponentData, rating: opponent.rating };
     }),
-
   getGameHistory: protectedProcedure
     .input(z.object({ id: z.number().nonnegative() }))
     .query(async ({ ctx, input }) => {

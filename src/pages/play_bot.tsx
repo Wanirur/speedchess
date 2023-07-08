@@ -262,6 +262,8 @@ const PlayBot: React.FC = () => {
               board={boardToDisplay}
               locked={!isDisplayedBoardLatest}
               unlockFunction={setIndexOfBoardToDisplay}
+              lastMovedFrom={chess.lastMoveFrom}
+              lastMovedTo={chess.lastMoveTo}
               onMove={() => {
                 setIsYourTurn(false);
                 setIndexOfBoardToDisplay(chess.algebraic.length - 1);
