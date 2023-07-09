@@ -206,6 +206,7 @@ const AnalyzePage = () => {
               lines={bestLines}
               depth={depth}
               engineName={stockfish.engineName}
+              noMoves={chessRef.current.algebraic.length === 0}
             ></EvalBar>
           )}
 

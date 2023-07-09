@@ -8,10 +8,20 @@ const EvalBar: React.FC<
     lines: BestChessLine[];
     depth: number;
     engineName: string;
+    noMoves?: boolean;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, lines, engineName, depth }) => {
+> = ({ className, lines, engineName, depth, noMoves = false }) => {
   if (!lines[0] || !lines[1] || !lines[2]) {
     console.log(lines);
+
+    if (noMoves) {
+      return (
+        <div className={twMerge("flex items-center justify-center", className)}>
+          No moves to analyze
+        </div>
+      );
+    }
+
     return (
       <div className="flex h-1/6 w-full items-center justify-center">
         <Loader className="h-10 w-10 animate-spin stroke-white"></Loader>
