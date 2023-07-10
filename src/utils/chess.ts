@@ -552,8 +552,17 @@ class Chess {
     return result.trimEnd();
   }
 
-  public playOutFromLongAlgebraicString(moves: string[]) {
+  public playOutFromLongAlgebraicString(
+    lanString: string,
+    result?: GameResult
+  ) {
+    if (lanString === "") {
+      this._gameResult = result;
+    }
+
     let color = "WHITE" as PlayerColor;
+
+    const moves = lanString.split(" ");
     for (const currentMove of moves) {
       console.log(currentMove);
       const { from, to } = AlgebraicNotation.getDataFromLANString(currentMove);
@@ -565,6 +574,8 @@ class Chess {
         color = "WHITE";
       }
     }
+
+    this._gameResult = result;
   }
 
   private _calculateAttackedTiles() {

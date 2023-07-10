@@ -72,10 +72,9 @@ const PlayBot: React.FC = () => {
       return;
     }
 
-    const moves = game.split(" ");
-    chess.playOutFromLongAlgebraicString(moves);
+    chess.playOutFromLongAlgebraicString(game);
     setIndexOfBoardToDisplay(chess.algebraic.length - 1);
-    stockfish.gameMoves = moves;
+    stockfish.gameMoves = game.split(" ");
 
     return () => {
       setChess(new Chess(initBoard()));

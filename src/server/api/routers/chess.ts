@@ -14,6 +14,7 @@ import {
   PossiblePromotions,
   type PlayerColor,
   type PromotedPieceType,
+  GameResult,
 } from "~/utils/pieces";
 import { Coords } from "~/utils/coords";
 
@@ -417,6 +418,9 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      return game?.moves;
+      return {
+        moves: game.moves,
+        result: { winner: game.result, reason: game.reason } as GameResult,
+      };
     }),
 });

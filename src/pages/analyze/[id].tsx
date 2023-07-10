@@ -28,7 +28,7 @@ const AnalyzePage = () => {
   const {
     isLoading,
     isError,
-    data: gameMoves,
+    data: gameData,
   } = api.chess.getGameHistory.useQuery(
     { id: Number.parseInt(id as string) },
     {
@@ -144,14 +144,15 @@ const AnalyzePage = () => {
   }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze]);
 
   useEffect(() => {
-    if (!gameMoves || !chessRef.current) {
+    if (!gameData || !chessRef.current) {
       return;
     }
 
-    const moves = gameMoves.split(" ");
-
     try {
-      chessRef.current.playOutFromLongAlgebraicString(moves);
+      chessRef.current.playOutFromLongAlgebraicString(
+        gameData.moves,
+        gameData.result
+      );
       setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
       setIsReadyToAnalyze(true);
     } catch (err) {
@@ -159,7 +160,7 @@ const AnalyzePage = () => {
         console.error(err);
       }
     }
-  }, [gameMoves]);
+  }, [gameData]);
 
   if (!sessionData?.user || isError || isStockfishError) {
     return <div> error </div>;
