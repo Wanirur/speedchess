@@ -23,6 +23,7 @@ import { api } from "~/utils/api";
 import type Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import { twMerge } from "tailwind-merge";
+import { usePusher } from "~/context/pusher_provider";
 
 const Chessboard: React.FC<
   {
@@ -56,6 +57,8 @@ const Chessboard: React.FC<
   const [possibleMoves, setPossibleMoves] = useState<Coords[] | null>(null);
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const [promotedPawn, setPromotedPawn] = useState<Coords | null>(null);
+
+  const pusher = usePusher();
 
   const moveMutation = api.chess.movePiece.useMutation({
     onError: () => {
@@ -198,6 +201,7 @@ const Chessboard: React.FC<
                         x: index,
                         y: rowIndex,
                       },
+                      socketId: pusher.connection.socket_id,
                     });
                   }
                 }}
@@ -268,6 +272,7 @@ const Chessboard: React.FC<
                           x: index,
                           y: rowIndex,
                         },
+                        socketId: pusher.connection.socket_id,
                       });
                     }
 
@@ -334,11 +339,16 @@ const PromotionPieceList: React.FC<
     setPromotedPawn: Dispatch<SetStateAction<Coords | null>>;
   } & HTMLAttributes<HTMLDivElement>
 > = ({ className, color, uuid, chess, mutate, onPromote, setPromotedPawn }) => {
+  const pusher = usePusher();
   const promoteMutation = api.chess.promoteTo.useMutation();
   const promote = (pieceType: PromotedPieceType) => {
     chess.promote(pieceType, color);
     if (mutate) {
-      promoteMutation.mutate({ uuid: uuid, promoteTo: pieceType });
+      promoteMutation.mutate({
+        uuid: uuid,
+        promoteTo: pieceType,
+        socketId: pusher.connection.socket_id,
+      });
     }
     onPromote?.();
     setPromotedPawn(null);

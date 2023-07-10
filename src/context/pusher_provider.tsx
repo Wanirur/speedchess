@@ -2,8 +2,8 @@ import {
   type ReactNode,
   createContext,
   useEffect,
-  useRef,
   useContext,
+  useState,
 } from "react";
 
 import PusherClient from "pusher-js";
@@ -35,14 +35,14 @@ const PusherClientContext = createContext<PusherClient>(getPusherInstance());
 export const usePusher = () => useContext(PusherClientContext);
 
 const PusherProvider = ({ children }: { children: ReactNode }) => {
-  const pusherClient = useRef<PusherClient>(getPusherInstance());
+  const [pusherClient, setClient] = useState<PusherClient>(getPusherInstance());
 
   useEffect(() => {
     PusherClient.logToConsole = true;
   }, []);
 
   return (
-    <PusherClientContext.Provider value={pusherClient.current}>
+    <PusherClientContext.Provider value={pusherClient}>
       {children}
     </PusherClientContext.Provider>
   );

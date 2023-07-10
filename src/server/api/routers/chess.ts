@@ -14,7 +14,7 @@ import {
   PossiblePromotions,
   type PlayerColor,
   type PromotedPieceType,
-  GameResult,
+  type GameResult,
 } from "~/utils/pieces";
 import { Coords } from "~/utils/coords";
 
@@ -178,6 +178,7 @@ export const chessgameRouter = createTRPCRouter({
           x: z.number().min(0).max(7),
           y: z.number().min(0).max(7),
         }),
+        socketId: z.string(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -234,23 +235,36 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       if (time <= 0) {
+        await pusher.trigger(match.id, "timeout", {
+          loser: match.turn === match.white ? "WHITE" : "BLACK",
+        });
+
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Your time has run out",
         });
       }
 
-      await pusher.trigger(match.id, "move_made", {
-        fromTile: input.fromTile,
-        toTile: input.toTile,
-        timeLeftInMilis: time,
-      });
+      await pusher.trigger(
+        match.id,
+        "move_made",
+        {
+          fromTile: input.fromTile,
+          toTile: input.toTile,
+          whiteTimeLeftInMilis: match.white.timeLeftInMilis,
+          blackTimeLeftInMilis: match.black.timeLeftInMilis,
+        },
+        {
+          socket_id: input.socketId,
+        }
+      );
     }),
   promoteTo: protectedProcedure
     .input(
       z.object({
         uuid: z.string().uuid(),
         promoteTo: z.string(),
+        socketId: z.string(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -292,10 +306,17 @@ export const chessgameRouter = createTRPCRouter({
         });
       }
 
-      await pusher.trigger(match.id, "promoted_piece", {
-        promotedTo: input.promoteTo,
-        coords: promotionCoords,
-      });
+      await pusher.trigger(
+        match.id,
+        "promoted_piece",
+        {
+          promotedTo: input.promoteTo,
+          coords: promotionCoords,
+        },
+        {
+          socket_id: input.socketId,
+        }
+      );
     }),
   resign: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
