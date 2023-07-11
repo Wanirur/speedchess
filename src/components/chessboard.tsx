@@ -89,7 +89,9 @@ const Chessboard: React.FC<
               isWhite = !isWhite;
             }
 
-            const tileBgStyle = isWhite ? "bg-white " : "bg-green-500 ";
+            const tileBgStyle = isWhite
+              ? "bg-white text-green-500"
+              : "bg-green-500 text-white";
 
             let highlightStyle;
             if (
@@ -318,6 +320,19 @@ const Chessboard: React.FC<
                       mutate={mutate}
                       onPromote={onMove}
                     ></PromotionPieceList>
+                  )}
+                  {((color === "WHITE" && rowIndex === 0) ||
+                    (color === "BLACK" && rowIndex === 7)) && (
+                    <div className="absolute bottom-0 p-1 py-0 font-os text-sm font-bold">
+                      {String.fromCharCode("a".charCodeAt(0) + index)}
+                    </div>
+                  )}
+
+                  {((color === "WHITE" && index === 7) ||
+                    (color === "BLACK" && index === 0)) && (
+                    <div className="absolute right-0 p-0.5 py-0 font-os text-sm font-bold">
+                      {rowIndex + 1}
+                    </div>
                   )}
                 </>
               </div>

@@ -29,6 +29,7 @@ const Play: NextPage = () => {
   const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
   const [isYourTurn, setIsYourTurn] = useState<boolean>(true);
   const gameStateFetchedRef = useRef<boolean>(false);
+  const storageCheckedRef = useRef<boolean>(false);
   const [showDrawResignPanel, setShowDrawResignPanel] =
     useState<boolean>(false);
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
