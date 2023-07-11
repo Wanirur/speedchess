@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { type NextPage } from "next";
+import { type User } from "next-auth";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { type Channel } from "pusher-js";
@@ -17,7 +19,18 @@ import {
   type PromotedPieceType,
   type PlayerColor,
   initBoard,
+  type GameResult,
+  type TimeControl,
 } from "~/utils/pieces";
+
+type SessionStorageData = {
+  moves: string;
+  result: GameResult;
+  opponent: User;
+  player: User;
+  color: PlayerColor;
+  timeControl: TimeControl;
+};
 
 const Play: NextPage = () => {
   const router = useRouter();
@@ -28,6 +41,7 @@ const Play: NextPage = () => {
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
   const [isYourTurn, setIsYourTurn] = useState<boolean>(true);
+  const [storageData, setStorageData] = useState<SessionStorageData | null>();
   const gameStateFetchedRef = useRef<boolean>(false);
   const storageCheckedRef = useRef<boolean>(false);
   const [showDrawResignPanel, setShowDrawResignPanel] =
@@ -38,15 +52,16 @@ const Play: NextPage = () => {
   const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
   const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
   const pusherClient = usePusher();
+  const trpcContext = api.useContext();
 
   const {
-    isLoading: isLoadingGameState,
+    isInitialLoading: isLoadingGameState,
     isError: isErrorGameState,
     data: gameState,
   } = api.chess.getGameState.useQuery(
     { uuid: uuid as string },
     {
-      enabled: !!uuid,
+      enabled: !!uuid && storageData === null,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
@@ -55,12 +70,12 @@ const Play: NextPage = () => {
 
   const {
     isError: isErrorOpponentsData,
-    isLoading: isLoadingOpponentsData,
+    isInitialLoading: isLoadingOpponentsData,
     data: opponentsData,
   } = api.chess.getOpponentsData.useQuery(
     { uuid: uuid as string },
     {
-      enabled: !!uuid,
+      enabled: !!uuid && storageData === null,
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
@@ -70,15 +85,15 @@ const Play: NextPage = () => {
   const opponentsColor = gameState?.color === "WHITE" ? "BLACK" : "WHITE";
 
   useEffect(() => {
-    if (gameState && !gameStateFetchedRef.current) {
+    if (gameState && !gameStateFetchedRef.current && storageData === null) {
       setChess(new Chess(gameState.board));
       setIsYourTurn(gameState.color === gameState.turn);
       gameStateFetchedRef.current = true;
     }
-  }, [gameState]);
+  }, [gameState, storageData]);
 
   useEffect(() => {
-    if (!uuid || !pusherClient) {
+    if (!uuid || !pusherClient || storageData !== null) {
       return;
     }
 
@@ -198,22 +213,84 @@ const Play: NextPage = () => {
       pusherClient.unsubscribe(uuid as string);
       setSubscribed(false);
     };
-  }, [uuid, pusherClient, chess, opponentsColor]);
+  }, [uuid, pusherClient, chess, opponentsColor, storageData]);
 
   useEffect(() => {
-    if (!router.isReady || !uuid) {
+    if (!router.isReady || !uuid || storageCheckedRef.current) {
       return;
     }
 
     const key = uuid as string;
     const data = sessionStorage.getItem(key);
-
+    storageCheckedRef.current = true;
     if (!data) {
+      setStorageData(null);
       return;
     }
 
-    chess.playOutFromLongAlgebraicString(data);
-  }, [router.isReady, uuid, chess]);
+    const parsedData = JSON.parse(data) as SessionStorageData;
+    console.log(parsedData);
+    setStorageData(parsedData);
+
+    chess.playOutFromLongAlgebraicString(parsedData.moves, parsedData.result);
+    setIsGameFinished(true);
+    trpcContext.chess.getGameState.setData(
+      { uuid: uuid as string },
+      {
+        board: initBoard(),
+        whiteMilisLeft: parsedData.timeControl.initialTime * 1000,
+        blackMilisLeft: parsedData.timeControl.initialTime * 1000,
+        ratingWhite: parsedData.player.rating,
+        ratingBlack: parsedData.opponent.rating,
+        color: parsedData.color,
+        turn: "WHITE",
+        timeControl: parsedData.timeControl,
+      }
+    );
+    trpcContext.chess.getOpponentsData.setData(
+      { uuid: uuid as string },
+      {
+        rating: parsedData.opponent.rating,
+        id: parsedData.opponent.id,
+        name: parsedData.opponent.name ?? "unknown",
+        image: parsedData.opponent.image ?? null,
+      }
+    );
+  }, [
+    router.isReady,
+    uuid,
+    chess,
+    trpcContext.chess.getGameState,
+    trpcContext.chess.getOpponentsData,
+    gameState,
+    opponentsData,
+  ]);
+
+  useEffect(() => {
+    if (!isGameFinished || !gameState || !sessionData || storageData !== null) {
+      return;
+    }
+
+    const key = uuid as string;
+    const data = {
+      moves: chess.getFullLongAlgebraicHistory(),
+      result: chess.gameResult,
+      opponent: opponentsData,
+      player: sessionData.user,
+      color: gameState.color,
+      timeControl: gameState.timeControl,
+    } as SessionStorageData;
+
+    sessionStorage.setItem(key, JSON.stringify(data));
+  }, [
+    chess,
+    gameState,
+    isGameFinished,
+    opponentsData,
+    sessionData,
+    uuid,
+    storageData,
+  ]);
 
   if (isErrorGameState || isErrorOpponentsData) {
     return (
@@ -222,9 +299,12 @@ const Play: NextPage = () => {
   }
 
   if (
+    storageData === undefined ||
     isLoadingGameState ||
+    !gameState ||
     isLoadingOpponentsData ||
-    !subscribed ||
+    !opponentsData ||
+    (storageData === null && !subscribed) ||
     !chess ||
     !sessionData?.user
   ) {
@@ -232,7 +312,9 @@ const Play: NextPage = () => {
   }
 
   const gameSummaryRating =
-    gameState.color === "WHITE" ? gameState.ratingWhite : gameState.ratingBlack;
+    gameState?.color === "WHITE"
+      ? gameState?.ratingWhite
+      : gameState?.ratingBlack;
 
   const isDisplayedBoardLatest =
     indexOfBoardToDisplay === (chess.algebraic.length ?? 1) - 1;
@@ -254,6 +336,7 @@ const Play: NextPage = () => {
               color={gameState.color}
               queueUpTimeControl={gameState.timeControl}
               rating={gameSummaryRating}
+              enemyRating={opponentsData.rating}
               ranked
             ></GameSummary>
           ) : (
@@ -284,11 +367,14 @@ const Play: NextPage = () => {
             channel={channelRef.current}
             color={opponentsColor}
             initial={
-              opponentsColor === "WHITE"
-                ? gameState.whiteMilisLeft / 1000
-                : gameState.blackMilisLeft / 1000
+              storageData?.timeControl.initialTime ?? opponentsColor === "WHITE"
+                ? (gameState?.whiteMilisLeft ?? 10000) / 1000
+                : (gameState?.blackMilisLeft ?? 10000) / 1000
             }
-            increment={gameState.timeControl.increment}
+            increment={
+              storageData?.timeControl.increment ??
+              gameState.timeControl.increment
+            }
             isLocked={isYourTurn}
             isGameFinished={!!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
@@ -324,7 +410,7 @@ const Play: NextPage = () => {
 
           <UserBanner
             className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
-            user={sessionData.user}
+            user={storageData?.player ?? sessionData.user}
           ></UserBanner>
 
           <Timer
@@ -333,8 +419,8 @@ const Play: NextPage = () => {
             color={gameState.color}
             initial={
               gameState.color === "WHITE"
-                ? gameState.whiteMilisLeft / 1000
-                : gameState.blackMilisLeft / 1000
+                ? (gameState?.whiteMilisLeft ?? 10000) / 1000
+                : (gameState?.blackMilisLeft ?? 10000) / 1000
             }
             increment={gameState.timeControl.increment}
             isLocked={!isYourTurn}

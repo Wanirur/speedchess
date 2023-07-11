@@ -412,6 +412,12 @@ export const chessgameRouter = createTRPCRouter({
         where: {
           id: opponent.id,
         },
+        select: {
+          id: true,
+          rating: true,
+          name: true,
+          image: true,
+        },
       });
 
       if (!opponentData) {

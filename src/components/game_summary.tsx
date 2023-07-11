@@ -21,6 +21,7 @@ const GameSummary: React.FC<
     user: User;
     queueUpTimeControl: TimeControl;
     rating: number;
+    enemyRating: number;
     ranked?: boolean;
   } & HTMLAttributes<HTMLDivElement>
 > = ({
@@ -30,6 +31,7 @@ const GameSummary: React.FC<
   user,
   queueUpTimeControl,
   rating,
+  enemyRating,
   ranked = false,
 }) => {
   const { data: sessionData } = useSession();
@@ -62,13 +64,17 @@ const GameSummary: React.FC<
     if (!ranked) {
       return 0;
     }
-    const ratingDiffs = calculateRatingDiff(gameResult, 1200, 1200);
+    const ratingDiffs = calculateRatingDiff(
+      gameResult,
+      color === "WHITE" ? rating : enemyRating,
+      color === "BLACK" ? rating : enemyRating
+    );
     if (color === "WHITE") {
       return ratingDiffs.white;
     } else {
       return ratingDiffs.black;
     }
-  }, [gameResult, color, ranked]);
+  }, [gameResult, color, ranked, rating, enemyRating]);
 
   return (
     <div
