@@ -23,6 +23,7 @@ import { api } from "~/utils/api";
 import type Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import { twMerge } from "tailwind-merge";
+import { usePusher } from "~/context/pusher_provider";
 
 const Chessboard: React.FC<
   {
@@ -57,6 +58,8 @@ const Chessboard: React.FC<
   const [draggedPiece, setDraggedPiece] = useState<Coords | null>(null);
   const [promotedPawn, setPromotedPawn] = useState<Coords | null>(null);
 
+  const pusher = usePusher();
+
   const moveMutation = api.chess.movePiece.useMutation({
     onError: () => {
       chess.revertLastMove();
@@ -86,7 +89,9 @@ const Chessboard: React.FC<
               isWhite = !isWhite;
             }
 
-            const tileBgStyle = isWhite ? "bg-white " : "bg-green-500 ";
+            const tileBgStyle = isWhite
+              ? "bg-white text-green-500"
+              : "bg-green-500 text-white";
 
             let highlightStyle;
             if (
@@ -198,6 +203,7 @@ const Chessboard: React.FC<
                         x: index,
                         y: rowIndex,
                       },
+                      socketId: pusher.connection.socket_id,
                     });
                   }
                 }}
@@ -268,6 +274,7 @@ const Chessboard: React.FC<
                           x: index,
                           y: rowIndex,
                         },
+                        socketId: pusher.connection.socket_id,
                       });
                     }
 
@@ -314,6 +321,19 @@ const Chessboard: React.FC<
                       onPromote={onMove}
                     ></PromotionPieceList>
                   )}
+                  {((color === "WHITE" && rowIndex === 0) ||
+                    (color === "BLACK" && rowIndex === 7)) && (
+                    <div className="absolute bottom-0 p-1 py-0 font-os text-sm font-bold">
+                      {String.fromCharCode("a".charCodeAt(0) + index)}
+                    </div>
+                  )}
+
+                  {((color === "WHITE" && index === 7) ||
+                    (color === "BLACK" && index === 0)) && (
+                    <div className="absolute right-0 p-0.5 py-0 font-os text-sm font-bold">
+                      {rowIndex + 1}
+                    </div>
+                  )}
                 </>
               </div>
             );
@@ -334,11 +354,16 @@ const PromotionPieceList: React.FC<
     setPromotedPawn: Dispatch<SetStateAction<Coords | null>>;
   } & HTMLAttributes<HTMLDivElement>
 > = ({ className, color, uuid, chess, mutate, onPromote, setPromotedPawn }) => {
+  const pusher = usePusher();
   const promoteMutation = api.chess.promoteTo.useMutation();
   const promote = (pieceType: PromotedPieceType) => {
     chess.promote(pieceType, color);
     if (mutate) {
-      promoteMutation.mutate({ uuid: uuid, promoteTo: pieceType });
+      promoteMutation.mutate({
+        uuid: uuid,
+        promoteTo: pieceType,
+        socketId: pusher.connection.socket_id,
+      });
     }
     onPromote?.();
     setPromotedPawn(null);

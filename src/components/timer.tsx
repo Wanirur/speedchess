@@ -61,10 +61,16 @@ const Timer: React.FC<
     const onMove = (move: {
       fromTile: Coords;
       toTile: Coords;
-      timeLeftInMilis: number;
+      whiteTimeLeftInMilis: number;
+      blackTimeLeftInMilis: number;
     }) => {
-      if (move.timeLeftInMilis && !isLocked) {
-        setSeconds(Math.ceil(move.timeLeftInMilis / 1000));
+      const timeLeftInMilis =
+        color === "WHITE"
+          ? move.whiteTimeLeftInMilis
+          : move.blackTimeLeftInMilis;
+
+      if (timeLeftInMilis && !isLocked) {
+        setSeconds(Math.ceil(timeLeftInMilis / 1000));
       }
     };
 
@@ -72,7 +78,7 @@ const Timer: React.FC<
     return () => {
       channel?.unbind("move_made", onMove);
     };
-  }, [channel, isLocked]);
+  }, [channel, isLocked, color]);
 
   useEffect(() => {
     if (isLocked) {

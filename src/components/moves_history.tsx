@@ -17,6 +17,7 @@ const MovesHistory: React.FC<
 > = ({ className, chess, index: indexToSelect, setIndex }) => {
   const moves = chess.algebraic;
   const lastMoveRef = useRef<HTMLDivElement>(null);
+  const result = chess.gameResult;
 
   useEffect(() => {
     if (lastMoveRef.current) {
@@ -65,6 +66,26 @@ const MovesHistory: React.FC<
           </div>
         );
       })}
+
+      {result && (
+        <div className="flex h-fit w-fit items-center justify-center gap-1 whitespace-nowrap rounded-sm p-1">
+          {result.winner === "WHITE" && (
+            <>
+              <span className="font-bold">1-0</span> {`${result.reason}`}
+            </>
+          )}
+          {result.winner === "BLACK" && (
+            <>
+              <span className="font-bold">0-1</span> {`${result.reason}`}
+            </>
+          )}
+          {result.winner === "DRAW" && (
+            <>
+              <span className="font-bold">1/2-1/2</span> {`${result.reason}`}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };
