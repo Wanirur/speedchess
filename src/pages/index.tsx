@@ -1,5 +1,5 @@
 import { type NextPage } from "next";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { api } from "~/utils/api";
 import { useRouter } from "next/router";
 import Queue from "~/components/queue";
@@ -8,25 +8,22 @@ import { HelpCircle } from "lucide-react";
 import { type HTMLAttributes, useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 import { usePusher } from "~/context/pusher_provider";
+import Login from "~/components/login";
 
 const Home: NextPage = () => {
-  const { data: sessionData } = useSession();
+  const { data: sessionData, status } = useSession();
 
+  if (status === "loading") {
+    return <div> loading... </div>;
+  }
   return (
-    <>
-      <main className="m-auto flex min-h-[calc(100vh-3.5rem)] w-screen max-w-[100vw] flex-col items-center justify-center overflow-hidden bg-neutral-900 3xl:min-h-[calc(100vh-7rem)]">
-        {sessionData?.user?.image ? (
-          <UserLoggedInView></UserLoggedInView>
-        ) : (
-          <button
-            className="rounded-md bg-green-700 p-4 font-os text-white"
-            onClick={() => void signIn()}
-          >
-            Log in
-          </button>
-        )}
-      </main>
-    </>
+    <main className="m-auto flex min-h-[calc(100vh-3.5rem)] w-screen max-w-[100vw] flex-col items-center justify-center overflow-hidden bg-neutral-900 3xl:min-h-[calc(100vh-7rem)]">
+      {sessionData?.user?.image ? (
+        <UserLoggedInView></UserLoggedInView>
+      ) : (
+        <Login className="h-[30rem] w-80 3xl:h-[36rem] 3xl:w-96 3xl:text-xl"></Login>
+      )}
+    </main>
   );
 };
 

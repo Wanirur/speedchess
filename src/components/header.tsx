@@ -4,6 +4,7 @@ import Image from "next/image";
 import { LogOut, User } from "lucide-react";
 import { type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
+import Logo from "./logo";
 
 const Header: React.FC<HTMLAttributes<HTMLDivElement>> = ({ className }) => {
   const { data: sessionData } = useSession();
@@ -11,14 +12,12 @@ const Header: React.FC<HTMLAttributes<HTMLDivElement>> = ({ className }) => {
   return (
     <header
       className={twMerge(
-        "flex items-center bg-neutral-900 px-10 font-logo text-xl font-semibold text-green-800 sm:text-2xl",
+        "flex items-center bg-neutral-900 px-5 font-logo text-xl font-semibold text-green-800 sm:px-10 sm:text-2xl",
         className
       )}
     >
       <div className="flex w-1/2 items-center">
-        <Link href="/">
-          speedchess<span className="opacity-60">.net</span>{" "}
-        </Link>
+        <Logo className="gap-1 text-xl sm:gap-2 sm:text-2xl"></Logo>
       </div>
       {sessionData?.user?.image && (
         <div className="flex w-1/2 items-center justify-end gap-4">
