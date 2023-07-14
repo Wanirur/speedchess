@@ -56,7 +56,7 @@ const Header: React.FC<HTMLAttributes<HTMLDivElement>> = ({ className }) => {
                 );
               }}
             >
-              <LogIn className="cursor-pointer hover:stroke-white"></LogIn>
+              <LogIn className="h-1/2 cursor-pointer hover:stroke-white 3xl:h-14 3xl:w-14"></LogIn>
             </div>
           )
         )}

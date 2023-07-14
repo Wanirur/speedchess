@@ -12,7 +12,7 @@ import { type HTMLAttributes, useMemo, useState } from "react";
 import Queue from "./queue";
 import { useRouter } from "next/router";
 import { twMerge } from "tailwind-merge";
-import { Cpu } from "lucide-react";
+import { Cpu, UserIcon } from "lucide-react";
 
 const GameSummary: React.FC<
   {
@@ -90,13 +90,15 @@ const GameSummary: React.FC<
               color === "WHITE" ? "flex-row" : "flex-row-reverse"
             }`}
           >
-            {sessionData?.user?.image && (
+            {sessionData?.user.image ? (
               <Image
                 src={sessionData.user.image}
                 width={80}
                 height={80}
                 alt="player avatar"
               ></Image>
+            ) : (
+              <UserIcon className="h-20 w-20 stroke-neutral-400"></UserIcon>
             )}
             vs
             {user.image && (
