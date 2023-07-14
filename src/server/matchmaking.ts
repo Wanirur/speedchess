@@ -114,3 +114,4 @@ export const playingUsers = new Map<
   { gameId: string; timeControl: TimeControl }
 >(); // key: userId, value: {gameId, timeControl}
 export const abandonTimeouts = new Map<string, NodeJS.Timeout>();
+export const guestUsers = new Map<string, NodeJS.Timeout>();

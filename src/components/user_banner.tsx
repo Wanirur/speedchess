@@ -7,8 +7,17 @@ import { twMerge } from "tailwind-merge";
 const UserBanner: React.FC<
   {
     user: User;
+    isGuest?: boolean;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ user, className }) => {
+> = ({ user, className, isGuest = false }) => {
+  const icon = isGuest ? (
+    <UserIcon className="h-5 w-5 fill-gray-600 stroke-gray-600 hover:fill-white hover:stroke-white"></UserIcon>
+  ) : (
+    <Link href={`/user/${user.id}`} target="_blank">
+      <UserIcon className="h-5 w-5 fill-gray-600 stroke-gray-600 hover:fill-white hover:stroke-white"></UserIcon>
+    </Link>
+  );
+
   return (
     <div
       className={twMerge(
@@ -21,9 +30,7 @@ const UserBanner: React.FC<
         {user.id === "bot" ? (
           <Cpu className="h-5 w-5  stroke-gray-600  hover:stroke-white"></Cpu>
         ) : (
-          <Link href={`/user/${user.id}`} target="_blank">
-            <UserIcon className="h-5 w-5 fill-gray-600 stroke-gray-600 hover:fill-white hover:stroke-white"></UserIcon>
-          </Link>
+          icon
         )}
       </div>
       <div className="w-1/2 text-right">{user.rating}</div>

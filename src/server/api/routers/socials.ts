@@ -1,8 +1,21 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { createId } from "@paralleldrive/cuid2";
+import { guestUsers } from "~/server/matchmaking";
 
 export const socialsRouter = createTRPCRouter({
+  loginAsGuest: publicProcedure.mutation(() => {
+    const tempId = createId();
+
+    const timeout = setTimeout(() => {
+      guestUsers.delete(tempId);
+    }, 1000 * 60 * 60 * 3);
+    //expires after 3 hours
+
+    guestUsers.set(tempId, timeout);
+    return tempId;
+  }),
   getUser: publicProcedure
     .input(z.object({ playerId: z.string() }))
     .query(async ({ ctx, input }) => {
