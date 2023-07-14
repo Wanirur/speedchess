@@ -13,7 +13,7 @@ playersWaitingForMatch.set("LONG_BULLET_INCREMENT", new Map<number, Game[]>());
 playersWaitingForMatch.set("BLITZ", new Map<number, Game[]>());
 playersWaitingForMatch.set("BLITZ_INCREMENT", new Map<number, Game[]>());
 
-const ratingBuckets = Array.from({ length: 30 }, (x, i) => i * 100); // expected to get array [0, 100, 200, ..., 3000]
+const ratingBuckets = Array.from({ length: 31 }, (x, i) => (i - 1) * 100); // expected to get array [-100, 0, 100, 200, ..., 3000], negative represents unranked queue
 const queueBullet = playersWaitingForMatch.get("BULLET")!;
 const queueBulletIncrement = playersWaitingForMatch.get("BULLET_INCREMENT")!;
 const queueLongBulletIncrement = playersWaitingForMatch.get(

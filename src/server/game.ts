@@ -70,7 +70,18 @@ export class Game {
   private _timeout: NodeJS.Timeout;
   private _hasStarted = false;
 
-  constructor(whiteId: string, whiteRating: number, timeControl: TimeControl) {
+  private _isRanked = true;
+  public get isRanked() {
+    return this._isRanked;
+  }
+
+  constructor(
+    whiteId: string,
+    whiteRating: number,
+    timeControl: TimeControl,
+    isRanked: boolean
+  ) {
+    this._isRanked = isRanked;
     this._white = {
       id: whiteId,
       rating: whiteRating,

@@ -22,6 +22,7 @@ import {
   type GameResult,
   type TimeControl,
 } from "~/utils/pieces";
+import useGuestSession from "~/utils/use_guest";
 
 type SessionStorageData = {
   moves: string;
@@ -37,6 +38,8 @@ const Play: NextPage = () => {
   const { uuid } = router.query;
 
   const { data: sessionData } = useSession();
+  const { user: guest } = useGuestSession();
+
   const channelRef = useRef<Channel>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
@@ -292,7 +295,11 @@ const Play: NextPage = () => {
     storageData,
   ]);
 
-  if (isErrorGameState || isErrorOpponentsData) {
+  if (
+    isErrorGameState ||
+    isErrorOpponentsData ||
+    (!sessionData?.user && !guest)
+  ) {
     return (
       <div className="text-red-600"> An error occured. Please refresh. </div>
     );
@@ -306,7 +313,7 @@ const Play: NextPage = () => {
     !opponentsData ||
     (storageData === null && !subscribed) ||
     !chess ||
-    !sessionData?.user
+    !(sessionData?.user || guest)
   ) {
     return <div className="text-white"> Loading... </div>;
   }
@@ -410,7 +417,7 @@ const Play: NextPage = () => {
 
           <UserBanner
             className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
-            user={storageData?.player ?? sessionData.user}
+            user={storageData?.player ?? sessionData?.user ?? guest!}
           ></UserBanner>
 
           <Timer

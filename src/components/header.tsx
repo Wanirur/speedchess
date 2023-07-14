@@ -2,7 +2,7 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import { LogIn, LogOut, User } from "lucide-react";
-import { useState, type HTMLAttributes, useEffect } from "react";
+import { type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 import Logo from "./logo";
 import { useRouter } from "next/router";
@@ -43,22 +43,20 @@ const Header: React.FC<HTMLAttributes<HTMLDivElement>> = ({ className }) => {
             </div>
           </>
         ) : (
-          router.isReady && (
-            <div
-              onClick={() => {
-                const path = router.asPath;
-                if (path.startsWith("/login")) {
-                  return;
-                }
+          <div
+            onClick={() => {
+              const path = router.asPath;
+              if (path.startsWith("/login")) {
+                return;
+              }
 
-                void router.push(
-                  `/login?callbackUrl=${encodeURIComponent(router.asPath)}`
-                );
-              }}
-            >
-              <LogIn className="h-1/2 cursor-pointer hover:stroke-white 3xl:h-14 3xl:w-14"></LogIn>
-            </div>
-          )
+              void router.push(
+                `/login?callbackUrl=${encodeURIComponent(router.asPath)}`
+              );
+            }}
+          >
+            <LogIn className="h-1/2 cursor-pointer hover:stroke-white 3xl:h-14 3xl:w-14"></LogIn>
+          </div>
         )}
       </div>
     </header>

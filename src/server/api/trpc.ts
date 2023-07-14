@@ -34,10 +34,14 @@ type CreateContextOptions = {
  *
  * @see https://create.t3.gg/en/usage/trpc#-servertrpccontextts
  */
-const createInnerTRPCContext = (opts: CreateContextOptions) => {
+const createInnerTRPCContext = (
+  opts: CreateContextOptions,
+  guestId?: string
+) => {
   return {
     session: opts.session,
     prisma,
+    guestId: guestId,
   };
 };
 
@@ -52,10 +56,13 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   // Get the session from the server using the getServerSession wrapper function
   const session = await getServerAuthSession({ req, res });
-
-  return createInnerTRPCContext({
-    session,
-  });
+  const guestId = req.cookies.guestId;
+  return createInnerTRPCContext(
+    {
+      session,
+    },
+    guestId
+  );
 };
 
 /**
@@ -109,8 +116,17 @@ export const publicProcedure = t.procedure;
 /** Reusable middleware that enforces users are logged in before running the procedure. */
 const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.session || !ctx.session.user) {
+    if (ctx.guestId) {
+      return next({
+        ctx: {
+          guestId: ctx.guestId,
+        },
+      });
+    }
+
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
+
   return next({
     ctx: {
       // infers the `session` as non-nullable
