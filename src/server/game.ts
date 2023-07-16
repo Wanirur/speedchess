@@ -70,7 +70,18 @@ export class Game {
   private _timeout: NodeJS.Timeout;
   private _hasStarted = false;
 
-  constructor(whiteId: string, whiteRating: number, timeControl: TimeControl) {
+  private _isRanked = true;
+  public get isRanked() {
+    return this._isRanked;
+  }
+
+  constructor(
+    whiteId: string,
+    whiteRating: number,
+    timeControl: TimeControl,
+    isRanked: boolean
+  ) {
+    this._isRanked = isRanked;
     this._white = {
       id: whiteId,
       rating: whiteRating,
@@ -250,6 +261,10 @@ export class Game {
     matches.delete(this._id);
     playingUsers.delete(this.white.id);
     playingUsers.delete(this.black.id);
+
+    if (!this._isRanked) {
+      return;
+    }
 
     let timeControl: TimeControlName;
     if (this._initialTime === 60) {

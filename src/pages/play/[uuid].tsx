@@ -22,6 +22,7 @@ import {
   type GameResult,
   type TimeControl,
 } from "~/utils/pieces";
+import useGuestSession from "~/utils/use_guest";
 
 type SessionStorageData = {
   moves: string;
@@ -37,6 +38,8 @@ const Play: NextPage = () => {
   const { uuid } = router.query;
 
   const { data: sessionData } = useSession();
+  const { user: guest } = useGuestSession();
+
   const channelRef = useRef<Channel>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
@@ -267,7 +270,12 @@ const Play: NextPage = () => {
   ]);
 
   useEffect(() => {
-    if (!isGameFinished || !gameState || !sessionData || storageData !== null) {
+    if (
+      !isGameFinished ||
+      !gameState ||
+      (!sessionData && !guest) ||
+      storageData !== null
+    ) {
       return;
     }
 
@@ -276,7 +284,7 @@ const Play: NextPage = () => {
       moves: chess.getFullLongAlgebraicHistory(),
       result: chess.gameResult,
       opponent: opponentsData,
-      player: sessionData.user,
+      player: sessionData?.user ?? guest,
       color: gameState.color,
       timeControl: gameState.timeControl,
     } as SessionStorageData;
@@ -290,9 +298,14 @@ const Play: NextPage = () => {
     sessionData,
     uuid,
     storageData,
+    guest,
   ]);
 
-  if (isErrorGameState || isErrorOpponentsData) {
+  if (
+    isErrorGameState ||
+    isErrorOpponentsData ||
+    (!sessionData?.user && !guest)
+  ) {
     return (
       <div className="text-red-600"> An error occured. Please refresh. </div>
     );
@@ -306,7 +319,7 @@ const Play: NextPage = () => {
     !opponentsData ||
     (storageData === null && !subscribed) ||
     !chess ||
-    !sessionData?.user
+    !(sessionData?.user || guest)
   ) {
     return <div className="text-white"> Loading... </div>;
   }
@@ -331,13 +344,13 @@ const Play: NextPage = () => {
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
           {isGameFinished && chess.gameResult ? (
             <GameSummary
-              user={opponentsData}
+              opponent={opponentsData}
               gameResult={chess.gameResult}
               color={gameState.color}
               queueUpTimeControl={gameState.timeControl}
               rating={gameSummaryRating}
               enemyRating={opponentsData.rating}
-              ranked
+              ranked={!!sessionData?.user}
             ></GameSummary>
           ) : (
             <Chessboard
@@ -386,6 +399,7 @@ const Play: NextPage = () => {
           <UserBanner
             className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
             user={opponentsData}
+            isGuest={!sessionData?.user && !!guest}
           ></UserBanner>
 
           <MovesHistory
@@ -410,7 +424,8 @@ const Play: NextPage = () => {
 
           <UserBanner
             className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
-            user={storageData?.player ?? sessionData.user}
+            user={storageData?.player ?? sessionData?.user ?? guest!}
+            isGuest={!sessionData?.user && !!guest}
           ></UserBanner>
 
           <Timer

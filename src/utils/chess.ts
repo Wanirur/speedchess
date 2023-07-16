@@ -558,6 +558,7 @@ class Chess {
   ) {
     if (lanString === "") {
       this._gameResult = result;
+      return;
     }
 
     let color = "WHITE" as PlayerColor;

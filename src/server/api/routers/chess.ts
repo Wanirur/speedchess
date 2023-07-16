@@ -27,10 +27,12 @@ export const chessgameRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      let rating = -1;
+      let rating = -100;
       let id = "guest";
+      let isRanked = false;
 
       if (ctx.session) {
+        isRanked = true;
         id = ctx.session.user.id;
         try {
           const user = await ctx.prisma.user.findUniqueOrThrow({
@@ -47,6 +49,13 @@ export const chessgameRouter = createTRPCRouter({
         } catch (e) {
           console.error("no user with id: " + id + " in db");
         }
+      } else if (ctx.guestId) {
+        id = ctx.guestId;
+      } else {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not logged in as guest",
+        });
       }
 
       const queueMatchData = queuedUpUsers.get(id);
@@ -116,7 +125,7 @@ export const chessgameRouter = createTRPCRouter({
         };
       }
 
-      const newGame = new Game(id, rating, timeControl);
+      const newGame = new Game(id, rating, timeControl, isRanked);
       addGameToQueue(rating, newGame);
       queuedUpUsers.set(id, { gameId: newGame.id, timeControl: timeControl });
       console.log(queuedUpUsers);
@@ -128,7 +137,11 @@ export const chessgameRouter = createTRPCRouter({
   getGameState: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
     .query(({ ctx, input }) => {
-      const user = ctx.session.user;
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
       const match = matches.get(input.uuid);
       if (!match) {
         throw new TRPCError({
@@ -182,7 +195,11 @@ export const chessgameRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const user = ctx.session.user;
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
       const match = matches.get(input.uuid);
       if (!match) {
         throw new TRPCError({
@@ -268,7 +285,12 @@ export const chessgameRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const user = ctx.session.user;
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
+
       const match = matches.get(input.uuid);
       if (!match) {
         throw new TRPCError({
@@ -321,7 +343,11 @@ export const chessgameRouter = createTRPCRouter({
   resign: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const user = ctx.session.user;
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
       const match = matches.get(input.uuid);
       if (!match) {
         throw new TRPCError({
@@ -344,7 +370,11 @@ export const chessgameRouter = createTRPCRouter({
   offerDraw: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const user = ctx.session.user;
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
       const match = matches.get(input.uuid);
       if (!match) {
         throw new TRPCError({
@@ -371,7 +401,11 @@ export const chessgameRouter = createTRPCRouter({
   refuseDraw: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const user = ctx.session.user;
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
       const match = matches.get(input.uuid);
       if (!match) {
         throw new TRPCError({
@@ -392,7 +426,11 @@ export const chessgameRouter = createTRPCRouter({
   getOpponentsData: protectedProcedure
     .input(z.object({ uuid: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const user = ctx.session.user;
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
       const match = matches.get(input.uuid);
       if (!match) {
         throw new TRPCError({
@@ -400,6 +438,7 @@ export const chessgameRouter = createTRPCRouter({
           message: "The game does not exist",
         });
       }
+
       if (user.id !== match.white.id && user.id !== match.black.id) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -408,6 +447,11 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       const opponent = user.id === match.white.id ? match.black : match.white;
+
+      if (!match.isRanked) {
+        return { id: opponent.id, name: "guest", rating: opponent.rating };
+      }
+
       const opponentData = await ctx.prisma.user.findFirst({
         where: {
           id: opponent.id,

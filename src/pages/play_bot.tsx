@@ -17,10 +17,17 @@ import {
   initBoard,
   type PromotedPieceType,
 } from "~/utils/pieces";
+import useGuestSession from "~/utils/use_guest";
 
 const PlayBot: React.FC = () => {
   const router = useRouter();
   const { color, time, increment } = router.query;
+
+  //fix hydration errors
+  const [isClient, setIsClient] = useState<boolean>(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
   const isStockfishInitialized = useRef<boolean>(false);
@@ -36,6 +43,7 @@ const PlayBot: React.FC = () => {
   >();
 
   const { data: sessionData } = useSession();
+  const { user: guest } = useGuestSession();
   const { isError, stockfish } = useStockfish();
 
   const storageCleanupFunction = useCallback(() => {
@@ -103,7 +111,7 @@ const PlayBot: React.FC = () => {
 
     const game = sessionStorage.getItem("game");
     const moves = game?.split(" ");
-    console.log(moves);
+
     //if moves is undefined it still correctly assigns turn as white, not an overlook
     const turn = (moves?.length ?? 0) % 2 === 1 ? "BLACK" : "WHITE";
     setGameState({
@@ -122,13 +130,15 @@ const PlayBot: React.FC = () => {
     if (
       isStockfishInitialized.current ||
       !stockfish ||
-      !sessionData ||
+      !(sessionData || guest) ||
       !gameState
     ) {
       return;
     }
 
-    stockfish.setStrength(Math.round(sessionData.user.rating / 100) * 100);
+    stockfish.setStrength(
+      Math.round(sessionData?.user.rating ?? guest!.rating / 100) * 100
+    );
     setOpponentsData((old) => ({ ...old, rating: stockfish.rating }));
 
     stockfish.playMode(gameState.timeControl);
@@ -137,7 +147,7 @@ const PlayBot: React.FC = () => {
     if (!isYourTurn) {
       stockfish.playResponseTo("");
     }
-  }, [stockfish, sessionData, gameState, isYourTurn]);
+  }, [stockfish, sessionData, gameState, isYourTurn, guest]);
 
   useEffect(() => {
     if (!stockfish || !chess || !opponentsColor) {
@@ -216,13 +226,13 @@ const PlayBot: React.FC = () => {
     };
   }, [stockfish, chess, opponentsColor, storageCleanupFunction]);
 
-  if (isError) {
+  if (isClient && (isError || (!sessionData && !guest))) {
     return <div className="text-red"> error </div>;
   }
 
   if (
     !chess ||
-    !sessionData ||
+    !(sessionData || guest) ||
     !opponentsColor ||
     !gameState ||
     !opponentsData ||
@@ -246,11 +256,12 @@ const PlayBot: React.FC = () => {
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
           {isGameFinished && chess.gameResult ? (
             <GameSummary
-              user={opponentsData}
+              opponent={opponentsData}
               gameResult={chess.gameResult}
               color={gameState.color}
               queueUpTimeControl={gameState.timeControl}
-              rating={sessionData.user.rating}
+              rating={sessionData?.user.rating ?? guest!.rating}
+              enemyRating={stockfish.rating}
             ></GameSummary>
           ) : (
             <Chessboard
@@ -350,7 +361,8 @@ const PlayBot: React.FC = () => {
 
           <UserBanner
             className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
-            user={sessionData.user}
+            user={sessionData?.user ?? guest!}
+            isGuest={!!guest}
           ></UserBanner>
 
           <Timer
