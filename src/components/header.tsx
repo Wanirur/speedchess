@@ -46,7 +46,7 @@ const Header: React.FC<HTMLAttributes<HTMLDivElement>> = ({ className }) => {
           <div
             onClick={() => {
               const path = router.asPath;
-              if (path.startsWith("/login")) {
+              if (path.startsWith("/login") || path.startsWith("/play")) {
                 return;
               }
 

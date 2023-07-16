@@ -270,7 +270,12 @@ const Play: NextPage = () => {
   ]);
 
   useEffect(() => {
-    if (!isGameFinished || !gameState || !sessionData || storageData !== null) {
+    if (
+      !isGameFinished ||
+      !gameState ||
+      (!sessionData && !guest) ||
+      storageData !== null
+    ) {
       return;
     }
 
@@ -279,7 +284,7 @@ const Play: NextPage = () => {
       moves: chess.getFullLongAlgebraicHistory(),
       result: chess.gameResult,
       opponent: opponentsData,
-      player: sessionData.user,
+      player: sessionData?.user ?? guest,
       color: gameState.color,
       timeControl: gameState.timeControl,
     } as SessionStorageData;
@@ -293,6 +298,7 @@ const Play: NextPage = () => {
     sessionData,
     uuid,
     storageData,
+    guest,
   ]);
 
   if (
