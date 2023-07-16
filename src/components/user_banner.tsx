@@ -33,7 +33,7 @@ const UserBanner: React.FC<
           icon
         )}
       </div>
-      <div className="w-1/2 text-right">{user.rating}</div>
+      {!isGuest && <div className="w-1/2 text-right">{user.rating}</div>}
     </div>
   );
 };

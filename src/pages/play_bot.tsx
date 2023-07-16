@@ -256,7 +256,7 @@ const PlayBot: React.FC = () => {
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
           {isGameFinished && chess.gameResult ? (
             <GameSummary
-              user={opponentsData}
+              opponent={opponentsData}
               gameResult={chess.gameResult}
               color={gameState.color}
               queueUpTimeControl={gameState.timeControl}

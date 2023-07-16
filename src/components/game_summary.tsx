@@ -18,7 +18,7 @@ const GameSummary: React.FC<
   {
     gameResult: GameResult;
     color: PlayerColor;
-    user: User;
+    opponent: User;
     queueUpTimeControl: TimeControl;
     rating: number;
     enemyRating: number;
@@ -28,7 +28,7 @@ const GameSummary: React.FC<
   className,
   gameResult,
   color,
-  user,
+  opponent: user,
   queueUpTimeControl,
   rating,
   enemyRating,
@@ -101,13 +101,15 @@ const GameSummary: React.FC<
               <UserIcon className="h-20 w-20 stroke-neutral-400"></UserIcon>
             )}
             vs
-            {user.image && (
+            {user.image && user.id !== "bot" ? (
               <Image
                 src={user.image}
                 width={80}
                 height={80}
                 alt="player avatar"
               ></Image>
+            ) : (
+              <UserIcon className="h-20 w-20 stroke-neutral-400"></UserIcon>
             )}
             {user.id === "bot" && (
               <Cpu className="h-20 w-20 stroke-neutral-400"></Cpu>
@@ -115,20 +117,22 @@ const GameSummary: React.FC<
           </div>
           <h1 className="text-4xl font-semibold md:text-5xl"> {msg} </h1>
 
-          <div className="flex flex-col items-center justify-center pb-3 md:pb-6">
-            <h3 className="text-xl md:text-2xl"> New rating: </h3>
-            <h2 className="text-2xl font-semibold md:text-3xl">
-              {rating + ratingDiff}
+          {ranked && (
+            <div className="flex flex-col items-center justify-center pb-3">
+              <h3 className="text-xl md:text-2xl"> New rating: </h3>
+              <h2 className="text-2xl font-semibold md:text-3xl">
+                {rating + ratingDiff}
 
-              <span className="text-green-500 opacity-50">
-                {ratingDiff >= 0 && "+"}
-                {ratingDiff}
-              </span>
-            </h2>
-          </div>
+                <span className="text-green-500 opacity-50">
+                  {ratingDiff >= 0 && "+"}
+                  {ratingDiff}
+                </span>
+              </h2>
+            </div>
+          )}
 
           <button
-            className="h-12 w-40 rounded-xl bg-green-700 p-1 hover:bg-green-800"
+            className="h-12 w-40 rounded-xl bg-green-700 p-1 hover:bg-green-800 md:mt-6"
             onClick={() => {
               queueUpMutation.mutate(queueUpTimeControl);
             }}

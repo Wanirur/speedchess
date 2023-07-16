@@ -338,13 +338,13 @@ const Play: NextPage = () => {
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
           {isGameFinished && chess.gameResult ? (
             <GameSummary
-              user={opponentsData}
+              opponent={opponentsData}
               gameResult={chess.gameResult}
               color={gameState.color}
               queueUpTimeControl={gameState.timeControl}
               rating={gameSummaryRating}
               enemyRating={opponentsData.rating}
-              ranked
+              ranked={!!sessionData?.user}
             ></GameSummary>
           ) : (
             <Chessboard
@@ -393,6 +393,7 @@ const Play: NextPage = () => {
           <UserBanner
             className="h-10 w-full md:h-14 3xl:h-20  3xl:text-xl"
             user={opponentsData}
+            isGuest={!sessionData?.user && !!guest}
           ></UserBanner>
 
           <MovesHistory
@@ -418,6 +419,7 @@ const Play: NextPage = () => {
           <UserBanner
             className="h-10 w-full md:h-14 3xl:h-20 3xl:text-xl"
             user={storageData?.player ?? sessionData?.user ?? guest!}
+            isGuest={!sessionData?.user && !!guest}
           ></UserBanner>
 
           <Timer

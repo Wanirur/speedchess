@@ -262,6 +262,10 @@ export class Game {
     playingUsers.delete(this.white.id);
     playingUsers.delete(this.black.id);
 
+    if (!this._isRanked) {
+      return;
+    }
+
     let timeControl: TimeControlName;
     if (this._initialTime === 60) {
       timeControl = "BULLET";

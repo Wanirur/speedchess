@@ -97,16 +97,18 @@ const DrawResignPanel: React.FC<
               ? "Waiting for opponent's decision..."
               : "Your opponent offered a draw. Do you accept?"}
           </p>
-          <button
-            className="rounded-md bg-green-700 hover:bg-green-800"
-            onClick={() => {
-              if (mutate) {
-                drawOfferMutation.mutate({ uuid: uuid });
-              }
-            }}
-          >
-            <Check className="stroke-white"></Check>
-          </button>
+          {!isDrawOfferYours && (
+            <button
+              className="rounded-md bg-green-700 hover:bg-green-800"
+              onClick={() => {
+                if (mutate) {
+                  drawOfferMutation.mutate({ uuid: uuid });
+                }
+              }}
+            >
+              <Check className="stroke-white"></Check>
+            </button>
+          )}
           <button
             className="rounded-md bg-red-600 hover:bg-red-700"
             onClick={() => {
