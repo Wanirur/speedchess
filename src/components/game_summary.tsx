@@ -101,18 +101,17 @@ const GameSummary: React.FC<
               <UserIcon className="h-20 w-20 stroke-neutral-400"></UserIcon>
             )}
             vs
-            {user.image && user.id !== "bot" ? (
+            {user.image ? (
               <Image
                 src={user.image}
                 width={80}
                 height={80}
                 alt="player avatar"
               ></Image>
+            ) : user.id === "bot" ? (
+              <Cpu className="h-20 w-20 stroke-neutral-400"></Cpu>
             ) : (
               <UserIcon className="h-20 w-20 stroke-neutral-400"></UserIcon>
-            )}
-            {user.id === "bot" && (
-              <Cpu className="h-20 w-20 stroke-neutral-400"></Cpu>
             )}
           </div>
           <h1 className="text-4xl font-semibold md:text-5xl"> {msg} </h1>
