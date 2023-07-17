@@ -154,7 +154,7 @@ class Chess {
       } else {
         const rook = this.board[from.y]![0]!;
         this.board[from.y]![0] = null;
-        this.board[from.y]![2] = rook;
+        this.board[from.y]![3] = rook;
       }
     }
 
@@ -1297,7 +1297,11 @@ class Chess {
         continue;
       }
 
-      const tile = this._currentBoard[coords.y]![coords.x]!;
+      const tile = this._currentBoard[coords.y]![coords.x];
+      if (tile === undefined) {
+        continue;
+      }
+
       if (tile === null) {
         possibleMoves.push(coords);
         continue;
@@ -1464,8 +1468,8 @@ class Chess {
       !this._isWhiteKingChecked
     ) {
       //hardcoded coords cannot be undefined so non-null assertion allowed
-      const rookCoordsAfterCastling = Coords.getInstance(2, 0)!;
-      const kingCoordsAfterCastling = Coords.getInstance(1, 0)!;
+      const rookCoordsAfterCastling = Coords.getInstance(3, 0)!;
+      const kingCoordsAfterCastling = Coords.getInstance(2, 0)!;
 
       const rookTileAfterCastling =
         this._currentBoard[rookCoordsAfterCastling.y]![
@@ -1489,8 +1493,8 @@ class Chess {
       !this._isBlackKingChecked
     ) {
       //hardcoded coords cannot be undefined so non-null assertion allowed
-      const rookCoordsAfterCastling = Coords.getInstance(2, 7)!;
-      const kingCoordsAfterCastling = Coords.getInstance(1, 7)!;
+      const rookCoordsAfterCastling = Coords.getInstance(3, 7)!;
+      const kingCoordsAfterCastling = Coords.getInstance(2, 7)!;
 
       const rookTileAfterCastling =
         this._currentBoard[rookCoordsAfterCastling.y]![
