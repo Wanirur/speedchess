@@ -40,7 +40,7 @@ export class HistoryWithVariations<T extends MoveDescriptor>
   }
 
   public addMove(move: T, variationMoveIndex?: number) {
-    if (!variationMoveIndex) {
+    if (variationMoveIndex) {
       return;
     }
 
