@@ -3,6 +3,9 @@ import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef, useCallback } from "react";
+import Chessgame, { type ChessgameForMatch } from "~/chess/game";
+import { CombinedStrategies, SimpleHistory } from "~/chess/history";
+import type ChessPosition from "~/chess/position";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/draw_resign_panel";
 import GameSummary from "~/components/game_summary";
@@ -10,14 +13,19 @@ import MovesHistory from "~/components/moves_history";
 import Timer from "~/components/timer";
 import UserBanner from "~/components/user_banner";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
-import Chess from "~/utils/chess";
 import { type Coords } from "~/utils/coords";
-import {
-  type TimeControl,
-  initBoard,
-  type PromotedPieceType,
-} from "~/utils/pieces";
+import { type AlgebraicNotation, FEN } from "~/utils/notations";
+import { type TimeControl, type PromotedPieceType } from "~/utils/pieces";
 import useGuestSession from "~/utils/use_guest";
+
+const toLongNotation = (chess: ChessgameForMatch) => {
+  const algebraic = chess.history.first.moves;
+  const longNotationStrings = algebraic.map((move) =>
+    move.toLongNotationString()
+  );
+
+  return longNotationStrings.join(" ");
+};
 
 const PlayBot: React.FC = () => {
   const router = useRouter();
@@ -29,7 +37,14 @@ const PlayBot: React.FC = () => {
     setIsClient(true);
   }, []);
 
-  const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
+  const [chess, setChess] = useState<ChessgameForMatch>(
+    new Chessgame(
+      new CombinedStrategies(
+        new SimpleHistory<AlgebraicNotation>(),
+        new SimpleHistory<ChessPosition>()
+      )
+    )
+  );
   const isStockfishInitialized = useRef<boolean>(false);
   const [gameState, setGameState] = useState<
     | {
@@ -80,12 +95,19 @@ const PlayBot: React.FC = () => {
       return;
     }
 
-    chess.playOutFromLongAlgebraicString(game);
-    setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+    chess.playOutFromMoves(game);
+    setIndexOfBoardToDisplay(chess.movesPlayed - 1);
     stockfish.gameMoves = game.split(" ");
 
     return () => {
-      setChess(new Chess(initBoard()));
+      setChess(
+        new Chessgame(
+          new CombinedStrategies(
+            new SimpleHistory<AlgebraicNotation>(),
+            new SimpleHistory<ChessPosition>()
+          )
+        )
+      );
       stockfish.gameMoves = [];
     };
   }, [chess, stockfish]);
@@ -156,7 +178,7 @@ const PlayBot: React.FC = () => {
 
     const onMove = ({ from, to }: { from: Coords; to: Coords }) => {
       try {
-        chess.move(from, to, opponentsColor);
+        chess.move(from, to);
       } catch (e) {
         if (e instanceof Error) {
           console.log(e);
@@ -172,17 +194,18 @@ const PlayBot: React.FC = () => {
         return;
       }
 
-      if (chess.pawnReadyToPromote) {
+      if (chess.position.pawnReadyToPromote) {
         return;
       }
       setIsYourTurn(true);
-      setIndexOfBoardToDisplay(chess.algebraic.length - 1);
-      sessionStorage.setItem("game", chess.getFullLongAlgebraicHistory());
+      setIndexOfBoardToDisplay(chess.movesPlayed - 1);
+
+      sessionStorage.setItem("game", toLongNotation(chess));
     };
 
     const onPromote = ({ promotedTo }: { promotedTo: PromotedPieceType }) => {
       try {
-        chess.promote(promotedTo, opponentsColor);
+        chess.promote(promotedTo);
       } catch (e) {
         if (e instanceof Error) {
           console.log(e);
@@ -198,9 +221,10 @@ const PlayBot: React.FC = () => {
         return;
       }
 
-      sessionStorage.setItem("game", chess.getFullLongAlgebraicHistory());
+      sessionStorage.setItem("game", toLongNotation(chess));
+
       setIsYourTurn(true);
-      setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+      setIndexOfBoardToDisplay(chess.movesPlayed - 1);
     };
 
     const onDraw = () => {
@@ -242,13 +266,14 @@ const PlayBot: React.FC = () => {
   }
 
   const isDisplayedBoardLatest =
-    indexOfBoardToDisplay === (chess.algebraic?.length ?? 1) - 1;
+    indexOfBoardToDisplay === chess.movesPlayed - 1;
 
-  const latestBoardFEN = chess.history[indexOfBoardToDisplay];
+  const latestBoardFEN =
+    chess.history.second.lastMove()?.fen ?? FEN.startingPosition();
   const boardToDisplay =
     !isDisplayedBoardLatest && latestBoardFEN
       ? latestBoardFEN.buildBoard()
-      : chess.board;
+      : chess.position.board;
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
@@ -272,13 +297,13 @@ const PlayBot: React.FC = () => {
               board={boardToDisplay}
               locked={!isDisplayedBoardLatest}
               unlockFunction={() =>
-                setIndexOfBoardToDisplay(chess.algebraic.length - 1)
+                setIndexOfBoardToDisplay(chess.movesPlayed - 1)
               }
-              lastMovedFrom={chess.lastMoveFrom}
-              lastMovedTo={chess.lastMoveTo}
+              lastMovedFrom={chess.lastMovedFrom}
+              lastMovedTo={chess.lastMovedTo}
               onMove={() => {
                 setIsYourTurn(false);
-                setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+                setIndexOfBoardToDisplay(chess.movesPlayed - 1);
 
                 if (chess.gameResult) {
                   setTimeout(() => {
@@ -289,11 +314,11 @@ const PlayBot: React.FC = () => {
                   return;
                 }
 
-                sessionStorage.setItem(
-                  "game",
-                  chess.getFullLongAlgebraicHistory()
-                );
-                const move = chess.algebraic.at(-1)?.toLongNotationString();
+                sessionStorage.setItem("game", toLongNotation(chess));
+                const move = chess.history.first
+                  .lastMove()!
+                  .toLongNotationString();
+
                 if (move) {
                   stockfish.playResponseTo(move);
                 }
@@ -315,7 +340,7 @@ const PlayBot: React.FC = () => {
             isLocked={isYourTurn}
             isGameFinished={!!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
-              chess.timeExpired(color);
+              chess.timeout(color);
               setIsGameFinished(true);
               storageCleanupFunction();
             }}
@@ -377,7 +402,7 @@ const PlayBot: React.FC = () => {
             isLocked={!isYourTurn}
             isGameFinished={!!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
-              chess.timeExpired(color);
+              chess.timeout(color);
               setIsGameFinished(true);
               storageCleanupFunction();
             }}

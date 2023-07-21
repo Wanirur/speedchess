@@ -1,29 +1,36 @@
 import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Chessboard from "~/components/chessboard";
 import MovesHistory from "~/components/moves_history";
 import UserBanner from "~/components/user_banner";
 import { api } from "~/utils/api";
-import Chess from "~/utils/chess";
-import { type PlayerColor, initBoard } from "~/utils/pieces";
+import { type PlayerColor } from "~/utils/pieces";
 import StockfishProvider, {
   type BestChessLine,
   useStockfish,
 } from "~/context/stockfish_provider";
 import EvalBar from "~/components/eval_bar";
 import { type User } from "next-auth";
+import Chessgame, { type ChessgameForAnalysis } from "~/chess/game";
+import { CombinedStrategies, HistoryWithVariations } from "~/chess/history";
+import { type AlgebraicNotation } from "~/utils/notations";
+import type ChessPosition from "~/chess/position";
 
 const AnalyzePage = () => {
   const router = useRouter();
   const { id } = router.query;
   const { data: sessionData } = useSession();
 
-  const chessRef = useRef<Chess | null>(null);
-  if (chessRef.current === null) {
-    chessRef.current = new Chess(initBoard());
-  }
+  const [chess, setChess] = useState<ChessgameForAnalysis>(
+    new Chessgame(
+      new CombinedStrategies(
+        new HistoryWithVariations<AlgebraicNotation>(),
+        new HistoryWithVariations<ChessPosition>()
+      )
+    )
+  );
 
   const {
     isLoading,
@@ -114,11 +121,12 @@ const AnalyzePage = () => {
   const [isReadyToAnalyze, setIsReadyToAnalyze] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!isReadyToAnalyze || !stockfish || !chessRef.current) {
+    if (!isReadyToAnalyze || !stockfish || !chess) {
       return;
     }
 
-    const position = chessRef.current.history[indexOfBoardToDisplay];
+    const position =
+      chess.history.second.moves[indexOfBoardToDisplay]?.[0]?.fen;
     if (!position) {
       return;
     }
@@ -141,33 +149,30 @@ const AnalyzePage = () => {
         setBestLines(lines);
       }
     });
-  }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze]);
+  }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze, chess]);
 
   useEffect(() => {
-    if (!gameData || !chessRef.current) {
+    if (!gameData || !chess) {
       return;
     }
 
     try {
-      chessRef.current.playOutFromLongAlgebraicString(
-        gameData.moves,
-        gameData.result
-      );
-      setIndexOfBoardToDisplay(chessRef.current.algebraic.length - 1);
+      chess.playOutFromMoves(gameData.moves, gameData.result);
+      setIndexOfBoardToDisplay(chess.movesPlayed - 1);
       setIsReadyToAnalyze(true);
     } catch (err) {
       if (err instanceof Error) {
         console.error(err);
       }
     }
-  }, [gameData]);
+  }, [gameData, chess]);
 
   if (!sessionData?.user || isError || isStockfishError) {
     return <div> error </div>;
   }
 
   if (
-    !chessRef.current ||
+    !chess ||
     !router.isReady ||
     isLoading ||
     isStockfishLoading ||
@@ -178,8 +183,8 @@ const AnalyzePage = () => {
   }
 
   const boardToDisplay =
-    chessRef.current.history[indexOfBoardToDisplay]?.buildBoard() ??
-    chessRef.current.board;
+    chess.history.second.moves[indexOfBoardToDisplay]?.[0]?.board ??
+    chess.position.board;
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
@@ -189,7 +194,7 @@ const AnalyzePage = () => {
             uuid={"analyze"}
             color={boardAlignment}
             isYourTurn={false}
-            chess={chessRef.current}
+            chess={chess}
             board={boardToDisplay}
             locked
           ></Chessboard>
@@ -207,13 +212,13 @@ const AnalyzePage = () => {
               lines={bestLines}
               depth={depth}
               engineName={stockfish.engineName}
-              noMoves={chessRef.current.algebraic.length === 0}
+              noMoves={chess.movesPlayed === 0}
             ></EvalBar>
           )}
 
           <MovesHistory
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
-            chess={chessRef.current}
+            chess={chess}
             index={indexOfBoardToDisplay}
             setIndex={setIndexOfBoardToDisplay}
           ></MovesHistory>
@@ -231,7 +236,7 @@ const AnalyzePage = () => {
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
                 setIndexOfBoardToDisplay((x) =>
-                  x + 1 === chessRef.current?.history.length ? x : x + 1
+                  x + 1 === chess.movesPlayed ? x : x + 1
                 );
               }}
             >

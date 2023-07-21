@@ -20,17 +20,19 @@ import {
 } from "~/utils/pieces";
 import Image from "next/image";
 import { api } from "~/utils/api";
-import type Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
 import { twMerge } from "tailwind-merge";
 import { usePusher } from "~/context/pusher_provider";
+import type Chessgame from "~/chess/game";
+import { type TrackingStrategy } from "~/chess/history";
+import { PieceAttacks } from "~/chess/attacks";
 
 const Chessboard: React.FC<
   {
     uuid: string;
     color: PlayerColor;
     isYourTurn: boolean;
-    chess: Chess;
+    chess: Chessgame<TrackingStrategy>;
     board: Board;
     locked: boolean;
     unlockFunction?: () => void;
@@ -145,7 +147,7 @@ const Chessboard: React.FC<
                     return;
                   }
 
-                  if (!chess.board[index]) {
+                  if (!chess.position.board[index]) {
                     return;
                   }
                   const coords = Coords.getInstance(index, rowIndex);
@@ -172,7 +174,7 @@ const Chessboard: React.FC<
                     return;
                   }
                   try {
-                    chess.move(coords, moveTo, color);
+                    chess.move(coords, moveTo);
                   } catch (e) {
                     if (e instanceof Error) {
                       console.log(e);
@@ -243,7 +245,7 @@ const Chessboard: React.FC<
                     setPossibleMoves(null);
 
                     try {
-                      chess.move(moveFrom, moveTo, color);
+                      chess.move(moveFrom, moveTo);
                     } catch (e) {
                       if (e instanceof Error) {
                         console.log(e);
@@ -288,7 +290,11 @@ const Chessboard: React.FC<
                   setHighlightedTile(coords);
 
                   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  const moves = chess.getPossibleMoves(coords);
+                  const moves = PieceAttacks.getPossibleMoves(
+                    chess.position,
+                    coords
+                  );
+
                   setPossibleMoves([
                     ...moves.possibleMoves,
                     ...moves.possibleCaptures,
@@ -348,7 +354,7 @@ const PromotionPieceList: React.FC<
   {
     color: PlayerColor;
     uuid: string;
-    chess: Chess;
+    chess: Chessgame<TrackingStrategy>;
     mutate: boolean;
     onPromote?: () => void;
     setPromotedPawn: Dispatch<SetStateAction<Coords | null>>;
@@ -357,7 +363,7 @@ const PromotionPieceList: React.FC<
   const pusher = usePusher();
   const promoteMutation = api.chess.promoteTo.useMutation();
   const promote = (pieceType: PromotedPieceType) => {
-    chess.promote(pieceType, color);
+    chess.promote(pieceType);
     if (mutate) {
       promoteMutation.mutate({
         uuid: uuid,

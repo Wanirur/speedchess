@@ -6,16 +6,20 @@ import {
   useRef,
 } from "react";
 import { twMerge } from "tailwind-merge";
-import type Chess from "~/utils/chess";
+import type Chessgame from "~/chess/game";
+import {
+  type ChessgameForAnalysis,
+  type ChessgameForMatch,
+} from "~/chess/game";
 
 const MovesHistory: React.FC<
   {
-    chess: Chess;
+    chess: ChessgameForMatch | ChessgameForAnalysis;
     index: number;
     setIndex: Dispatch<SetStateAction<number>>;
   } & HTMLAttributes<HTMLDivElement>
 > = ({ className, chess, index: indexToSelect, setIndex }) => {
-  const moves = chess.algebraic;
+  const moves = chess.history.first.moves;
   const lastMoveRef = useRef<HTMLDivElement>(null);
   const result = chess.gameResult;
 
@@ -23,7 +27,7 @@ const MovesHistory: React.FC<
     if (lastMoveRef.current) {
       lastMoveRef.current.scrollIntoView();
     }
-  }, [moves.length]);
+  }, [chess.movesPlayed]);
 
   return (
     <div
@@ -53,12 +57,6 @@ const MovesHistory: React.FC<
                 "bg-neutral-400 text-green-800 hover:text-green-900"
             )}
             onClick={() => {
-              const fen = chess.history[index + 1];
-              if (!fen) {
-                setIndex(chess.history.length - 1);
-                return;
-              }
-
               setIndex(index);
             }}
           >
