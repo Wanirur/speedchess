@@ -1,11 +1,4 @@
 export class Coords {
-  /*
-  Object pool created in order to avoid unecessary temporary objects 
-  which happened when chess methods accepted any { x: number, y: number } args
-  - avoids gc issues.
-  It also allows to find coords in sets which is used when looking for checkmates
-  */
-  static _pool = new Array<Coords[]>(8);
   private _x: number;
   public get x(): number {
     return this._x;
@@ -16,6 +9,11 @@ export class Coords {
     return this._y;
   }
 
+  /*
+ Create object pool that allows using chess coordinates as map/set keys. 
+ Furthermore, it's good for performance.
+  */
+  static _pool = new Array<Coords[]>(8);
   static {
     for (let i = 0; i < 8; i++) {
       const row = new Array<Coords>(8);
@@ -39,7 +37,7 @@ export class Coords {
     return Coords._pool[coords.y]?.[coords.x];
   }
 
-  public static fromNotation(notation: string) {
+  public static fromString(notation: string) {
     const x = notation.charCodeAt(0) - "a".charCodeAt(0);
     const y = Number.parseInt(notation.charAt(1)) - 1;
 

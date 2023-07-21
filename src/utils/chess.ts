@@ -62,7 +62,7 @@ class Chess {
   }
 
   private _movedPawns = new Set<Coords>();
-  private _pawnPossibleToEnPassant: Coords | null = null;
+  private _pawnPossibleToEnPassant: Coords | undefined = undefined;
   private _pawnReadyToPromote: Coords | null = null;
   public get pawnReadyToPromote(): Coords | null {
     return this._pawnReadyToPromote;
@@ -258,7 +258,7 @@ class Chess {
         }
       }
     }
-    this._pawnPossibleToEnPassant = null;
+    this._pawnPossibleToEnPassant = undefined;
 
     if (movedPiece.pieceType === "PAWN") {
       if (this._movedPawns.has(from)) {
