@@ -48,7 +48,7 @@ const QueueUpCard: React.FC<
         </span>
         <div className="group absolute left-full flex items-center justify-center rounded-full bg-black font-bold">
           <HelpCircle className="h-3 w-3 stroke-green-700 md:h-5 md:w-5 3xl:h-8 3xl:w-8" />
-          <div className="invisible absolute bottom-full left-full z-10 w-fit rounded-lg bg-gray-600 p-2 text-xs opacity-90 group-hover:visible md:text-base 3xl:text-2xl">
+          <div className="invisible absolute bottom-full left-full z-10 w-fit rounded-lg bg-gray-600 p-2 text-xs tabular-nums opacity-90 group-hover:visible md:text-base 3xl:text-2xl">
             {`${timeControl.initialTime / 60} minute${
               timeControl.initialTime / 60 === 1 ? "" : "s"
             } with ${timeControl.increment} second${

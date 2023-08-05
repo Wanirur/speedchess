@@ -117,7 +117,11 @@ const AnalyzePage = () => {
     stockfish,
   } = useStockfish();
 
-  const [indexOfBoardToDisplay, setIndexOfBoardToDisplay] = useState<number>(0);
+  const [moveIndex, setMoveIndex] = useState<number>(0);
+  const [branchStartIndex, setBranchStartIndex] = useState<
+    number | undefined
+  >();
+  const [variationIndex, setVariationIndex] = useState<number | undefined>();
   const [isReadyToAnalyze, setIsReadyToAnalyze] = useState<boolean>(false);
 
   useEffect(() => {
@@ -125,8 +129,13 @@ const AnalyzePage = () => {
       return;
     }
 
-    const position =
-      chess.history.second.moves[indexOfBoardToDisplay]?.[0]?.fen;
+    const position = (
+      chess.history.position.getMove(
+        moveIndex,
+        branchStartIndex,
+        variationIndex
+      ) as ChessPosition
+    ).fen;
     if (!position) {
       return;
     }
@@ -135,9 +144,10 @@ const AnalyzePage = () => {
     stockfish.calculateBestVariations(
       position,
       100,
-      indexOfBoardToDisplay % 2 ? "WHITE" : "BLACK"
+      moveIndex % 2 ? "WHITE" : "BLACK"
     );
-    stockfish.bind("depth_changed", (data) => {
+
+    const depthCallback = (data: { depth: number; lines: BestChessLine[] }) => {
       const { depth, lines } = data as {
         depth: number;
         lines: BestChessLine[];
@@ -148,8 +158,20 @@ const AnalyzePage = () => {
       if (lines) {
         setBestLines(lines);
       }
-    });
-  }, [indexOfBoardToDisplay, stockfish, isReadyToAnalyze, chess]);
+    };
+    stockfish.bind("depth_changed", depthCallback);
+
+    return () => {
+      stockfish.unbind("depth_changed", depthCallback);
+    };
+  }, [
+    moveIndex,
+    stockfish,
+    isReadyToAnalyze,
+    chess,
+    branchStartIndex,
+    variationIndex,
+  ]);
 
   useEffect(() => {
     if (!gameData || !chess) {
@@ -158,7 +180,7 @@ const AnalyzePage = () => {
 
     try {
       chess.playOutFromMoves(gameData.moves, gameData.result);
-      setIndexOfBoardToDisplay(chess.movesPlayed - 1);
+      setMoveIndex(chess.movesPlayed - 1);
       setIsReadyToAnalyze(true);
     } catch (err) {
       if (err instanceof Error) {
@@ -175,7 +197,7 @@ const AnalyzePage = () => {
     !chess ||
     !router.isReady ||
     isLoading ||
-    isStockfishLoading ||
+    !stockfish ||
     !blackData ||
     !whiteData
   ) {
@@ -183,8 +205,8 @@ const AnalyzePage = () => {
   }
 
   const boardToDisplay =
-    chess.history.second.moves[indexOfBoardToDisplay]?.[0]?.board ??
-    chess.position.board;
+    chess.history.position.getMove(moveIndex, branchStartIndex, variationIndex)
+      ?.board ?? chess.position.board;
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
@@ -193,10 +215,24 @@ const AnalyzePage = () => {
           <Chessboard
             uuid={"analyze"}
             color={boardAlignment}
-            isYourTurn={false}
+            isYourTurn={true}
             chess={chess}
             board={boardToDisplay}
-            locked
+            locked={false}
+            onMove={() => {
+              setBranchStartIndex(chess.history.notation.branchStartIndex);
+              setVariationIndex(chess.history.notation.variationIndex);
+
+              if (
+                branchStartIndex === undefined &&
+                chess.history.notation.branchStartIndex !== undefined
+              ) {
+                setMoveIndex(0);
+                return;
+              }
+
+              setMoveIndex((old) => old + 1);
+            }}
           ></Chessboard>
         </div>
 
@@ -206,28 +242,49 @@ const AnalyzePage = () => {
             user={boardAlignment === "WHITE" ? blackData : whiteData}
           ></UserBanner>
 
-          {stockfish && (
-            <EvalBar
-              className="hidden h-1/5 w-full bg-neutral-950 font-os text-white md:flex lg:h-1/4"
-              lines={bestLines}
-              depth={depth}
-              engineName={stockfish.engineName}
-              noMoves={chess.movesPlayed === 0}
-            ></EvalBar>
-          )}
+          <EvalBar
+            className="hidden h-1/5 w-full bg-neutral-950 font-os text-white md:flex lg:h-1/4"
+            lines={bestLines}
+            depth={depth}
+            engineName={stockfish.engineName}
+            noMoves={chess.movesPlayed === 0}
+          ></EvalBar>
 
           <MovesHistory
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
-            chess={chess}
-            index={indexOfBoardToDisplay}
-            setIndex={setIndexOfBoardToDisplay}
+            history={chess.history.notation}
+            index={moveIndex}
+            branchStartIndex={branchStartIndex}
+            variationIndex={variationIndex}
+            onIndexChange={(
+              index: number,
+              isMain: boolean,
+              branchStartIndex?: number,
+              variationIndex?: number
+            ) => {
+              console.log(`Index: ${index}`);
+              console.log(`IsMain: ${+isMain}`);
+              console.log(`branchStart: ${branchStartIndex ?? "undefined"}`);
+              console.log(`variationIndex: ${variationIndex ?? "undefined"}`);
+
+              setMoveIndex(index);
+              setBranchStartIndex(branchStartIndex);
+              setVariationIndex(variationIndex);
+              chess.setMoveIndex(
+                isMain,
+                branchStartIndex === undefined ? index : 1,
+                branchStartIndex ?? index,
+                variationIndex ?? 0
+              );
+            }}
+            gameResult={chess.gameResult}
           ></MovesHistory>
 
           <div className="absolute bottom-0 m-auto flex h-20 items-center justify-center gap-3 py-2 font-os font-extrabold text-white md:static">
             <button
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
-                setIndexOfBoardToDisplay((x) => (x === 0 ? x : x - 1));
+                setMoveIndex((x) => (x === 0 ? x : x - 1));
               }}
             >
               {"<"}
@@ -235,9 +292,7 @@ const AnalyzePage = () => {
             <button
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
-                setIndexOfBoardToDisplay((x) =>
-                  x + 1 === chess.movesPlayed ? x : x + 1
-                );
+                setMoveIndex((x) => (x === chess.movesPlayed - 1 ? x : x + 1));
               }}
             >
               {">"}

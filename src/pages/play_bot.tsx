@@ -14,14 +14,14 @@ import Timer from "~/components/timer";
 import UserBanner from "~/components/user_banner";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
 import { type Coords } from "~/utils/coords";
-import { type AlgebraicNotation, FEN } from "~/utils/notations";
+import { type AlgebraicNotation } from "~/utils/notations";
 import { type TimeControl, type PromotedPieceType } from "~/utils/pieces";
 import useGuestSession from "~/utils/use_guest";
 
 const toLongNotation = (chess: ChessgameForMatch) => {
-  const algebraic = chess.history.first.moves;
-  const longNotationStrings = algebraic.map((move) =>
-    move.toLongNotationString()
+  const algebraic = chess.history.notation.moves;
+  const longNotationStrings = algebraic.map((moveData) =>
+    moveData.move.toLongNotationString()
   );
 
   return longNotationStrings.join(" ");
@@ -159,7 +159,7 @@ const PlayBot: React.FC = () => {
     }
 
     stockfish.setStrength(
-      Math.round(sessionData?.user.rating ?? guest!.rating / 100) * 100
+      Math.round((sessionData?.user.rating ?? guest!.rating) / 100) * 100
     );
     setOpponentsData((old) => ({ ...old, rating: stockfish.rating }));
 
@@ -268,12 +268,9 @@ const PlayBot: React.FC = () => {
   const isDisplayedBoardLatest =
     indexOfBoardToDisplay === chess.movesPlayed - 1;
 
-  const latestBoardFEN =
-    chess.history.second.lastMove()?.fen ?? FEN.startingPosition();
   const boardToDisplay =
-    !isDisplayedBoardLatest && latestBoardFEN
-      ? latestBoardFEN.buildBoard()
-      : chess.position.board;
+    chess.history.position.getMove(indexOfBoardToDisplay)?.board ??
+    chess.position.board;
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
@@ -315,7 +312,7 @@ const PlayBot: React.FC = () => {
                 }
 
                 sessionStorage.setItem("game", toLongNotation(chess));
-                const move = chess.history.first
+                const move = chess.history.notation
                   .lastMove()!
                   .toLongNotationString();
 
@@ -360,7 +357,7 @@ const PlayBot: React.FC = () => {
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
             chess={chess}
             index={indexOfBoardToDisplay}
-            setIndex={setIndexOfBoardToDisplay}
+            onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
           ></MovesHistory>
 
           <DrawResignPanel

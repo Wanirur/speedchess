@@ -1,3 +1,4 @@
+import { MoveDescriptor } from "~/chess/history";
 import { Coords } from "./coords";
 import {
   buildEmptyBoard,
@@ -32,6 +33,10 @@ export class FEN {
   }
 
   private _turn: PlayerColor;
+  public get turn(): PlayerColor {
+    return this._turn;
+  }
+
   private _castlingPrivilages: string;
   public get castlingPrivilages(): {
     whiteShortCastling: boolean;
@@ -329,7 +334,7 @@ export class FEN {
 }
 
 //https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
-export class AlgebraicNotation {
+export class AlgebraicNotation implements MoveDescriptor {
   private _from: Coords;
   public get from(): Coords {
     return this._from;
@@ -441,6 +446,18 @@ export class AlgebraicNotation {
     }
 
     return result;
+  }
+
+  public copy() {
+    return new AlgebraicNotation(
+      this._from,
+      this._to,
+      this._pieceType,
+      this._isCapturing,
+      this._isCheck,
+      this._isMate,
+      this._promotedTo
+    );
   }
 
   public static getDataFromLANString(notation: string) {

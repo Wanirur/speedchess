@@ -12,8 +12,6 @@ const EvalBar: React.FC<
   } & HTMLAttributes<HTMLDivElement>
 > = ({ className, lines, engineName, depth, noMoves = false }) => {
   if (!lines[0] || !lines[1] || !lines[2]) {
-    console.log(lines);
-
     if (noMoves) {
       return (
         <div className={twMerge("flex items-center justify-center", className)}>

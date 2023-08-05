@@ -301,8 +301,8 @@ const Play: NextPage = () => {
 
     const key = uuid as string;
     const data = {
-      moves: chess.history.first.moves
-        .map((move) => move.toLongNotationString())
+      moves: chess.history.notation.moves
+        .map((moveData) => moveData.move.toLongNotationString())
         .join(" "),
       result: chess.gameResult,
       opponent: opponentsData,
@@ -355,7 +355,7 @@ const Play: NextPage = () => {
     indexOfBoardToDisplay === chess.movesPlayed - 1;
 
   const latestBoardFEN =
-    chess.history.second.lastMove()?.fen ?? FEN.startingPosition();
+    chess.history.position.lastMove()?.fen ?? FEN.startingPosition();
   const boardToDisplay =
     !isDisplayedBoardLatest && latestBoardFEN
       ? latestBoardFEN.buildBoard()
@@ -429,7 +429,7 @@ const Play: NextPage = () => {
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
             chess={chess}
             index={indexOfBoardToDisplay}
-            setIndex={setIndexOfBoardToDisplay}
+            onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
           ></MovesHistory>
 
           <DrawResignPanel

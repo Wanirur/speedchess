@@ -10,7 +10,7 @@ import ChessPosition from "./position";
 import { AlgebraicNotation } from "~/utils/notations";
 import {
   CombinedStrategies,
-  type HistoryWithVariations,
+  HistoryWithVariations,
   type SimpleHistory,
   type TrackingStrategy,
 } from "./history";
@@ -73,6 +73,14 @@ class Chessgame<T extends TrackingStrategy> {
       return this._position.board;
     }
 
+    if (
+      this._history instanceof CombinedStrategies &&
+      this._history.notation instanceof HistoryWithVariations &&
+      !this._history.notation.isMainlineChosenAsBranch
+    ) {
+      this._movesPlayed--;
+    }
+
     this._movesPlayed++;
 
     if (this._position.gameResult) {
@@ -105,9 +113,12 @@ class Chessgame<T extends TrackingStrategy> {
     );
 
     if (this._history instanceof CombinedStrategies) {
-      this._history?.addMove({ first: notation, second: this.position });
+      this._history?.addMove({
+        notation: notation.copy(),
+        position: this._position.copy(),
+      });
     } else {
-      this._history?.addMove(notation);
+      this._history?.addMove(notation.copy());
     }
 
     this._turn = oppositeColor(this._turn);
@@ -222,6 +233,37 @@ class Chessgame<T extends TrackingStrategy> {
       winner: oppositeColor(color),
       reason: "RESIGNATION",
     };
+  }
+
+  public setMoveIndex(
+    mainBranch: boolean,
+    moveIndex?: number,
+    branchStartIndex?: number,
+    variationIndex?: number
+  ) {
+    if (
+      !(this._history instanceof CombinedStrategies) ||
+      !(this._history.notation instanceof HistoryWithVariations) ||
+      !(this._history.position instanceof HistoryWithVariations)
+    ) {
+      throw new Error("variations not supported on current history strategy");
+    }
+
+    this._history.setCurrentBranch(
+      mainBranch,
+      branchStartIndex,
+      variationIndex
+    );
+
+    let position;
+    if (moveIndex !== undefined) {
+      position = this._history.position.getMove(moveIndex) as ChessPosition;
+    } else {
+      position = this._history.position.lastMove() as ChessPosition;
+    }
+
+    this._position = position.copy();
+    this._turn = this._position.fen.turn;
   }
 }
 

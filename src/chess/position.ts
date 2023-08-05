@@ -17,8 +17,9 @@ import {
   type KingCheck,
   type PieceInteractions,
 } from "./attacks";
+import { type MoveDescriptor } from "./history";
 
-class ChessPosition {
+class ChessPosition implements MoveDescriptor {
   private _fen: FEN;
   public get fen(): FEN {
     return this._fen;
@@ -235,7 +236,7 @@ class ChessPosition {
 
     this._fen = new FEN(
       this._board,
-      playerColor,
+      oppositeColor(playerColor),
       this._isWhiteShortCastlingPossible,
       this._isWhiteLongCastlingPossible,
       this._isBlackShortCastlingPossible,
@@ -324,6 +325,10 @@ class ChessPosition {
     }
 
     return this.board;
+  }
+
+  public copy() {
+    return new ChessPosition(copyBoard(this._board), this.fen.turn);
   }
 
   public toString() {
