@@ -117,6 +117,8 @@ export class HistoryWithVariations<T extends MoveDescriptor>
     this._branchStartIndex = branchStartIndex;
     this._variationIndex = variationIndex;
     if (chooseMainline) {
+      this._branchStartIndex = undefined;
+      this._variationIndex = undefined;
       return;
     }
 
@@ -139,8 +141,28 @@ export class HistoryWithVariations<T extends MoveDescriptor>
       move.variations.push(new SimpleHistory());
       move.variations[variationIndex]?.addMove(move.move.copy() as T);
     }
+  }
 
-    this._branchStartIndex = branchStartIndex;
+  public getCurrentBranchLength() {
+    if (
+      this._branchStartIndex === undefined ||
+      this._variationIndex === undefined
+    ) {
+      return this._moves.length;
+    }
+
+    const move = this.moves[this._branchStartIndex];
+    if (!move) {
+      throw new Error("broken history");
+    }
+
+    const variation = move.variations?.[this._variationIndex];
+    if (!variation) {
+      throw new Error("broken history");
+    }
+
+    const length = variation.length - 1;
+    return length > 0 ? length : this._moves.length;
   }
 
   public addMove(move: T) {

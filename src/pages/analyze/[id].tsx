@@ -274,7 +274,10 @@ const AnalyzePage = () => {
                 isMain,
                 branchStartIndex === undefined ? index : 1,
                 branchStartIndex ?? index,
-                variationIndex ?? 0
+                variationIndex ??
+                  chess.history.notation.moves[branchStartIndex ?? index]
+                    ?.variations?.length ??
+                  0
               );
             }}
             gameResult={chess.gameResult}
@@ -292,7 +295,15 @@ const AnalyzePage = () => {
             <button
               className="rounded-lg bg-neutral-800 px-4 py-2.5 hover:bg-neutral-950"
               onClick={() => {
-                setMoveIndex((x) => (x === chess.movesPlayed - 1 ? x : x + 1));
+                console.log(
+                  `history: ${chess.history.notation.getCurrentBranchLength()}`
+                );
+                console.log(`index: ${moveIndex}`);
+                setMoveIndex((x) =>
+                  x === chess.history.notation.getCurrentBranchLength() - 1
+                    ? x
+                    : x + 1
+                );
               }}
             >
               {">"}
