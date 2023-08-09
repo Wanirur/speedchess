@@ -31,6 +31,7 @@ const Chessboard: React.FC<
   {
     uuid: string;
     color: PlayerColor;
+    skipColorCheck?: boolean;
     isYourTurn: boolean;
     chess: Chessgame<TrackingStrategy>;
     board: Board;
@@ -44,6 +45,7 @@ const Chessboard: React.FC<
 > = ({
   uuid,
   color,
+  skipColorCheck = false,
   isYourTurn,
   chess,
   board,
@@ -230,7 +232,7 @@ const Chessboard: React.FC<
                   //no highlighted piece and clicked tile is empty - dont highlight
                   if (
                     highlightedTile === null &&
-                    (tile === null || tile.color !== color)
+                    (tile === null || (!skipColorCheck && tile.color !== color))
                   ) {
                     return;
                   }

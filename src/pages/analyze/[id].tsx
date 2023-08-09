@@ -215,6 +215,7 @@ const AnalyzePage = () => {
           <Chessboard
             uuid={"analyze"}
             color={boardAlignment}
+            skipColorCheck
             isYourTurn={true}
             chess={chess}
             board={boardToDisplay}
