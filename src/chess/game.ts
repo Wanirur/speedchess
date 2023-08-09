@@ -255,11 +255,17 @@ class Chessgame<T extends TrackingStrategy> {
       variationIndex
     );
 
+    const history = this._history.position;
     let position;
     if (moveIndex !== undefined) {
-      position = this._history.position.getMove(moveIndex) as ChessPosition;
+      const doesBranchHaveMoves = history.doesCurrentBranchHaveMoves();
+      position = history.getMove(
+        moveIndex,
+        doesBranchHaveMoves ? history.branchStartIndex : undefined,
+        doesBranchHaveMoves ? history.variationIndex : undefined
+      ) as ChessPosition;
     } else {
-      position = this._history.position.lastMove() as ChessPosition;
+      position = history.lastMove() as ChessPosition;
     }
 
     this._position = position.copy();

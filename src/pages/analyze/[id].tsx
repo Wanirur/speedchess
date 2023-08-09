@@ -262,17 +262,12 @@ const AnalyzePage = () => {
               branchStartIndex?: number,
               variationIndex?: number
             ) => {
-              console.log(`Index: ${index}`);
-              console.log(`IsMain: ${+isMain}`);
-              console.log(`branchStart: ${branchStartIndex ?? "undefined"}`);
-              console.log(`variationIndex: ${variationIndex ?? "undefined"}`);
-
               setMoveIndex(index);
               setBranchStartIndex(branchStartIndex);
               setVariationIndex(variationIndex);
               chess.setMoveIndex(
                 isMain,
-                branchStartIndex === undefined ? index : 1,
+                branchStartIndex === undefined ? index : 0,
                 branchStartIndex ?? index,
                 variationIndex ??
                   chess.history.notation.moves[branchStartIndex ?? index]
