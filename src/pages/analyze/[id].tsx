@@ -218,7 +218,10 @@ const AnalyzePage = () => {
             isYourTurn={true}
             chess={chess}
             board={boardToDisplay}
-            locked={false}
+            locked={
+              branchStartIndex !== undefined &&
+              moveIndex < chess.history.notation.getCurrentBranchLength() - 1
+            }
             onMove={() => {
               setBranchStartIndex(chess.history.notation.branchStartIndex);
               setVariationIndex(chess.history.notation.variationIndex);
@@ -232,6 +235,9 @@ const AnalyzePage = () => {
               }
 
               setMoveIndex((old) => old + 1);
+            }}
+            unlockFunction={() => {
+              setMoveIndex(chess.history.notation.getCurrentBranchLength() - 1);
             }}
           ></Chessboard>
         </div>
@@ -267,7 +273,7 @@ const AnalyzePage = () => {
               setVariationIndex(variationIndex);
               chess.setMoveIndex(
                 isMain,
-                branchStartIndex === undefined ? index : 0,
+                index,
                 branchStartIndex ?? index,
                 variationIndex ??
                   chess.history.notation.moves[branchStartIndex ?? index]
