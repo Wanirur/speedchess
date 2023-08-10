@@ -263,8 +263,14 @@ const Play: NextPage = () => {
         moves: "",
         whiteMilisLeft: parsedData.timeControl.initialTime * 1000,
         blackMilisLeft: parsedData.timeControl.initialTime * 1000,
-        ratingWhite: parsedData.player.rating,
-        ratingBlack: parsedData.opponent.rating,
+        ratingWhite:
+          parsedData.color === "WHITE"
+            ? parsedData.player.rating
+            : parsedData.opponent.rating,
+        ratingBlack:
+          parsedData.color === "WHITE"
+            ? parsedData.opponent.rating
+            : parsedData.player.rating,
         color: parsedData.color,
         turn: "WHITE",
         timeControl: parsedData.timeControl,
@@ -302,7 +308,9 @@ const Play: NextPage = () => {
     const key = uuid as string;
     const data = {
       moves: chess.history.notation.moves
-        .map((moveData) => moveData.move.toLongNotationString())
+        .map((moveData) =>
+          (moveData.move as AlgebraicNotation).toLongNotationString()
+        )
         .join(" "),
       result: chess.gameResult,
       opponent: opponentsData,
@@ -427,7 +435,7 @@ const Play: NextPage = () => {
 
           <MovesHistory
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
-            chess={chess}
+            history={chess.history}
             index={indexOfBoardToDisplay}
             onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
           ></MovesHistory>
