@@ -21,7 +21,7 @@ import useGuestSession from "~/utils/use_guest";
 const toLongNotation = (chess: ChessgameForMatch) => {
   const algebraic = chess.history.notation.moves;
   const longNotationStrings = algebraic.map((moveData) =>
-    moveData.move.toLongNotationString()
+    (moveData.move as AlgebraicNotation).toLongNotationString()
   );
 
   return longNotationStrings.join(" ");
@@ -355,7 +355,7 @@ const PlayBot: React.FC = () => {
 
           <MovesHistory
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
-            chess={chess}
+            history={chess.history}
             index={indexOfBoardToDisplay}
             onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
           ></MovesHistory>
