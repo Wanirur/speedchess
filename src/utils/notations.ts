@@ -1,3 +1,4 @@
+import { MoveDescriptor } from "~/chess/history";
 import { Coords } from "./coords";
 import {
   buildEmptyBoard,
@@ -18,7 +19,6 @@ import {
   blackKing,
   whiteKing,
   type PieceType,
-  type GameResult,
   copyBoard,
   initBoard,
   type PromotedPieceType,
@@ -27,8 +27,16 @@ import {
 //fen notation
 //https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 export class FEN {
-  private _piecePlacement: string;
+  private _board: string;
+  public get board() {
+    return this._board;
+  }
+
   private _turn: PlayerColor;
+  public get turn(): PlayerColor {
+    return this._turn;
+  }
+
   private _castlingPrivilages: string;
   public get castlingPrivilages(): {
     whiteShortCastling: boolean;
@@ -66,7 +74,7 @@ export class FEN {
     whiteLongCastling: boolean,
     blackShortCastling: boolean,
     blackLongCastling: boolean,
-    lastEnPassant: Coords | null,
+    lastEnPassant: Coords | undefined,
     halfMoves: number,
     fullMoves: number
   ) {
@@ -100,7 +108,7 @@ export class FEN {
       piecePlacement += "/";
     }
 
-    this._piecePlacement = piecePlacement.slice(0, -1);
+    this._board = piecePlacement.slice(0, -1);
 
     this._turn = turnColor;
 
@@ -132,7 +140,17 @@ export class FEN {
   }
 
   public static startingPosition() {
-    return new FEN(initBoard(), "WHITE", true, true, true, true, null, 0, 1);
+    return new FEN(
+      initBoard(),
+      "WHITE",
+      true,
+      true,
+      true,
+      true,
+      undefined,
+      0,
+      1
+    );
   }
 
   public static fromString(fen: string) {
@@ -199,7 +217,7 @@ export class FEN {
     const blackShort = castlingString.includes("k");
     const blackLong = castlingString.includes("q");
 
-    const lastEnPassant = Coords.fromNotation(enPassantString) ?? null;
+    const lastEnPassant = Coords.fromString(enPassantString) ?? undefined;
     const halfs = Number.parseInt(halfsString);
     const moves = Number.parseInt(movesString);
 
@@ -221,7 +239,7 @@ export class FEN {
   public buildBoard() {
     const board = buildEmptyBoard();
 
-    const rows = this._piecePlacement.split("/").reverse();
+    const rows = this._board.split("/").reverse();
     let y = 0,
       x = 0;
     for (const row of rows) {
@@ -243,7 +261,7 @@ export class FEN {
 
   public toString() {
     return (
-      this._piecePlacement +
+      this._board +
       " " +
       (this._turn === "WHITE" ? "w" : "b") +
       " " +
@@ -316,7 +334,7 @@ export class FEN {
 }
 
 //https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
-export class AlgebraicNotation {
+export class AlgebraicNotation implements MoveDescriptor {
   private _from: Coords;
   public get from(): Coords {
     return this._from;
@@ -371,8 +389,6 @@ export class AlgebraicNotation {
         result += "b";
       }
     }
-
-    console.log(result);
 
     return result;
   }
@@ -432,13 +448,25 @@ export class AlgebraicNotation {
     return result;
   }
 
+  public copy() {
+    return new AlgebraicNotation(
+      this._from,
+      this._to,
+      this._pieceType,
+      this._isCapturing,
+      this._isCheck,
+      this._isMate,
+      this._promotedTo
+    );
+  }
+
   public static getDataFromLANString(notation: string) {
     const fromCoordsString = notation.slice(0, 2);
     const toCoordsString = notation.slice(2, 4);
     const promotionSymbol = notation.charAt(4);
 
-    const from = Coords.fromNotation(fromCoordsString);
-    const to = Coords.fromNotation(toCoordsString);
+    const from = Coords.fromString(fromCoordsString);
+    const to = Coords.fromString(toCoordsString);
 
     if (!from || !to) {
       throw new Error("incorrect coordinates");
@@ -460,7 +488,7 @@ export class AlgebraicNotation {
     return {
       from: from,
       to: to,
-      promotedTo: promotedTo,
+      promotedTo: promotedTo as PromotedPieceType,
     };
   }
 }

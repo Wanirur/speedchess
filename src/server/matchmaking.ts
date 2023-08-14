@@ -1,17 +1,26 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { type TimeControlName } from "@prisma/client";
-import { type Game } from "./game";
+import { type MatchPairing } from "./game";
 import { type TimeControl } from "~/utils/pieces";
 
 export const playersWaitingForMatch = new Map<
   TimeControlName,
-  Map<number, Game[]>
+  Map<number, MatchPairing[]>
 >();
-playersWaitingForMatch.set("BULLET", new Map<number, Game[]>());
-playersWaitingForMatch.set("BULLET_INCREMENT", new Map<number, Game[]>());
-playersWaitingForMatch.set("LONG_BULLET_INCREMENT", new Map<number, Game[]>());
-playersWaitingForMatch.set("BLITZ", new Map<number, Game[]>());
-playersWaitingForMatch.set("BLITZ_INCREMENT", new Map<number, Game[]>());
+playersWaitingForMatch.set("BULLET", new Map<number, MatchPairing[]>());
+playersWaitingForMatch.set(
+  "BULLET_INCREMENT",
+  new Map<number, MatchPairing[]>()
+);
+playersWaitingForMatch.set(
+  "LONG_BULLET_INCREMENT",
+  new Map<number, MatchPairing[]>()
+);
+playersWaitingForMatch.set("BLITZ", new Map<number, MatchPairing[]>());
+playersWaitingForMatch.set(
+  "BLITZ_INCREMENT",
+  new Map<number, MatchPairing[]>()
+);
 
 const ratingBuckets = Array.from({ length: 31 }, (x, i) => (i - 1) * 100); // expected to get array [-100, 0, 100, 200, ..., 3000], negative represents unranked queue
 const queueBullet = playersWaitingForMatch.get("BULLET")!;
@@ -23,11 +32,11 @@ const queueBlitz = playersWaitingForMatch.get("BLITZ")!;
 const queueBlitzIncrement = playersWaitingForMatch.get("BLITZ_INCREMENT")!;
 
 ratingBuckets.forEach((item) => {
-  queueBullet.set(item, [] as Game[]);
-  queueBulletIncrement.set(item, [] as Game[]);
-  queueLongBulletIncrement.set(item, [] as Game[]);
-  queueBlitz.set(item, [] as Game[]);
-  queueBlitzIncrement.set(item, [] as Game[]);
+  queueBullet.set(item, [] as MatchPairing[]);
+  queueBulletIncrement.set(item, [] as MatchPairing[]);
+  queueLongBulletIncrement.set(item, [] as MatchPairing[]);
+  queueBlitz.set(item, [] as MatchPairing[]);
+  queueBlitzIncrement.set(item, [] as MatchPairing[]);
 });
 
 const resolveTimeControlToName = (timeControl: TimeControl) => {
@@ -51,7 +60,7 @@ export const findGame = (
   id: string,
   rating: number,
   timeControl: TimeControl
-): Game | undefined => {
+): MatchPairing | undefined => {
   const rounded = Math.round(rating / 100) * 100;
   const queue = playersWaitingForMatch.get(
     resolveTimeControlToName(timeControl)
@@ -92,7 +101,7 @@ export const findGame = (
   return undefined;
 };
 
-export const addGameToQueue = (rating: number, game: Game) => {
+export const addGameToQueue = (rating: number, game: MatchPairing) => {
   const rounded = Math.round(rating / 100) * 100;
   const timeControlName = resolveTimeControlToName({
     initialTime: game.initialTime,
@@ -108,7 +117,7 @@ export const queuedUpUsers = new Map<
   string,
   { gameId: string; timeControl: TimeControl }
 >(); // key: userId, value: {gameId, timeControl}
-export const matches = new Map<string, Game>();
+export const matches = new Map<string, MatchPairing>();
 export const playingUsers = new Map<
   string,
   { gameId: string; timeControl: TimeControl }

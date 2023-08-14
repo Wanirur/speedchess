@@ -11,6 +11,14 @@ export const PieceTypes = [
 ] as const;
 
 export type PlayerColor = "WHITE" | "BLACK";
+export const oppositeColor = (color: PlayerColor) => {
+  if (color === "WHITE") {
+    return "BLACK";
+  } else {
+    return "WHITE";
+  }
+};
+
 export type PieceType = (typeof PieceTypes)[number];
 export const PossiblePromotions = [
   "QUEEN",

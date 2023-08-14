@@ -62,7 +62,7 @@ class Chess {
   }
 
   private _movedPawns = new Set<Coords>();
-  private _pawnPossibleToEnPassant: Coords | null = null;
+  private _pawnPossibleToEnPassant: Coords | undefined = undefined;
   private _pawnReadyToPromote: Coords | null = null;
   public get pawnReadyToPromote(): Coords | null {
     return this._pawnReadyToPromote;
@@ -154,7 +154,7 @@ class Chess {
       } else {
         const rook = this.board[from.y]![0]!;
         this.board[from.y]![0] = null;
-        this.board[from.y]![2] = rook;
+        this.board[from.y]![3] = rook;
       }
     }
 
@@ -258,7 +258,7 @@ class Chess {
         }
       }
     }
-    this._pawnPossibleToEnPassant = null;
+    this._pawnPossibleToEnPassant = undefined;
 
     if (movedPiece.pieceType === "PAWN") {
       if (this._movedPawns.has(from)) {
@@ -565,7 +565,6 @@ class Chess {
 
     const moves = lanString.split(" ");
     for (const currentMove of moves) {
-      console.log(currentMove);
       const { from, to } = AlgebraicNotation.getDataFromLANString(currentMove);
       this.move(from, to, color);
 
@@ -814,7 +813,7 @@ class Chess {
     position: Coords,
     color: PlayerColor
   ): PieceInteractions {
-    const checkLine = (xDiff: number, yDiff: number) => {
+    const checkLine = (xStep: number, yStep: number) => {
       const possibleMoves = [] as Coords[];
       const possibleCaptures = [] as Coords[];
       const defendedTiles = [] as Coords[];
@@ -824,12 +823,13 @@ class Chess {
 
       for (let i = 1; i < 8; i++) {
         const currentCoords = Coords.getInstance(
-          position.x + xDiff * i,
-          position.y + yDiff * i
+          position.x + xStep * i,
+          position.y + yStep * i
         );
         if (!currentCoords) {
           break;
         }
+
         const tile = this._currentBoard[currentCoords.y]![currentCoords.x]!;
         if (tile === null) {
           if (pin) {
@@ -865,7 +865,7 @@ class Chess {
               possibleBlocks: [...possibleMoves],
               cannotEscapeTo: [],
             };
-            if (xDiff === 0) {
+            if (xStep === 0) {
               let temp = Coords.getInstance(
                 currentCoords.x,
                 currentCoords.y - 1
@@ -1134,79 +1134,82 @@ class Chess {
         Coords.getInstance(position.x - i, position.y + i),
       ];
       currentCoords.forEach((coords, index) => {
-        if (!coords) {
-          return;
-        }
-
-        if (isDiagonalBlocked[index]) {
+        if (!coords || isDiagonalBlocked[index]) {
           return;
         }
 
         const tile = this._currentBoard[coords.y]![coords.x];
-        if (tile !== null) {
-          if (tile?.color !== color) {
-            if (tile?.pieceType === "KING") {
-              if (isDiagonalPotentialPin[index]) {
-                hasPinOccured = true;
-                return;
-              } else {
-                isDiagonalBlocked[index] = true;
-              }
-              kingCheck = {
-                attackingPieceCoords: position,
-                possibleBlocks: possibleMoves[index]!,
-                cannotEscapeTo: [],
-              };
+        if (tile === undefined) {
+          return;
+        }
 
-              if (index === 0 || index === 2) {
-                let coords = Coords.getInstance(
-                  currentCoords[index]!.x - 1,
-                  currentCoords[index]!.y - 1
-                );
-                if (coords) {
-                  kingCheck.cannotEscapeTo.push(coords);
-                }
-                coords = Coords.getInstance(
-                  currentCoords[index]!.x + 1,
-                  currentCoords[index]!.y + 1
-                );
-              } else {
-                let coords = Coords.getInstance(
-                  currentCoords[index]!.x + 1,
-                  currentCoords[index]!.y - 1
-                );
-                if (coords) {
-                  kingCheck.cannotEscapeTo.push(coords);
-                }
-                coords = Coords.getInstance(
-                  currentCoords[index]!.x - 1,
-                  currentCoords[index]!.y + 1
-                );
-              }
-            } else if (isDiagonalPotentialPin[index]) {
-              isDiagonalPotentialPin[index] = false;
-              isDiagonalBlocked[index] = true;
-              return;
-            }
-
-            possibleCaptures[index]!.push(coords);
-            isDiagonalPotentialPin[index] = true;
-            potentialPins[index] = {
-              pinnedPiece: coords,
-              possibleMoves: [...possibleMoves[index]!],
-            };
+        if (tile === null) {
+          if (isDiagonalPotentialPin[index]) {
+            potentialPins[index]?.possibleMoves.push(coords);
           } else {
-            defendedPieces[index]!.push(coords);
+            possibleMoves[index]!.push(coords);
+          }
+
+          return;
+        }
+
+        if (tile.color === color) {
+          defendedPieces[index]!.push(coords);
+          isDiagonalBlocked[index] = true;
+          return;
+        }
+
+        if (isDiagonalPotentialPin[index]) {
+          if (tile.pieceType === "KING") {
+            hasPinOccured = true;
+          } else {
+            isDiagonalPotentialPin[index] = false;
             isDiagonalBlocked[index] = true;
           }
 
           return;
         }
 
-        if (isDiagonalPotentialPin[index]) {
-          potentialPins[index]?.possibleMoves.push(coords);
+        if (tile.pieceType === "KING") {
+          isDiagonalBlocked[index] = true;
+          kingCheck = {
+            attackingPieceCoords: position,
+            possibleBlocks: possibleMoves[index]!,
+            cannotEscapeTo: [],
+          };
+
+          if (index === 0 || index === 2) {
+            let coords = Coords.getInstance(
+              currentCoords[index]!.x - 1,
+              currentCoords[index]!.y - 1
+            );
+            if (coords) {
+              kingCheck.cannotEscapeTo.push(coords);
+            }
+            coords = Coords.getInstance(
+              currentCoords[index]!.x + 1,
+              currentCoords[index]!.y + 1
+            );
+          } else {
+            let coords = Coords.getInstance(
+              currentCoords[index]!.x + 1,
+              currentCoords[index]!.y - 1
+            );
+            if (coords) {
+              kingCheck.cannotEscapeTo.push(coords);
+            }
+            coords = Coords.getInstance(
+              currentCoords[index]!.x - 1,
+              currentCoords[index]!.y + 1
+            );
+          }
         } else {
-          possibleMoves[index]!.push(coords);
+          possibleCaptures[index]!.push(coords);
+          isDiagonalPotentialPin[index] = true;
+          potentialPins[index] = {
+            pinnedPiece: coords,
+            possibleMoves: [...possibleMoves[index]!],
+          };
         }
       });
     }
@@ -1294,7 +1297,11 @@ class Chess {
         continue;
       }
 
-      const tile = this._currentBoard[coords.y]![coords.x]!;
+      const tile = this._currentBoard[coords.y]![coords.x];
+      if (tile === undefined) {
+        continue;
+      }
+
       if (tile === null) {
         possibleMoves.push(coords);
         continue;
@@ -1343,28 +1350,35 @@ class Chess {
         if (!coords) {
           continue;
         }
-        const tile = this._currentBoard[coords.y]![coords.x]!;
+        const tile = this._currentBoard[coords.y]![coords.x];
+        if (tile === undefined) {
+          continue;
+        }
+
         if (tile === null) {
-          if (
+          const isTileAttacked =
             color === "WHITE"
-              ? !this._tilesAttackedByBlack.has(coords)
-              : !this._tilesAttackedByWhite.has(coords)
-          ) {
+              ? this._tilesAttackedByBlack.has(coords)
+              : this._tilesAttackedByWhite.has(coords);
+
+          if (!isTileAttacked) {
             possibleMoves.push(coords);
           }
           continue;
         }
 
-        if (tile.color !== color) {
-          if (
-            color === "WHITE"
-              ? !this._defendedPiecesOfBlack.has(coords)
-              : !this._defendedPiecesOfWhite.has(coords)
-          ) {
-            possibleCaptures.push(coords);
-          }
-        } else {
+        if (tile.color === color) {
           defendedPieces.push(coords);
+          continue;
+        }
+
+        const isPieceDefended =
+          color === "WHITE"
+            ? this._defendedPiecesOfBlack.has(coords)
+            : this._defendedPiecesOfWhite.has(coords);
+
+        if (!isPieceDefended) {
+          possibleCaptures.push(coords);
         }
       }
     }
@@ -1374,8 +1388,11 @@ class Chess {
         possibleMoves = possibleMoves.filter(
           (move) => !check.cannotEscapeTo.includes(move)
         );
-        possibleCaptures = possibleMoves.filter(
-          (capture) => !check.cannotEscapeTo.includes(capture)
+
+        possibleCaptures = possibleCaptures.filter(
+          (capture) =>
+            !check.cannotEscapeTo.includes(capture) ||
+            check.attackingPieceCoords === capture
         );
       });
     } else if (color === "BLACK" && this._isBlackKingChecked) {
@@ -1383,8 +1400,11 @@ class Chess {
         possibleMoves = possibleMoves.filter(
           (move) => !check.cannotEscapeTo.includes(move)
         );
-        possibleCaptures = possibleMoves.filter(
-          (capture) => !check.cannotEscapeTo.includes(capture)
+
+        possibleCaptures = possibleCaptures.filter(
+          (capture) =>
+            !check.cannotEscapeTo.includes(capture) ||
+            check.attackingPieceCoords === capture
         );
       });
     }
@@ -1448,8 +1468,8 @@ class Chess {
       !this._isWhiteKingChecked
     ) {
       //hardcoded coords cannot be undefined so non-null assertion allowed
-      const rookCoordsAfterCastling = Coords.getInstance(2, 0)!;
-      const kingCoordsAfterCastling = Coords.getInstance(1, 0)!;
+      const rookCoordsAfterCastling = Coords.getInstance(3, 0)!;
+      const kingCoordsAfterCastling = Coords.getInstance(2, 0)!;
 
       const rookTileAfterCastling =
         this._currentBoard[rookCoordsAfterCastling.y]![
@@ -1473,8 +1493,8 @@ class Chess {
       !this._isBlackKingChecked
     ) {
       //hardcoded coords cannot be undefined so non-null assertion allowed
-      const rookCoordsAfterCastling = Coords.getInstance(2, 7)!;
-      const kingCoordsAfterCastling = Coords.getInstance(1, 7)!;
+      const rookCoordsAfterCastling = Coords.getInstance(3, 7)!;
+      const kingCoordsAfterCastling = Coords.getInstance(2, 7)!;
 
       const rookTileAfterCastling =
         this._currentBoard[rookCoordsAfterCastling.y]![

@@ -5,6 +5,9 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
+import Chessgame, { type ChessgameForMatch } from "~/chess/game";
+import { CombinedStrategies, SimpleHistory } from "~/chess/history";
+import type ChessPosition from "~/chess/position";
 import Chessboard from "~/components/chessboard";
 import DrawResignPanel from "~/components/draw_resign_panel";
 import GameSummary from "~/components/game_summary";
@@ -13,14 +16,14 @@ import Timer from "~/components/timer";
 import UserBanner from "~/components/user_banner";
 import { usePusher } from "~/context/pusher_provider";
 import { api } from "~/utils/api";
-import Chess from "~/utils/chess";
 import { Coords } from "~/utils/coords";
+import { FEN, type AlgebraicNotation } from "~/utils/notations";
 import {
   type PromotedPieceType,
   type PlayerColor,
-  initBoard,
   type GameResult,
   type TimeControl,
+  oppositeColor,
 } from "~/utils/pieces";
 import useGuestSession from "~/utils/use_guest";
 
@@ -42,7 +45,16 @@ const Play: NextPage = () => {
 
   const channelRef = useRef<Channel>();
   const [subscribed, setSubscribed] = useState<boolean>(false);
-  const [chess, setChess] = useState<Chess>(new Chess(initBoard()));
+
+  const [chess, setChess] = useState<ChessgameForMatch>(
+    new Chessgame(
+      new CombinedStrategies(
+        new SimpleHistory<AlgebraicNotation>(),
+        new SimpleHistory<ChessPosition>()
+      )
+    )
+  );
+
   const [isYourTurn, setIsYourTurn] = useState<boolean>(true);
   const [storageData, setStorageData] = useState<SessionStorageData | null>();
   const gameStateFetchedRef = useRef<boolean>(false);
@@ -85,15 +97,23 @@ const Play: NextPage = () => {
     }
   );
 
-  const opponentsColor = gameState?.color === "WHITE" ? "BLACK" : "WHITE";
+  const opponentsColor = oppositeColor(gameState?.color ?? "WHITE");
 
   useEffect(() => {
     if (gameState && !gameStateFetchedRef.current && storageData === null) {
-      setChess(new Chess(gameState.board));
+      const newGame = new Chessgame(
+        new CombinedStrategies(
+          new SimpleHistory<AlgebraicNotation>(),
+          new SimpleHistory<ChessPosition>()
+        )
+      );
+      newGame.playOutFromMoves(gameState.moves);
+      setChess(newGame);
       setIsYourTurn(gameState.color === gameState.turn);
+      setIndexOfBoardToDisplay(newGame.movesPlayed - 1);
       gameStateFetchedRef.current = true;
     }
-  }, [gameState, storageData]);
+  }, [gameState, storageData, chess]);
 
   useEffect(() => {
     if (!uuid || !pusherClient || storageData !== null) {
@@ -156,7 +176,7 @@ const Play: NextPage = () => {
             return;
           }
 
-          chess.move(from, to, opponentsColor);
+          chess.move(from, to);
 
           if (chess.gameResult) {
             setTimeout(() => {
@@ -164,12 +184,12 @@ const Play: NextPage = () => {
             }, 1000);
           }
 
-          if (chess.pawnReadyToPromote) {
+          if (chess.position.pawnReadyToPromote) {
             return;
           }
 
           setIsYourTurn(true);
-          setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+          setIndexOfBoardToDisplay(chess.movesPlayed - 1);
         } catch (e) {
           console.log(e);
         }
@@ -190,7 +210,7 @@ const Play: NextPage = () => {
             return;
           }
 
-          chess.promote(promotion.promotedTo, opponentsColor);
+          chess.promote(promotion.promotedTo);
           if (chess.gameResult) {
             setTimeout(() => {
               setIsGameFinished(true);
@@ -198,7 +218,7 @@ const Play: NextPage = () => {
           }
 
           setIsYourTurn(true);
-          setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+          setIndexOfBoardToDisplay(chess.movesPlayed - 1);
         } catch (e) {
           console.log(e);
         }
@@ -206,7 +226,7 @@ const Play: NextPage = () => {
     );
 
     channelRef.current.bind("timeout", ({ loser }: { loser: PlayerColor }) => {
-      chess.timeExpired(loser);
+      chess.timeout(loser);
       setIsGameFinished(true);
     });
     setSubscribed(true);
@@ -235,16 +255,22 @@ const Play: NextPage = () => {
     console.log(parsedData);
     setStorageData(parsedData);
 
-    chess.playOutFromLongAlgebraicString(parsedData.moves, parsedData.result);
+    chess.playOutFromMoves(parsedData.moves, parsedData.result);
     setIsGameFinished(true);
     trpcContext.chess.getGameState.setData(
       { uuid: uuid as string },
       {
-        board: initBoard(),
+        moves: "",
         whiteMilisLeft: parsedData.timeControl.initialTime * 1000,
         blackMilisLeft: parsedData.timeControl.initialTime * 1000,
-        ratingWhite: parsedData.player.rating,
-        ratingBlack: parsedData.opponent.rating,
+        ratingWhite:
+          parsedData.color === "WHITE"
+            ? parsedData.player.rating
+            : parsedData.opponent.rating,
+        ratingBlack:
+          parsedData.color === "WHITE"
+            ? parsedData.opponent.rating
+            : parsedData.player.rating,
         color: parsedData.color,
         turn: "WHITE",
         timeControl: parsedData.timeControl,
@@ -281,7 +307,11 @@ const Play: NextPage = () => {
 
     const key = uuid as string;
     const data = {
-      moves: chess.getFullLongAlgebraicHistory(),
+      moves: chess.history.notation.moves
+        .map((moveData) =>
+          (moveData.move as AlgebraicNotation).toLongNotationString()
+        )
+        .join(" "),
       result: chess.gameResult,
       opponent: opponentsData,
       player: sessionData?.user ?? guest,
@@ -330,13 +360,14 @@ const Play: NextPage = () => {
       : gameState?.ratingBlack;
 
   const isDisplayedBoardLatest =
-    indexOfBoardToDisplay === (chess.algebraic.length ?? 1) - 1;
+    indexOfBoardToDisplay === chess.movesPlayed - 1;
 
-  const latestBoardFEN = chess.history[indexOfBoardToDisplay];
+  const latestBoardFEN =
+    chess.history.position.lastMove()?.fen ?? FEN.startingPosition();
   const boardToDisplay =
     !isDisplayedBoardLatest && latestBoardFEN
       ? latestBoardFEN.buildBoard()
-      : chess.board;
+      : chess.position.board;
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
@@ -361,13 +392,13 @@ const Play: NextPage = () => {
               board={boardToDisplay}
               locked={!isDisplayedBoardLatest}
               unlockFunction={() =>
-                setIndexOfBoardToDisplay(chess.algebraic.length - 1)
+                setIndexOfBoardToDisplay(chess.movesPlayed - 1)
               }
-              lastMovedFrom={chess.lastMoveFrom}
-              lastMovedTo={chess.lastMoveTo}
+              lastMovedFrom={chess.lastMovedFrom}
+              lastMovedTo={chess.lastMovedTo}
               mutate
               onMove={() => {
-                setIndexOfBoardToDisplay(chess.algebraic.length - 1);
+                setIndexOfBoardToDisplay(chess.movesPlayed - 1);
                 setIsYourTurn(false);
               }}
             ></Chessboard>
@@ -391,7 +422,7 @@ const Play: NextPage = () => {
             isLocked={isYourTurn}
             isGameFinished={!!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
-              chess.timeExpired(color);
+              chess.timeout(color);
               setIsGameFinished(true);
             }}
           ></Timer>
@@ -404,9 +435,9 @@ const Play: NextPage = () => {
 
           <MovesHistory
             className="h-80 w-full md:h-full md:gap-0 md:text-xs lg:gap-0.5 lg:text-sm"
-            chess={chess}
+            history={chess.history}
             index={indexOfBoardToDisplay}
-            setIndex={setIndexOfBoardToDisplay}
+            onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
           ></MovesHistory>
 
           <DrawResignPanel
@@ -441,7 +472,7 @@ const Play: NextPage = () => {
             isLocked={!isYourTurn}
             isGameFinished={!!chess.gameResult}
             chessTimeoutFunc={(color: PlayerColor) => {
-              chess.timeExpired(color);
+              chess.timeout(color);
               setIsGameFinished(true);
             }}
           ></Timer>

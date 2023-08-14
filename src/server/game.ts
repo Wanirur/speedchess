@@ -1,5 +1,4 @@
 import {
-  initBoard,
   type PlayerColor,
   type PromotedPieceType,
   type TimeControl,
@@ -7,11 +6,13 @@ import {
 import { randomUUID } from "crypto";
 import { matches, playingUsers } from "./matchmaking";
 import { type Coords } from "~/utils/coords";
-import Chess from "~/utils/chess";
 import { prisma } from "./db";
 import { type TimeControlName } from "@prisma/client";
 import { calculateRatingDiff } from "~/utils/elo";
 import { setTimeout } from "timers";
+import Chessgame from "~/chess/game";
+import { SimpleHistory } from "~/chess/history";
+import { type AlgebraicNotation } from "~/utils/notations";
 
 export type Player = {
   id: string;
@@ -19,7 +20,7 @@ export type Player = {
   timeLeftInMilis: number;
 };
 
-export class Game {
+export class MatchPairing {
   private _id: string;
   public get id(): string {
     return this._id;
@@ -38,7 +39,7 @@ export class Game {
   public set black(value: Player) {
     this._black = value;
   }
-  private _chess = new Chess(initBoard());
+  private _chess = new Chessgame(new SimpleHistory<AlgebraicNotation>());
   public get chess() {
     return this._chess;
   }
@@ -101,7 +102,7 @@ export class Game {
     this._increment = timeControl.increment;
 
     this._timeout = setTimeout(() => {
-      this.chess.timeExpired("BLACK");
+      this.chess.timeout("BLACK");
       void this.finishGame();
     }, this._white.timeLeftInMilis);
   }
@@ -122,13 +123,13 @@ export class Game {
     this._turn.timeLeftInMilis -= duration;
     let timeLeft = this._turn.timeLeftInMilis;
     if (timeLeft <= 0) {
-      this.chess.timeExpired(this._turn === this._white ? "WHITE" : "BLACK");
+      this.chess.timeout(this._turn === this._white ? "WHITE" : "BLACK");
       await this.finishGame();
       return timeLeft;
     }
 
-    this._chess.move(from, to, this._turn === this._white ? "WHITE" : "BLACK");
-    if (this._chess.pawnReadyToPromote !== null) {
+    this._chess.move(from, to);
+    if (this._chess.position.pawnReadyToPromote !== null) {
       return timeLeft;
     }
 
@@ -143,7 +144,7 @@ export class Game {
     timeLeft = this._turn.timeLeftInMilis;
 
     this._timeout = setTimeout(() => {
-      this.chess.timeExpired(this._turn === this._white ? "WHITE" : "BLACK");
+      this.chess.timeout(this._turn === this._white ? "WHITE" : "BLACK");
       void this.finishGame();
     }, this._turn.timeLeftInMilis);
 
@@ -168,15 +169,12 @@ export class Game {
     const timeLeft = this._turn.timeLeftInMilis;
 
     if (timeLeft <= 0) {
-      this.chess.timeExpired(this._turn === this._white ? "WHITE" : "BLACK");
+      this.chess.timeout(this._turn === this._white ? "WHITE" : "BLACK");
       await this.finishGame();
       return timeLeft;
     }
 
-    this._chess.promote(
-      promoteTo,
-      this._turn === this._white ? "WHITE" : "BLACK"
-    );
+    this._chess.promote(promoteTo);
 
     if (this._turn === this._white) {
       this._turn = this._black;
@@ -285,11 +283,15 @@ export class Game {
       this.black.rating
     );
 
+    const longAlgebraic = this._chess.history.moves
+      .map((move) => move.toLongNotationString())
+      .join(" ");
+
     await prisma.game.create({
       data: {
         result: this.gameResult.winner,
         reason: this.gameResult.reason,
-        moves: this._chess.getFullLongAlgebraicHistory(),
+        moves: longAlgebraic,
         timeControl: timeControl,
         gameToUsers: {
           create: [

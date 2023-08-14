@@ -7,7 +7,7 @@ import {
   addGameToQueue,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
-import { Game } from "~/server/game";
+import { MatchPairing } from "~/server/game";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
@@ -125,7 +125,7 @@ export const chessgameRouter = createTRPCRouter({
         };
       }
 
-      const newGame = new Game(id, rating, timeControl, isRanked);
+      const newGame = new MatchPairing(id, rating, timeControl, isRanked);
       addGameToQueue(rating, newGame);
       queuedUpUsers.set(id, { gameId: newGame.id, timeControl: timeControl });
       console.log(queuedUpUsers);
@@ -166,7 +166,9 @@ export const chessgameRouter = createTRPCRouter({
       }
 
       return {
-        board: match.chess.board,
+        moves: match.chess.history.moves
+          .map((move) => move.toLongNotationString())
+          .join(" "),
         whiteMilisLeft: whiteTime,
         blackMilisLeft: blackTime,
         ratingWhite: match.white.rating,
@@ -311,7 +313,7 @@ export const chessgameRouter = createTRPCRouter({
           message: "You tried to promote pawn to incorrect piece type",
         });
       }
-      const promotionCoords = match.chess.pawnReadyToPromote;
+      const promotionCoords = match.chess.position.pawnReadyToPromote;
       if (!promotionCoords) {
         throw new TRPCError({
           code: "BAD_REQUEST",

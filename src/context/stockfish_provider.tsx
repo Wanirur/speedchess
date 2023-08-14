@@ -206,7 +206,6 @@ class StockfishWrapper extends EventEmitter {
   }
 
   private _messageListener(line: string) {
-    console.log(line);
     if (
       this._mode === "ANALYSIS" &&
       line.startsWith("info") &&
