@@ -140,6 +140,47 @@ class ChessPosition implements MoveDescriptor {
 
     this._whiteKingCoords = this._findKing("WHITE");
     this._blackKingCoords = this._findKing("BLACK");
+
+    const { white, black } = PieceAttacks.calculateAttackedTiles(this);
+
+    this._whitePieceInteractions = white;
+    this._blackPieceInteractions = black;
+
+    if (this._isKingMated("WHITE")) {
+      this._gameResult = {
+        winner: "BLACK",
+        reason: "MATE",
+      };
+
+      return;
+    }
+
+    if (this._isKingMated("BLACK")) {
+      this._gameResult = {
+        winner: "WHITE",
+        reason: "MATE",
+      };
+
+      return;
+    }
+
+    const hasStalemateOccured =
+      (turn === "BLACK" &&
+        this._whitePieceInteractions.possibleMoves.length +
+          this._whitePieceInteractions.possibleCaptures.length ===
+          0) ||
+      (turn === "WHITE" &&
+        this._blackPieceInteractions.possibleMoves.length +
+          this._blackPieceInteractions.possibleCaptures.length ===
+          0);
+
+    if (hasStalemateOccured) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "STALEMATE",
+      };
+      return;
+    }
   }
 
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {

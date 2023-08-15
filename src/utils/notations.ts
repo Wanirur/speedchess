@@ -174,7 +174,7 @@ export class FEN {
       throw new Error("incorrect fen string");
     }
 
-    const rows = boardString.split("/");
+    const rows = boardString.split("/").reverse();
     if (!rows) {
       throw new Error("incorrect piece placement");
     }

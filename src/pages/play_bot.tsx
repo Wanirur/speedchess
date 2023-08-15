@@ -3,7 +3,7 @@ import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef, useCallback } from "react";
-import Chessgame, { type ChessgameForMatch } from "~/chess/game";
+import Chessgame, { type ChessgameForMatch } from "~/chess/chessgame";
 import { CombinedStrategies, SimpleHistory } from "~/chess/history";
 import type ChessPosition from "~/chess/position";
 import Chessboard from "~/components/chessboard";

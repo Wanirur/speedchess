@@ -13,7 +13,7 @@ import StockfishProvider, {
 } from "~/context/stockfish_provider";
 import EvalBar from "~/components/eval_bar";
 import { type User } from "next-auth";
-import Chessgame, { type ChessgameForAnalysis } from "~/chess/game";
+import Chessgame, { type ChessgameForAnalysis } from "~/chess/chessgame";
 import { CombinedStrategies, HistoryWithVariations } from "~/chess/history";
 import { type AlgebraicNotation } from "~/utils/notations";
 import type ChessPosition from "~/chess/position";
@@ -135,7 +135,7 @@ const AnalyzePage = () => {
         branchStartIndex,
         variationIndex
       ) as ChessPosition
-    ).fen;
+    )?.fen;
     if (!position) {
       return;
     }

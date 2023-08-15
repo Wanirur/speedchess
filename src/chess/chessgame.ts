@@ -58,6 +58,7 @@ class Chessgame<T extends TrackingStrategy> {
     );
     this._turn = turn ? turn : "WHITE";
     this._history = trackingStrategy;
+    this._gameResult = this._position.gameResult;
   }
 
   public move(from: Coords, to: Coords) {

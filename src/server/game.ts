@@ -10,7 +10,7 @@ import { prisma } from "./db";
 import { type TimeControlName } from "@prisma/client";
 import { calculateRatingDiff } from "~/utils/elo";
 import { setTimeout } from "timers";
-import Chessgame from "~/chess/game";
+import Chessgame from "~/chess/chessgame";
 import { SimpleHistory } from "~/chess/history";
 import { type AlgebraicNotation } from "~/utils/notations";
 
@@ -284,7 +284,7 @@ export class MatchPairing {
     );
 
     const longAlgebraic = this._chess.history.moves
-      .map((move) => move.toLongNotationString())
+      .map((move) => (move.move as AlgebraicNotation).toLongNotationString())
       .join(" ");
 
     await prisma.game.create({
