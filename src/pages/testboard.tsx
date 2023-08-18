@@ -27,15 +27,6 @@ import {
 } from "~/utils/pieces";
 import useGuestSession from "~/utils/use_guest";
 
-type SessionStorageData = {
-  moves: string;
-  result: GameResult;
-  opponent: User;
-  player: User;
-  color: PlayerColor;
-  timeControl: TimeControl;
-};
-
 const Play: NextPage = () => {
   const router = useRouter();
   const { uuid } = router.query;
@@ -46,12 +37,11 @@ const Play: NextPage = () => {
         new SimpleHistory<AlgebraicNotation>(),
         new SimpleHistory<ChessPosition>()
       ),
-      FEN.fromString("4k3/1R6/4K3/8/8/8/8/8 w - - 0 1").buildBoard()
+      FEN.fromString("8/kBK5/8/N7/8/8/8/8 w - - 0 1")
     )
   );
 
   const [isYourTurn, setIsYourTurn] = useState<boolean>(true);
-  const [storageData, setStorageData] = useState<SessionStorageData | null>();
   const [showDrawResignPanel, setShowDrawResignPanel] =
     useState<boolean>(false);
   const [isUserDisconnected, setIsUserDisconnected] = useState<boolean>(false);
@@ -106,6 +96,7 @@ const Play: NextPage = () => {
             history={chess.history}
             index={indexOfBoardToDisplay}
             onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
+            gameResult={chess.gameResult}
           ></MovesHistory>
 
           <DrawResignPanel

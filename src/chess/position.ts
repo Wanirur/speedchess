@@ -77,6 +77,35 @@ class ChessPosition implements MoveDescriptor {
     this._blackPieceInteractions = value;
   }
 
+  private _whiteKingInteractions: PieceInteractions = {
+    possibleMoves: [],
+    attackedTiles: [],
+    possibleCaptures: [],
+    defendedPieces: [],
+    kingChecks: [],
+    pins: [],
+  };
+  public get whiteKingInteractions(): PieceInteractions {
+    return this._whiteKingInteractions;
+  }
+  public set whiteKingInteractions(value: PieceInteractions) {
+    this._whiteKingInteractions = value;
+  }
+  private _blackKingInteractions: PieceInteractions = {
+    possibleMoves: [],
+    attackedTiles: [],
+    possibleCaptures: [],
+    defendedPieces: [],
+    kingChecks: [],
+    pins: [],
+  };
+  public get blackKingInteractions(): PieceInteractions {
+    return this._blackKingInteractions;
+  }
+  public set blackKingInteractions(value: PieceInteractions) {
+    this._blackKingInteractions = value;
+  }
+
   private _whiteKingCoords: Coords;
   public get whiteKingCoords(): Coords {
     return this._whiteKingCoords;
@@ -141,10 +170,17 @@ class ChessPosition implements MoveDescriptor {
     this._whiteKingCoords = this._findKing("WHITE");
     this._blackKingCoords = this._findKing("BLACK");
 
-    const { white, black } = PieceAttacks.calculateAttackedTiles(this);
+    const {
+      white,
+      whiteKing: whiteKingInteractions,
+      black,
+      blackKing: blackKingInteractions,
+    } = PieceAttacks.calculateAttackedTiles(this);
 
     this._whitePieceInteractions = white;
     this._blackPieceInteractions = black;
+    this._whiteKingInteractions = whiteKingInteractions;
+    this._blackKingInteractions = blackKingInteractions;
 
     if (this._isKingMated("WHITE")) {
       this._gameResult = {
@@ -165,11 +201,11 @@ class ChessPosition implements MoveDescriptor {
     }
 
     const hasStalemateOccured =
-      (turn === "BLACK" &&
+      (turn === "WHITE" &&
         this._whitePieceInteractions.possibleMoves.length +
           this._whitePieceInteractions.possibleCaptures.length ===
           0) ||
-      (turn === "WHITE" &&
+      (turn === "BLACK" &&
         this._blackPieceInteractions.possibleMoves.length +
           this._blackPieceInteractions.possibleCaptures.length ===
           0);
@@ -179,8 +215,29 @@ class ChessPosition implements MoveDescriptor {
         winner: "DRAW",
         reason: "STALEMATE",
       };
-      return;
     }
+  }
+
+  public static fromFen(fen: FEN) {
+    const position = new ChessPosition(fen.buildBoard(), fen.turn);
+    const castling = fen.castlingPrivilages;
+    position._isWhiteShortCastlingPossible = castling.whiteShortCastling;
+    position._isWhiteLongCastlingPossible = castling.whiteLongCastling;
+    position._isBlackShortCastlingPossible = castling.blackShortCastling;
+    position._isBlackLongCastlingPossible = castling.blackLongCastling;
+
+    const {
+      white,
+      whiteKing: whiteKingInteractions,
+      black,
+      blackKing: blackKingInteractions,
+    } = PieceAttacks.calculateAttackedTiles(position);
+
+    position._whitePieceInteractions = white;
+    position._blackPieceInteractions = black;
+    position._whiteKingInteractions = whiteKingInteractions;
+    position._blackKingInteractions = blackKingInteractions;
+    return position;
   }
 
   public move(from: Coords, to: Coords, playerColor: PlayerColor) {
@@ -220,10 +277,17 @@ class ChessPosition implements MoveDescriptor {
       this._blackKingCoords = to;
     }
 
-    const { white, black } = PieceAttacks.calculateAttackedTiles(this);
+    const {
+      white,
+      whiteKing: whiteKingInteractions,
+      black,
+      blackKing: blackKingInteractions,
+    } = PieceAttacks.calculateAttackedTiles(this);
 
     this._whitePieceInteractions = white;
     this._blackPieceInteractions = black;
+    this._whiteKingInteractions = whiteKingInteractions;
+    this._blackKingInteractions = blackKingInteractions;
 
     if (
       (playerColor === "WHITE" &&
@@ -232,9 +296,16 @@ class ChessPosition implements MoveDescriptor {
         this._whitePieceInteractions.kingChecks.length)
     ) {
       this._board = tempBoard;
-      const { white, black } = PieceAttacks.calculateAttackedTiles(this);
+      const {
+        white,
+        whiteKing: whiteKingInteractions,
+        black,
+        blackKing: blackKingInteractions,
+      } = PieceAttacks.calculateAttackedTiles(this);
       this._whitePieceInteractions = white;
       this._blackPieceInteractions = black;
+      this._whiteKingInteractions = whiteKingInteractions;
+      this._blackKingInteractions = blackKingInteractions;
 
       throw new Error("failed to defend check");
     }
@@ -461,7 +532,7 @@ class ChessPosition implements MoveDescriptor {
     if (
       (kingColor === "BLACK" &&
         !this._whitePieceInteractions.kingChecks.length) ||
-      (kingColor === "WHITE" && !this._whitePieceInteractions.kingChecks.length)
+      (kingColor === "WHITE" && !this._blackPieceInteractions.kingChecks.length)
     ) {
       return false;
     }
@@ -469,17 +540,21 @@ class ChessPosition implements MoveDescriptor {
     let kingMoves: PieceInteractions,
       checks: KingCheck[],
       captures: Coords[],
-      moves: Coords[];
+      moves: Coords[],
+      defenses: Coords[];
+
     if (kingColor === "WHITE") {
       kingMoves = PieceAttacks.getPossibleMoves(this, this._whiteKingCoords);
       checks = this._blackPieceInteractions.kingChecks;
       captures = this._whitePieceInteractions.possibleCaptures;
       moves = this._whitePieceInteractions.possibleMoves;
+      defenses = this._blackPieceInteractions.defendedPieces;
     } else {
       kingMoves = PieceAttacks.getPossibleMoves(this, this._blackKingCoords);
       checks = this._whitePieceInteractions.kingChecks;
       captures = this._blackPieceInteractions.possibleCaptures;
       moves = this._blackPieceInteractions.possibleMoves;
+      defenses = this._whitePieceInteractions.defendedPieces;
     }
 
     if (
@@ -496,7 +571,10 @@ class ChessPosition implements MoveDescriptor {
 
     let index = 0;
     checks.forEach((check) => {
-      if (captures.includes(check.attackingPieceCoords)) {
+      if (
+        captures.includes(check.attackingPieceCoords) &&
+        !defenses.includes(check.attackingPieceCoords)
+      ) {
         defendingMoves[index]!.push(check.attackingPieceCoords);
       }
 

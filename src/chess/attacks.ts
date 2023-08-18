@@ -188,32 +188,18 @@ export class PieceAttacks {
       position,
       whiteKingCoords
     );
-    whiteKingInteractions.possibleMoves.forEach((move) => {
-      attacksWhiteSet.add(move);
-      movesWhiteSet.add(move);
-    });
-    whiteKingInteractions.possibleCaptures.forEach((move) => {
-      capturesWhiteSet.add(move);
-    });
-    whiteKingInteractions.defendedPieces.forEach((move) => {
-      defensesWhiteSet.add(move);
-    });
+
     const blackKingInteractions = this.getPossibleMoves(
       position,
       blackKingCoords
     );
-    blackKingInteractions.possibleMoves.forEach((move) => {
-      attacksBlackSet.add(move);
-      movesBlackSet.add(move);
-    });
-    blackKingInteractions.possibleCaptures.forEach((move) => {
-      capturesBlackSet.add(move);
-    });
-    blackKingInteractions.defendedPieces.forEach((move) => {
-      defensesBlackSet.add(move);
-    });
 
-    return { white: whitePieceInteractions, black: blackPieceInteractions };
+    return {
+      white: whitePieceInteractions,
+      whiteKing: whiteKingInteractions,
+      black: blackPieceInteractions,
+      blackKing: blackKingInteractions,
+    };
   }
 
   public static getPossibleMoves(
@@ -255,23 +241,27 @@ export class PieceAttacks {
       return this._getPossibleQueenMoves(board, coords, piece.color);
     }
     if (piece.pieceType === "KING") {
-      const interactions =
-        piece.color === "WHITE"
-          ? position.blackPieceInteractions
-          : position.whitePieceInteractions;
-      const isShortCastlingAllowed =
-        piece.color === "WHITE"
-          ? position.isWhiteShortCastlingPossible
-          : position.isBlackShortCastlingPossible;
+      let interactions,
+        kingInteractions,
+        isShortCastlingAllowed,
+        isLongCastlingAllowed;
 
-      const isLongCastlingAllowed =
-        piece.color === "WHITE"
-          ? position.isWhiteLongCastlingPossible
-          : position.isBlackLongCastlingPossible;
+      if (piece.color === "WHITE") {
+        interactions = position.blackPieceInteractions;
+        kingInteractions = position.blackKingInteractions;
+        isShortCastlingAllowed = position.isWhiteShortCastlingPossible;
+        isLongCastlingAllowed = position.isWhiteLongCastlingPossible;
+      } else {
+        interactions = position.whitePieceInteractions;
+        kingInteractions = position.whiteKingInteractions;
+        isShortCastlingAllowed = position.isBlackShortCastlingPossible;
+        isLongCastlingAllowed = position.isBlackLongCastlingPossible;
+      }
 
       return this._getPossibleKingMoves(
         board,
         interactions,
+        kingInteractions,
         isShortCastlingAllowed,
         isLongCastlingAllowed,
         coords,
@@ -822,6 +812,7 @@ export class PieceAttacks {
   private static _getPossibleKingMoves(
     board: Board,
     interactions: PieceInteractions,
+    kingInteractions: PieceInteractions,
     isShortCastlingAllowed: boolean,
     isLongCastlingAllowed: boolean,
     position: Coords,
@@ -847,7 +838,9 @@ export class PieceAttacks {
         }
 
         if (tile === null) {
-          const isTileAttacked = interactions.attackedTiles.includes(coords);
+          const isTileAttacked =
+            interactions.attackedTiles.includes(coords) ||
+            kingInteractions.attackedTiles.includes(coords);
 
           if (!isTileAttacked) {
             possibleMoves.push(coords);
@@ -860,7 +853,9 @@ export class PieceAttacks {
           continue;
         }
 
-        const isPieceDefended = interactions.defendedPieces.includes(coords);
+        const isPieceDefended =
+          interactions.defendedPieces.includes(coords) ||
+          kingInteractions.defendedPieces.includes(coords);
 
         if (!isPieceDefended) {
           possibleCaptures.push(coords);

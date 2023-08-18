@@ -358,6 +358,7 @@ const PlayBot: React.FC = () => {
             history={chess.history}
             index={indexOfBoardToDisplay}
             onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
+            gameResult={chess.gameResult}
           ></MovesHistory>
 
           <DrawResignPanel

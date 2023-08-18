@@ -17,6 +17,7 @@ import {
   type GameResult,
 } from "~/utils/pieces";
 import { Coords } from "~/utils/coords";
+import { AlgebraicNotation } from "~/utils/notations";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure
@@ -167,7 +168,9 @@ export const chessgameRouter = createTRPCRouter({
 
       return {
         moves: match.chess.history.moves
-          .map((move) => move.toLongNotationString())
+          .map((move) =>
+            (move.move as AlgebraicNotation).toLongNotationString()
+          )
           .join(" "),
         whiteMilisLeft: whiteTime,
         blackMilisLeft: blackTime,

@@ -7,7 +7,7 @@ import {
   type Board,
 } from "~/utils/pieces";
 import ChessPosition from "./position";
-import { AlgebraicNotation } from "~/utils/notations";
+import { AlgebraicNotation, FEN } from "~/utils/notations";
 import {
   CombinedStrategies,
   HistoryWithVariations,
@@ -51,12 +51,13 @@ class Chessgame<T extends TrackingStrategy> {
   private _turn: PlayerColor;
   private _positionRepeats: Map<string, number> = new Map();
 
-  constructor(trackingStrategy: T, board?: Board, turn?: PlayerColor) {
-    this._position = new ChessPosition(
-      board ? board : initBoard(),
-      turn ? turn : "WHITE"
-    );
-    this._turn = turn ? turn : "WHITE";
+  constructor(trackingStrategy: T, fen?: FEN) {
+    if (fen) {
+      this._position = ChessPosition.fromFen(fen);
+    } else {
+      this._position = new ChessPosition(initBoard(), "WHITE");
+    }
+    this._turn = fen ? fen.turn : "WHITE";
     this._history = trackingStrategy;
     this._gameResult = this._position.gameResult;
   }
