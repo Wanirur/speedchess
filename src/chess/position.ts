@@ -175,7 +175,7 @@ class ChessPosition implements MoveDescriptor {
       whiteKing: whiteKingInteractions,
       black,
       blackKing: blackKingInteractions,
-    } = PieceAttacks.calculateAttackedTiles(this);
+    } = PieceAttacks.calculatePieceInteractions(this);
 
     this._whitePieceInteractions = white;
     this._blackPieceInteractions = black;
@@ -200,17 +200,7 @@ class ChessPosition implements MoveDescriptor {
       return;
     }
 
-    const hasStalemateOccured =
-      (turn === "WHITE" &&
-        this._whitePieceInteractions.possibleMoves.length +
-          this._whitePieceInteractions.possibleCaptures.length ===
-          0) ||
-      (turn === "BLACK" &&
-        this._blackPieceInteractions.possibleMoves.length +
-          this._blackPieceInteractions.possibleCaptures.length ===
-          0);
-
-    if (hasStalemateOccured) {
+    if (this._hasStalemateOccured(turn)) {
       this._gameResult = {
         winner: "DRAW",
         reason: "STALEMATE",
@@ -231,12 +221,38 @@ class ChessPosition implements MoveDescriptor {
       whiteKing: whiteKingInteractions,
       black,
       blackKing: blackKingInteractions,
-    } = PieceAttacks.calculateAttackedTiles(position);
+    } = PieceAttacks.calculatePieceInteractions(position);
 
     position._whitePieceInteractions = white;
     position._blackPieceInteractions = black;
     position._whiteKingInteractions = whiteKingInteractions;
     position._blackKingInteractions = blackKingInteractions;
+
+    if (position._isKingMated("WHITE")) {
+      position._gameResult = {
+        winner: "BLACK",
+        reason: "MATE",
+      };
+
+      return position;
+    }
+
+    if (position._isKingMated("BLACK")) {
+      position._gameResult = {
+        winner: "WHITE",
+        reason: "MATE",
+      };
+
+      return position;
+    }
+
+    if (position._hasStalemateOccured(fen.turn)) {
+      position._gameResult = {
+        winner: "DRAW",
+        reason: "STALEMATE",
+      };
+    }
+
     return position;
   }
 
@@ -282,7 +298,7 @@ class ChessPosition implements MoveDescriptor {
       whiteKing: whiteKingInteractions,
       black,
       blackKing: blackKingInteractions,
-    } = PieceAttacks.calculateAttackedTiles(this);
+    } = PieceAttacks.calculatePieceInteractions(this);
 
     this._whitePieceInteractions = white;
     this._blackPieceInteractions = black;
@@ -301,7 +317,7 @@ class ChessPosition implements MoveDescriptor {
         whiteKing: whiteKingInteractions,
         black,
         blackKing: blackKingInteractions,
-      } = PieceAttacks.calculateAttackedTiles(this);
+      } = PieceAttacks.calculatePieceInteractions(this);
       this._whitePieceInteractions = white;
       this._blackPieceInteractions = black;
       this._whiteKingInteractions = whiteKingInteractions;
@@ -309,7 +325,6 @@ class ChessPosition implements MoveDescriptor {
 
       throw new Error("failed to defend check");
     }
-
     this._lastMoveFrom = from;
     this._lastMoveTo = to;
 
@@ -353,7 +368,7 @@ class ChessPosition implements MoveDescriptor {
       this._isWhiteLongCastlingPossible,
       this._isBlackShortCastlingPossible,
       this._isBlackLongCastlingPossible,
-      this.pawnPossibleToEnPassant,
+      this._pawnPossibleToEnPassant,
       this._halfMovesSinceLastCaptureOrPawnMove,
       this._movesPlayed
     );
@@ -367,17 +382,7 @@ class ChessPosition implements MoveDescriptor {
       return this.board;
     }
 
-    const hasStalemateOccured =
-      (playerColor === "BLACK" &&
-        this._whitePieceInteractions.possibleMoves.length +
-          this._whitePieceInteractions.possibleCaptures.length ===
-          0) ||
-      (playerColor === "WHITE" &&
-        this._blackPieceInteractions.possibleMoves.length +
-          this._blackPieceInteractions.possibleCaptures.length ===
-          0);
-
-    if (hasStalemateOccured) {
+    if (this._hasStalemateOccured(this.fen.turn)) {
       this._gameResult = {
         winner: "DRAW",
         reason: "STALEMATE",
@@ -408,7 +413,7 @@ class ChessPosition implements MoveDescriptor {
       this._movesPlayed++;
     }
 
-    PieceAttacks.calculateAttackedTiles(this);
+    PieceAttacks.calculatePieceInteractions(this);
 
     this._pawnReadyToPromote = null;
     if (this._isKingMated(oppositeColor(playerColor))) {
@@ -531,8 +536,9 @@ class ChessPosition implements MoveDescriptor {
   private _isKingMated(kingColor: PlayerColor) {
     if (
       (kingColor === "BLACK" &&
-        !this._whitePieceInteractions.kingChecks.length) ||
-      (kingColor === "WHITE" && !this._blackPieceInteractions.kingChecks.length)
+        this._whitePieceInteractions.kingChecks.length === 0) ||
+      (kingColor === "WHITE" &&
+        this._blackPieceInteractions.kingChecks.length === 0)
     ) {
       return false;
     }
@@ -544,13 +550,13 @@ class ChessPosition implements MoveDescriptor {
       defenses: Coords[];
 
     if (kingColor === "WHITE") {
-      kingMoves = PieceAttacks.getPossibleMoves(this, this._whiteKingCoords);
+      kingMoves = this._whiteKingInteractions;
       checks = this._blackPieceInteractions.kingChecks;
       captures = this._whitePieceInteractions.possibleCaptures;
       moves = this._whitePieceInteractions.possibleMoves;
       defenses = this._blackPieceInteractions.defendedPieces;
     } else {
-      kingMoves = PieceAttacks.getPossibleMoves(this, this._blackKingCoords);
+      kingMoves = this._blackKingInteractions;
       checks = this._whitePieceInteractions.kingChecks;
       captures = this._blackPieceInteractions.possibleCaptures;
       moves = this._blackPieceInteractions.possibleMoves;
@@ -596,6 +602,27 @@ class ChessPosition implements MoveDescriptor {
     }
 
     return false;
+  }
+
+  private _hasStalemateOccured(turn: PlayerColor) {
+    let movesCount, capturesCount;
+    if (turn === "WHITE") {
+      movesCount =
+        this._whitePieceInteractions.possibleMoves.length +
+        this._whiteKingInteractions.possibleMoves.length;
+      capturesCount =
+        this._whitePieceInteractions.possibleCaptures.length +
+        this._whiteKingInteractions.possibleCaptures.length;
+    } else {
+      movesCount =
+        this._blackPieceInteractions.possibleMoves.length +
+        this._blackKingInteractions.possibleMoves.length;
+      capturesCount =
+        this._blackPieceInteractions.possibleCaptures.length +
+        this._blackKingInteractions.possibleCaptures.length;
+    }
+
+    return movesCount + capturesCount === 0;
   }
 
   private _findKing(color: PlayerColor) {

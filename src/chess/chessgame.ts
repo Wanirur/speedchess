@@ -4,10 +4,9 @@ import {
   type PromotedPieceType,
   type PlayerColor,
   oppositeColor,
-  type Board,
 } from "~/utils/pieces";
 import ChessPosition from "./position";
-import { AlgebraicNotation, FEN } from "~/utils/notations";
+import { AlgebraicNotation, type FEN } from "~/utils/notations";
 import {
   CombinedStrategies,
   HistoryWithVariations,
@@ -57,7 +56,7 @@ class Chessgame<T extends TrackingStrategy> {
     } else {
       this._position = new ChessPosition(initBoard(), "WHITE");
     }
-    this._turn = fen ? fen.turn : "WHITE";
+    this._turn = fen?.turn ?? "WHITE";
     this._history = trackingStrategy;
     this._gameResult = this._position.gameResult;
   }
@@ -75,6 +74,10 @@ class Chessgame<T extends TrackingStrategy> {
       return this._position.board;
     }
 
+    if (this._position.gameResult) {
+      this._gameResult = this._position.gameResult;
+    }
+
     if (
       this._history instanceof CombinedStrategies &&
       this._history.notation instanceof HistoryWithVariations &&
@@ -84,10 +87,6 @@ class Chessgame<T extends TrackingStrategy> {
     }
 
     this._movesPlayed++;
-
-    if (this._position.gameResult) {
-      this._gameResult = this._position.gameResult;
-    }
 
     const stringifiedBoard = this._position.fen.board;
     if (this._positionRepeats.has(stringifiedBoard)) {

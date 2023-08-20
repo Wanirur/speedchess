@@ -37,7 +37,7 @@ const Play: NextPage = () => {
         new SimpleHistory<AlgebraicNotation>(),
         new SimpleHistory<ChessPosition>()
       ),
-      FEN.fromString("8/kBK5/8/N7/8/8/8/8 w - - 0 1")
+      FEN.fromString("7k/3R4/1K5b/8/4R2R/8/8/8 w - - 0 1")
     )
   );
 
