@@ -296,3 +296,16 @@ test("2 rooks covered by your own piece stalemate", () => {
     reason: "STALEMATE",
   });
 });
+
+test("king queen after promotion", () => {
+  const fen = FEN.fromString("6k1/3P4/6K1/8/8/8/8/8 w - - 0 1");
+
+  const game: ChessgameForTesting = new Chessgame(new SimpleHistory(), fen);
+
+  expect(game.gameResult).toEqual(undefined);
+
+  game.move(Coords.getInstance(3, 6)!, Coords.getInstance(3, 7)!);
+  game.promote("QUEEN");
+
+  expect(game.gameResult).toEqual({ winner: "WHITE", reason: "MATE" });
+});

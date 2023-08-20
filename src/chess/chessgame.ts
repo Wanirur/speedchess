@@ -137,12 +137,11 @@ class Chessgame<T extends TrackingStrategy> {
 
     this._position.promote(promoteTo, this._turn);
 
-    this._movesPlayed++;
-
     if (this._position.gameResult) {
       this._gameResult = this._position.gameResult;
     }
 
+    this._movesPlayed++;
     const stringifiedBoard = this._position.fen.board;
     if (this._positionRepeats.has(stringifiedBoard)) {
       const count = this._positionRepeats.get(stringifiedBoard)!;
@@ -169,7 +168,14 @@ class Chessgame<T extends TrackingStrategy> {
       promoteTo
     );
 
-    this._history?.addMove(notation);
+    if (this._history instanceof CombinedStrategies) {
+      this._history?.addMove({
+        notation: notation.copy(),
+        position: this._position.copy(),
+      });
+    } else {
+      this._history?.addMove(notation.copy());
+    }
     this._turn = oppositeColor(this._turn);
 
     return this._position.board;

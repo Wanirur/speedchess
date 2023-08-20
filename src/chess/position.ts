@@ -413,7 +413,17 @@ class ChessPosition implements MoveDescriptor {
       this._movesPlayed++;
     }
 
-    PieceAttacks.calculatePieceInteractions(this);
+    const {
+      white,
+      whiteKing: whiteKingInteractions,
+      black,
+      blackKing: blackKingInteractions,
+    } = PieceAttacks.calculatePieceInteractions(this);
+
+    this._whitePieceInteractions = white;
+    this._blackPieceInteractions = black;
+    this._whiteKingInteractions = whiteKingInteractions;
+    this._blackKingInteractions = blackKingInteractions;
 
     this._pawnReadyToPromote = null;
     if (this._isKingMated(oppositeColor(playerColor))) {
@@ -424,21 +434,12 @@ class ChessPosition implements MoveDescriptor {
 
       return this._board;
     }
-    const hasStalemateOccured =
-      (playerColor === "BLACK" &&
-        this._whitePieceInteractions.possibleMoves.length +
-          this._whitePieceInteractions.possibleCaptures.length ===
-          0) ||
-      (playerColor === "WHITE" &&
-        this._blackPieceInteractions.possibleMoves.length +
-          this._blackPieceInteractions.possibleCaptures.length ===
-          0);
-
-    if (hasStalemateOccured) {
+    if (this._hasStalemateOccured(this.fen.turn)) {
       this._gameResult = {
         winner: "DRAW",
         reason: "STALEMATE",
       };
+      return this._board;
     }
 
     return this.board;
