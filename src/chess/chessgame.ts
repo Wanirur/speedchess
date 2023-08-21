@@ -59,6 +59,8 @@ class Chessgame<T extends TrackingStrategy> {
     this._turn = fen?.turn ?? "WHITE";
     this._history = trackingStrategy;
     this._gameResult = this._position.gameResult;
+
+    this._positionRepeats.set(this._position.fen.board, 1);
   }
 
   public move(from: Coords, to: Coords) {
@@ -90,8 +92,8 @@ class Chessgame<T extends TrackingStrategy> {
 
     const stringifiedBoard = this._position.fen.board;
     if (this._positionRepeats.has(stringifiedBoard)) {
-      const count = this._positionRepeats.get(stringifiedBoard)!;
-      this._positionRepeats.set(stringifiedBoard, count + 1);
+      const count = this._positionRepeats.get(stringifiedBoard)! + 1;
+      this._positionRepeats.set(stringifiedBoard, count);
       if (count === 3) {
         this._gameResult = {
           winner: "DRAW",
@@ -211,7 +213,9 @@ class Chessgame<T extends TrackingStrategy> {
       color = oppositeColor(color);
     }
 
-    this._gameResult = result;
+    if (result) {
+      this._gameResult = result;
+    }
   }
 
   public abandon(color: PlayerColor) {

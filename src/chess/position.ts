@@ -330,6 +330,12 @@ class ChessPosition implements MoveDescriptor {
 
     this._setCastlingPrivileges(playerColor, movedPiece, from);
 
+    if (toTile === null && movedPiece.pieceType != "PAWN") {
+      this._halfMovesSinceLastCaptureOrPawnMove += 1;
+    } else {
+      this._halfMovesSinceLastCaptureOrPawnMove = 0;
+    }
+
     this._pawnPossibleToEnPassant = undefined;
     if (movedPiece.pieceType === "PAWN") {
       if (this._movedPawns.has(from)) {
@@ -349,12 +355,6 @@ class ChessPosition implements MoveDescriptor {
         this._pawnReadyToPromote = to;
         return this._board;
       }
-    }
-
-    if (toTile === null && movedPiece.pieceType != "PAWN") {
-      this._halfMovesSinceLastCaptureOrPawnMove += 1;
-    } else {
-      this._halfMovesSinceLastCaptureOrPawnMove = 0;
     }
 
     if (playerColor === "BLACK") {
@@ -388,6 +388,13 @@ class ChessPosition implements MoveDescriptor {
         reason: "STALEMATE",
       };
       return this._board;
+    }
+
+    if (this._halfMovesSinceLastCaptureOrPawnMove >= 100) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "FIFTY_MOVE",
+      };
     }
 
     return this.board;
