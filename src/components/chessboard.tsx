@@ -17,7 +17,7 @@ import {
   blackRook,
   blackBishop,
   type PromotedPieceType,
-} from "~/utils/pieces";
+} from "~/chess/utils";
 import Image from "next/image";
 import { api } from "~/utils/api";
 import { Coords } from "~/utils/coords";

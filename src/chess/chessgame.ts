@@ -4,7 +4,7 @@ import {
   type PromotedPieceType,
   type PlayerColor,
   oppositeColor,
-} from "~/utils/pieces";
+} from "./utils";
 import ChessPosition from "./position";
 import { AlgebraicNotation, type FEN } from "~/utils/notations";
 import {

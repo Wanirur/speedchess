@@ -24,7 +24,7 @@ import {
   type GameResult,
   type TimeControl,
   oppositeColor,
-} from "~/utils/pieces";
+} from "~/chess/utils";
 import useGuestSession from "~/utils/use_guest";
 
 type SessionStorageData = {

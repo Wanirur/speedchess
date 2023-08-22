@@ -6,7 +6,7 @@ import Chessboard from "~/components/chessboard";
 import MovesHistory from "~/components/moves_history";
 import UserBanner from "~/components/user_banner";
 import { api } from "~/utils/api";
-import { type PlayerColor } from "~/utils/pieces";
+import { type PlayerColor } from "~/chess/utils";
 import StockfishProvider, {
   type BestChessLine,
   useStockfish,

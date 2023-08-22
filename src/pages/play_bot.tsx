@@ -15,7 +15,7 @@ import UserBanner from "~/components/user_banner";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
 import { type Coords } from "~/utils/coords";
 import { type AlgebraicNotation } from "~/utils/notations";
-import { type TimeControl, type PromotedPieceType } from "~/utils/pieces";
+import { type TimeControl, type PromotedPieceType } from "~/chess/utils";
 import useGuestSession from "~/utils/use_guest";
 
 const toLongNotation = (chess: ChessgameForMatch) => {

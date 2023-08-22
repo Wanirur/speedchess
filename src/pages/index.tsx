@@ -3,7 +3,7 @@ import { useSession } from "next-auth/react";
 import { api } from "~/utils/api";
 import { useRouter } from "next/router";
 import Queue from "~/components/queue";
-import { type TimeControl } from "~/utils/pieces";
+import { type TimeControl } from "~/chess/utils";
 import { HelpCircle } from "lucide-react";
 import { type HTMLAttributes, useState, useEffect } from "react";
 import { twMerge } from "tailwind-merge";

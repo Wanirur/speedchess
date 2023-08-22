@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { type PlayerColor } from "@prisma/client";
 import { Coords } from "~/utils/coords";
-import { type Board } from "~/utils/pieces";
 import type ChessPosition from "./position";
+import { Board } from "./utils";
 
 export type KingCheck = {
   attackingPieceCoords: Coords;

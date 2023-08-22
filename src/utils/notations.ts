@@ -22,7 +22,7 @@ import {
   copyBoard,
   initBoard,
   type PromotedPieceType,
-} from "./pieces";
+} from "~/chess/utils";
 
 //fen notation
 //https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation

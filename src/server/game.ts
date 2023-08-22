@@ -2,7 +2,7 @@ import {
   type PlayerColor,
   type PromotedPieceType,
   type TimeControl,
-} from "~/utils/pieces";
+} from "~/chess/utils";
 import { randomUUID } from "crypto";
 import { matches, playingUsers } from "./matchmaking";
 import { type Coords } from "~/utils/coords";

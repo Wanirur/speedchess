@@ -15,9 +15,9 @@ import {
   type PlayerColor,
   type PromotedPieceType,
   type GameResult,
-} from "~/utils/pieces";
+} from "~/chess/utils";
 import { Coords } from "~/utils/coords";
-import { AlgebraicNotation } from "~/utils/notations";
+import { type AlgebraicNotation } from "~/utils/notations";
 
 export const chessgameRouter = createTRPCRouter({
   queueUp: publicProcedure

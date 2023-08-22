@@ -1,4 +1,4 @@
-import { type Coords } from "./coords";
+import { Coords } from "~/utils/coords";
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 export const PieceTypes = [

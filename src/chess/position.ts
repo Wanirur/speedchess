@@ -11,9 +11,7 @@ import {
   type Piece,
   type GameResult,
   oppositeColor,
-  resolvePieceToImage,
-  resolvePieceToPoints,
-} from "~/utils/pieces";
+} from "./utils";
 import {
   PieceAttacks,
   type KingCheck,

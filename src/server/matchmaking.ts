@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { type TimeControlName } from "@prisma/client";
 import { type MatchPairing } from "./game";
-import { type TimeControl } from "~/utils/pieces";
+import { type TimeControl } from "~/chess/utils";
 
 export const playersWaitingForMatch = new Map<
   TimeControlName,

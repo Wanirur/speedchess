@@ -2,7 +2,7 @@ import type { Channel } from "pusher-js";
 import { useEffect, useState, type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 import { type Coords } from "~/utils/coords";
-import type { PlayerColor } from "~/utils/pieces";
+import type { PlayerColor } from "~/chess/utils";
 
 const Timer: React.FC<
   {
