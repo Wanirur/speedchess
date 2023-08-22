@@ -58,6 +58,7 @@ const finishReason = [
   "STALEMATE",
   "REPETITION",
   "FIFTY_MOVE",
+  "INSUFFICIENT_MATERIAL",
 ] as const;
 
 export type GameResult = {
@@ -90,6 +91,24 @@ export const resolvePieceToImage = (piece: Piece) => {
     throw new Error("incorrect image");
   }
   return image;
+};
+
+export const resolvePieceToPoints = (tile: Tile) => {
+  if (!tile) {
+    return 0;
+  }
+
+  if (tile.pieceType === "QUEEN") {
+    return 9;
+  } else if (tile.pieceType === "ROOK") {
+    return 5;
+  } else if (tile.pieceType === "BISHOP" || tile.pieceType === "KNIGHT") {
+    return 3;
+  } else if (tile.pieceType === "PAWN") {
+    return 1;
+  } else {
+    return Infinity;
+  }
 };
 
 export const buildEmptyBoard = () => {

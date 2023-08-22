@@ -1,4 +1,5 @@
-import { AlgebraicNotation, FEN } from "~/utils/notations";
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { FEN } from "~/utils/notations";
 import Chessgame from "../chessgame";
 import { SimpleHistory } from "../history";
 import type ChessPosition from "../position";
@@ -86,4 +87,99 @@ test("50-move rule", () => {
   game.playOutFromMoves(uciString);
 
   expect(game.gameResult).toEqual({ winner: "DRAW", reason: "FIFTY_MOVE" });
+});
+
+test("insufficient material king + minor piece", () => {
+  const fen = FEN.fromString("3K4/2B5/8/8/8/8/8/3k4 w - - 0 1");
+  const game: ChessgameForTesting = new Chessgame(new SimpleHistory(), fen);
+
+  expect(game.gameResult).toEqual({
+    winner: "DRAW",
+    reason: "INSUFFICIENT_MATERIAL",
+  });
+});
+
+test("insufficient material 2 knights && sufficient material 2 knights vs 1 pawn", () => {
+  const fenInsufficient = FEN.fromString("3K4/8/8/4nn2/8/8/8/3k4 w - - 0 1");
+  const gameInsufficient: ChessgameForTesting = new Chessgame(
+    new SimpleHistory(),
+    fenInsufficient
+  );
+
+  expect(gameInsufficient.gameResult).toEqual({
+    winner: "DRAW",
+    reason: "INSUFFICIENT_MATERIAL",
+  });
+
+  const fenSufficient = FEN.fromString("3K4/3P4/8/4nn2/8/8/8/3k4 w - - 0 1");
+  const gameSufficient: ChessgameForTesting = new Chessgame(
+    new SimpleHistory(),
+    fenSufficient
+  );
+
+  expect(gameSufficient.gameResult).toEqual(undefined);
+});
+
+test("insufficient same colored bishops && sufficient opposite colored", () => {
+  const fenInsufficient = FEN.fromString("4k3/8/8/8/8/8/8/4KB1B w - - 0 1");
+  const gameInsufficient: ChessgameForTesting = new Chessgame(
+    new SimpleHistory(),
+    fenInsufficient
+  );
+
+  expect(gameInsufficient.gameResult).toEqual({
+    winner: "DRAW",
+    reason: "INSUFFICIENT_MATERIAL",
+  });
+
+  const fenSufficient = FEN.fromString("4k3/8/8/8/8/8/8/2B1KB2 w - - 0 1");
+  const gameSufficient: ChessgameForTesting = new Chessgame(
+    new SimpleHistory(),
+    fenSufficient
+  );
+
+  expect(gameSufficient.gameResult).toEqual(undefined);
+});
+
+test("major pieces sufficient material", () => {
+  const fenQueen = FEN.fromString("4k3/8/8/8/8/8/8/4KQ2 w - - 0 1");
+  const gameQueen: ChessgameForTesting = new Chessgame(
+    new SimpleHistory(),
+    fenQueen
+  );
+
+  expect(gameQueen.gameResult).toEqual(undefined);
+
+  const fenRook = FEN.fromString("4k3/8/8/8/8/8/8/4KR2 w - - 0 1");
+  const gameRook: ChessgameForTesting = new Chessgame(
+    new SimpleHistory(),
+    fenRook
+  );
+
+  expect(gameRook.gameResult).toEqual(undefined);
+});
+
+test("king + pawn sufficient", () => {
+  const fen = FEN.fromString("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1");
+  const game: ChessgameForTesting = new Chessgame(new SimpleHistory(), fen);
+
+  expect(game.gameResult).toEqual(undefined);
+});
+
+test("king vs king", () => {
+  const fen = FEN.fromString("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+  const game: ChessgameForTesting = new Chessgame(new SimpleHistory(), fen);
+
+  expect(game.gameResult).toEqual({
+    winner: "DRAW",
+    reason: "INSUFFICIENT_MATERIAL",
+  });
+});
+
+test("timeout when insufficient material", () => {
+  const fen = FEN.fromString("4k3/8/8/8/8/8/8/4KQ2 w - - 0 1");
+  const game: ChessgameForTesting = new Chessgame(new SimpleHistory(), fen);
+
+  game.timeout("WHITE");
+  expect(game.gameResult).toEqual({ winner: "DRAW", reason: "TIMEOUT" });
 });

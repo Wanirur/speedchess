@@ -226,10 +226,18 @@ class Chessgame<T extends TrackingStrategy> {
   }
 
   public timeout(color: PlayerColor) {
-    this._gameResult = {
-      winner: oppositeColor(color),
-      reason: "TIMEOUT",
-    };
+    const opposite = oppositeColor(color);
+    if (this._position.isMaterialInsufficientFor(opposite)) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "TIMEOUT",
+      };
+    } else {
+      this._gameResult = {
+        winner: opposite,
+        reason: "TIMEOUT",
+      };
+    }
   }
 
   public drawAgreement() {

@@ -11,6 +11,8 @@ import {
   type Piece,
   type GameResult,
   oppositeColor,
+  resolvePieceToImage,
+  resolvePieceToPoints,
 } from "~/utils/pieces";
 import {
   PieceAttacks,
@@ -18,6 +20,14 @@ import {
   type PieceInteractions,
 } from "./attacks";
 import { type MoveDescriptor } from "./history";
+
+type Material = {
+  pawns: number;
+  knights: number;
+  bishops: number;
+  rooks: number;
+  queens: number;
+};
 
 class ChessPosition implements MoveDescriptor {
   private _fen: FEN;
@@ -37,6 +47,21 @@ class ChessPosition implements MoveDescriptor {
   public get movedPawns() {
     return this._movedPawns;
   }
+
+  private _materialWhite: Material = {
+    pawns: 8,
+    knights: 2,
+    bishops: 2,
+    rooks: 2,
+    queens: 1,
+  };
+  private _materialBlack: Material = {
+    pawns: 8,
+    knights: 2,
+    bishops: 2,
+    rooks: 2,
+    queens: 1,
+  };
 
   private _pawnPossibleToEnPassant: Coords | undefined;
   public get pawnPossibleToEnPassant(): Coords | undefined {
@@ -182,6 +207,15 @@ class ChessPosition implements MoveDescriptor {
     this._whiteKingInteractions = whiteKingInteractions;
     this._blackKingInteractions = blackKingInteractions;
 
+    if (this._isDrawByInsufficientMaterial()) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "INSUFFICIENT_MATERIAL",
+      };
+
+      return;
+    }
+
     if (this._isKingMated("WHITE")) {
       this._gameResult = {
         winner: "BLACK",
@@ -216,6 +250,48 @@ class ChessPosition implements MoveDescriptor {
     position._isBlackShortCastlingPossible = castling.blackShortCastling;
     position._isBlackLongCastlingPossible = castling.blackLongCastling;
 
+    const materialWhite = {
+      pawns: 0,
+      knights: 0,
+      bishops: 0,
+      rooks: 0,
+      queens: 0,
+    };
+    const materialBlack = {
+      pawns: 0,
+      knights: 0,
+      bishops: 0,
+      rooks: 0,
+      queens: 0,
+    };
+
+    for (const piece of fen.board) {
+      if (piece === "p") {
+        materialBlack.pawns += 1;
+      } else if (piece === "P") {
+        materialWhite.pawns += 1;
+      } else if (piece === "r") {
+        materialBlack.rooks += 1;
+      } else if (piece === "R") {
+        materialWhite.rooks += 1;
+      } else if (piece === "b") {
+        materialBlack.bishops += 1;
+      } else if (piece === "B") {
+        materialWhite.bishops += 1;
+      } else if (piece === "n") {
+        materialBlack.knights += 1;
+      } else if (piece === "N") {
+        materialWhite.knights += 1;
+      } else if (piece === "q") {
+        materialBlack.queens += 1;
+      } else if (piece === "Q") {
+        materialWhite.queens += 1;
+      }
+    }
+
+    position._materialWhite = materialWhite;
+    position._materialBlack = materialBlack;
+
     const {
       white,
       whiteKing: whiteKingInteractions,
@@ -227,6 +303,15 @@ class ChessPosition implements MoveDescriptor {
     position._blackPieceInteractions = black;
     position._whiteKingInteractions = whiteKingInteractions;
     position._blackKingInteractions = blackKingInteractions;
+
+    if (position._isDrawByInsufficientMaterial()) {
+      position._gameResult = {
+        winner: "DRAW",
+        reason: "INSUFFICIENT_MATERIAL",
+      };
+
+      return position;
+    }
 
     if (position._isKingMated("WHITE")) {
       position._gameResult = {
@@ -269,6 +354,27 @@ class ChessPosition implements MoveDescriptor {
     const toTile = this._board[to.y]![to.x];
     if (toTile === undefined) {
       throw new Error("incorrect coordinates");
+    }
+
+    let material: Material | undefined = undefined;
+    if (toTile?.color === "WHITE") {
+      material = this._materialWhite;
+    } else if (toTile?.color === "BLACK") {
+      material = this._materialBlack;
+    }
+
+    if (material) {
+      if (toTile?.pieceType === "PAWN") {
+        material.pawns -= 1;
+      } else if (toTile?.pieceType === "BISHOP") {
+        material.bishops -= 1;
+      } else if (toTile?.pieceType === "KNIGHT") {
+        material.knights -= 1;
+      } else if (toTile?.pieceType === "ROOK") {
+        material.rooks -= 1;
+      } else if (toTile?.pieceType === "QUEEN") {
+        material.queens -= 1;
+      }
     }
 
     const possibleMoves = PieceAttacks.getPossibleMoves(this, from);
@@ -373,6 +479,15 @@ class ChessPosition implements MoveDescriptor {
       this._movesPlayed
     );
 
+    if (this._isDrawByInsufficientMaterial()) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "INSUFFICIENT_MATERIAL",
+      };
+
+      return this.board;
+    }
+
     if (this._isKingMated(oppositeColor(playerColor))) {
       this._gameResult = {
         winner: playerColor,
@@ -433,6 +548,15 @@ class ChessPosition implements MoveDescriptor {
     this._blackKingInteractions = blackKingInteractions;
 
     this._pawnReadyToPromote = null;
+    if (this._isDrawByInsufficientMaterial()) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "INSUFFICIENT_MATERIAL",
+      };
+
+      return this.board;
+    }
+
     if (this._isKingMated(oppositeColor(playerColor))) {
       this._gameResult = {
         winner: playerColor,
@@ -659,6 +783,60 @@ class ChessPosition implements MoveDescriptor {
     }
 
     return kingCoords;
+  }
+
+  public isMaterialInsufficientFor(playerColor: PlayerColor) {
+    let pawns, knights, bishops, rooks, queens;
+    if (playerColor === "WHITE") {
+      pawns = this._materialWhite.pawns;
+      knights = this._materialWhite.knights;
+      bishops = this._materialWhite.bishops;
+      rooks = this._materialWhite.rooks;
+      queens = this._materialWhite.queens;
+    } else {
+      pawns = this._materialBlack.pawns;
+      knights = this._materialBlack.knights;
+      bishops = this._materialBlack.bishops;
+      rooks = this._materialBlack.rooks;
+      queens = this._materialBlack.queens;
+    }
+
+    if (pawns > 0 || rooks > 0 || queens > 0) {
+      return false;
+    }
+
+    if (knights > 0 && bishops > 0) {
+      return false;
+    }
+
+    if (knights > 2 || bishops > 2) {
+      return false;
+    }
+
+    let bishopsOnDarkTiles = 0;
+    if (bishops === 2) {
+      //sufficient only if bishops are opposite colors
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+          if ((i + j) % 2 === 1) {
+            continue;
+          }
+          if (this.board[i]?.[j]?.pieceType === "BISHOP") {
+            bishopsOnDarkTiles += 1;
+          }
+        }
+      }
+      return bishopsOnDarkTiles !== 1;
+    }
+
+    return true;
+  }
+
+  private _isDrawByInsufficientMaterial() {
+    return (
+      this.isMaterialInsufficientFor("WHITE") &&
+      this.isMaterialInsufficientFor("BLACK")
+    );
   }
 }
 
