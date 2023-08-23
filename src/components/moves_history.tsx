@@ -8,7 +8,7 @@ import {
 import { twMerge } from "tailwind-merge";
 
 import { type TrackingStrategy, type Move } from "~/chess/history";
-import { type GameResult } from "~/utils/pieces";
+import { GameResult } from "~/chess/utils";
 
 const MovesHistory: React.FC<
   {

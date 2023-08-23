@@ -6,14 +6,14 @@ import Chessboard from "~/components/chessboard";
 import MovesHistory from "~/components/moves_history";
 import UserBanner from "~/components/user_banner";
 import { api } from "~/utils/api";
-import { type PlayerColor } from "~/utils/pieces";
+import { type PlayerColor } from "~/chess/utils";
 import StockfishProvider, {
   type BestChessLine,
   useStockfish,
 } from "~/context/stockfish_provider";
 import EvalBar from "~/components/eval_bar";
 import { type User } from "next-auth";
-import Chessgame, { type ChessgameForAnalysis } from "~/chess/game";
+import Chessgame, { type ChessgameForAnalysis } from "~/chess/chessgame";
 import { CombinedStrategies, HistoryWithVariations } from "~/chess/history";
 import { type AlgebraicNotation } from "~/utils/notations";
 import type ChessPosition from "~/chess/position";
@@ -135,7 +135,7 @@ const AnalyzePage = () => {
         branchStartIndex,
         variationIndex
       ) as ChessPosition
-    ).fen;
+    )?.fen;
     if (!position) {
       return;
     }

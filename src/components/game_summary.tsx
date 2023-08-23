@@ -3,7 +3,7 @@ import {
   type TimeControl,
   type GameResult,
   type PlayerColor,
-} from "~/utils/pieces";
+} from "~/chess/utils";
 import Image from "next/image";
 import { type User } from "next-auth";
 import { api } from "~/utils/api";

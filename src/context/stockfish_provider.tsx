@@ -3,7 +3,7 @@ import Script from "next/script";
 import { type ReactNode, createContext, useContext, useState } from "react";
 import EventEmitter from "~/utils/event_emitter";
 import { AlgebraicNotation, type FEN } from "~/utils/notations";
-import { TimeControl } from "~/utils/pieces";
+import { TimeControl } from "~/chess/utils";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {

@@ -4,10 +4,9 @@ import {
   type PromotedPieceType,
   type PlayerColor,
   oppositeColor,
-  type Board,
-} from "~/utils/pieces";
+} from "./utils";
 import ChessPosition from "./position";
-import { AlgebraicNotation } from "~/utils/notations";
+import { AlgebraicNotation, type FEN } from "~/utils/notations";
 import {
   CombinedStrategies,
   HistoryWithVariations,
@@ -51,13 +50,17 @@ class Chessgame<T extends TrackingStrategy> {
   private _turn: PlayerColor;
   private _positionRepeats: Map<string, number> = new Map();
 
-  constructor(trackingStrategy: T, board?: Board, turn?: PlayerColor) {
-    this._position = new ChessPosition(
-      board ? board : initBoard(),
-      turn ? turn : "WHITE"
-    );
-    this._turn = turn ? turn : "WHITE";
+  constructor(trackingStrategy: T, fen?: FEN) {
+    if (fen) {
+      this._position = ChessPosition.fromFen(fen);
+    } else {
+      this._position = new ChessPosition(initBoard(), "WHITE");
+    }
+    this._turn = fen?.turn ?? "WHITE";
     this._history = trackingStrategy;
+    this._gameResult = this._position.gameResult;
+
+    this._positionRepeats.set(this._position.fen.board, 1);
   }
 
   public move(from: Coords, to: Coords) {
@@ -73,6 +76,10 @@ class Chessgame<T extends TrackingStrategy> {
       return this._position.board;
     }
 
+    if (this._position.gameResult) {
+      this._gameResult = this._position.gameResult;
+    }
+
     if (
       this._history instanceof CombinedStrategies &&
       this._history.notation instanceof HistoryWithVariations &&
@@ -83,14 +90,10 @@ class Chessgame<T extends TrackingStrategy> {
 
     this._movesPlayed++;
 
-    if (this._position.gameResult) {
-      this._gameResult = this._position.gameResult;
-    }
-
     const stringifiedBoard = this._position.fen.board;
     if (this._positionRepeats.has(stringifiedBoard)) {
-      const count = this._positionRepeats.get(stringifiedBoard)!;
-      this._positionRepeats.set(stringifiedBoard, count + 1);
+      const count = this._positionRepeats.get(stringifiedBoard)! + 1;
+      this._positionRepeats.set(stringifiedBoard, count);
       if (count === 3) {
         this._gameResult = {
           winner: "DRAW",
@@ -136,12 +139,11 @@ class Chessgame<T extends TrackingStrategy> {
 
     this._position.promote(promoteTo, this._turn);
 
-    this._movesPlayed++;
-
     if (this._position.gameResult) {
       this._gameResult = this._position.gameResult;
     }
 
+    this._movesPlayed++;
     const stringifiedBoard = this._position.fen.board;
     if (this._positionRepeats.has(stringifiedBoard)) {
       const count = this._positionRepeats.get(stringifiedBoard)!;
@@ -168,7 +170,14 @@ class Chessgame<T extends TrackingStrategy> {
       promoteTo
     );
 
-    this._history?.addMove(notation);
+    if (this._history instanceof CombinedStrategies) {
+      this._history?.addMove({
+        notation: notation.copy(),
+        position: this._position.copy(),
+      });
+    } else {
+      this._history?.addMove(notation.copy());
+    }
     this._turn = oppositeColor(this._turn);
 
     return this._position.board;
@@ -204,7 +213,9 @@ class Chessgame<T extends TrackingStrategy> {
       color = oppositeColor(color);
     }
 
-    this._gameResult = result;
+    if (result) {
+      this._gameResult = result;
+    }
   }
 
   public abandon(color: PlayerColor) {
@@ -215,10 +226,18 @@ class Chessgame<T extends TrackingStrategy> {
   }
 
   public timeout(color: PlayerColor) {
-    this._gameResult = {
-      winner: oppositeColor(color),
-      reason: "TIMEOUT",
-    };
+    const opposite = oppositeColor(color);
+    if (this._position.isMaterialInsufficientFor(opposite)) {
+      this._gameResult = {
+        winner: "DRAW",
+        reason: "TIMEOUT",
+      };
+    } else {
+      this._gameResult = {
+        winner: opposite,
+        reason: "TIMEOUT",
+      };
+    }
   }
 
   public drawAgreement() {

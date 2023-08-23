@@ -22,7 +22,7 @@ import {
   copyBoard,
   initBoard,
   type PromotedPieceType,
-} from "./pieces";
+} from "~/chess/utils";
 
 //fen notation
 //https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
@@ -174,7 +174,7 @@ export class FEN {
       throw new Error("incorrect fen string");
     }
 
-    const rows = boardString.split("/");
+    const rows = boardString.split("/").reverse();
     if (!rows) {
       throw new Error("incorrect piece placement");
     }

@@ -1,4 +1,4 @@
-import { type GameResult } from "./pieces";
+import { type GameResult } from "~/chess/utils";
 
 //rating based on Elo rating system used by FIDE
 //https://en.wikipedia.org/wiki/Elo_rating_system#Theory

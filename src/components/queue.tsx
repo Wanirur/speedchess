@@ -9,7 +9,7 @@ import {
 } from "react";
 import { twMerge } from "tailwind-merge";
 import { usePusher } from "~/context/pusher_provider";
-import { type TimeControl } from "~/utils/pieces";
+import { type TimeControl } from "~/chess/utils";
 
 const Queue: React.FC<
   {

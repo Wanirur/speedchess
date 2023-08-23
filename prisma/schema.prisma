@@ -106,6 +106,7 @@ enum Reason {
     STALEMATE
     REPETITION
     FIFTY_MOVE
+    INSUFFICIENT_MATERIAL
 }
 
 enum TimeControlName {

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { type PlayerColor } from "@prisma/client";
 import { Coords } from "~/utils/coords";
-import { type Board } from "~/utils/pieces";
 import type ChessPosition from "./position";
+import { Board } from "./utils";
 
 export type KingCheck = {
   attackingPieceCoords: Coords;
@@ -25,7 +25,7 @@ export type PieceInteractions = {
 };
 
 export class PieceAttacks {
-  public static calculateAttackedTiles(position: ChessPosition) {
+  public static calculatePieceInteractions(position: ChessPosition) {
     const board = position.board;
     const whiteKingCoords = position.whiteKingCoords;
     const blackKingCoords = position.blackKingCoords;
@@ -60,8 +60,9 @@ export class PieceAttacks {
     const capturesBlackSet = new Set<Coords>();
     const checksWhiteSet = new Set<KingCheck>();
     const checksBlackSet = new Set<KingCheck>();
-    const pinsByWhite = new Set<Pin>();
-    const pinsByBlack = new Set<Pin>();
+
+    const whiteInteractions = new Map<Coords, PieceInteractions>();
+    const blackInteractions = new Map<Coords, PieceInteractions>();
 
     for (const row of board) {
       for (const tile of row) {
@@ -79,91 +80,163 @@ export class PieceAttacks {
           continue;
         }
 
-        let pinsFromLastTurn: Pin[],
-          moves: Set<Coords>,
-          attacks: Set<Coords>,
-          captures: Set<Coords>,
-          defenses: Set<Coords>,
-          checks: Set<KingCheck>,
-          pins: Set<Pin>;
+        // let pinsFromLastTurn: Pin[],
+        //   moves: Set<Coords>,
+        //   attacks: Set<Coords>,
+        //   captures: Set<Coords>,
+        //   defenses: Set<Coords>,
+        //   checks: Set<KingCheck>,
+        //   pins: Set<Pin>;
 
+        // if (tile.color === "WHITE") {
+        //   pinsFromLastTurn = whitePieceInteractions.pins;
+        //   moves = movesWhiteSet;
+        //   attacks = attacksWhiteSet;
+        //   captures = capturesWhiteSet;
+        //   defenses = defensesWhiteSet;
+        //   checks = checksWhiteSet;
+        //   pins = pinsByWhite;
+        // } else {
+        //   pinsFromLastTurn = blackPieceInteractions.pins;
+        //   moves = movesBlackSet;
+        //   attacks = attacksBlackSet;
+        //   captures = capturesBlackSet;
+        //   defenses = defensesBlackSet;
+        //   checks = checksBlackSet;
+        //   pins = pinsByBlack;
+        // }
+
+        const interactions = this.getPossibleMoves(position, pieceCoords);
         if (tile.color === "WHITE") {
-          pinsFromLastTurn = whitePieceInteractions.pins;
-          moves = movesWhiteSet;
-          attacks = attacksWhiteSet;
-          captures = capturesWhiteSet;
-          defenses = defensesWhiteSet;
-          checks = checksWhiteSet;
-          pins = pinsByWhite;
+          whiteInteractions.set(pieceCoords, interactions);
         } else {
-          pinsFromLastTurn = blackPieceInteractions.pins;
-          moves = movesBlackSet;
-          attacks = attacksBlackSet;
-          captures = capturesBlackSet;
-          defenses = defensesBlackSet;
-          checks = checksBlackSet;
-          pins = pinsByBlack;
+          blackInteractions.set(pieceCoords, interactions);
         }
+        // interactions.possibleMoves.forEach((possibleMove) => {
+        //   const pin = pinsFromLastTurn.find(
+        //     (pin) => pin.pinnedPiece === pieceCoords
+        //   );
+        //   if (pin && !pin.possibleMoves.includes(possibleMove)) {
+        //     return;
+        //   }
 
-        const possibleAttacks = this.getPossibleMoves(position, pieceCoords);
+        //   moves.add(possibleMove);
+        // });
 
-        possibleAttacks.possibleMoves.forEach((possibleMove) => {
-          const pin = pinsFromLastTurn.find(
-            (pin) => pin.pinnedPiece === pieceCoords
-          );
-          if (pin && !pin.possibleMoves.includes(possibleMove)) {
-            return;
-          }
+        // interactions.attackedTiles.forEach((possibleAttack) => {
+        //   // const pin = pinsFromLastTurn.find(
+        //   //   (pin) => pin.pinnedPiece === pieceCoords
+        //   // );
+        //   // if (pin && !pin.possibleMoves.includes(possibleAttack)) {
+        //   //   return;
+        //   // }
 
-          moves.add(possibleMove);
-        });
+        //   attacks.add(possibleAttack);
+        // });
 
-        possibleAttacks.attackedTiles.forEach((possibleAttack) => {
-          const pin = pinsFromLastTurn.find(
-            (pin) => pin.pinnedPiece === pieceCoords
-          );
-          if (pin && !pin.possibleMoves.includes(possibleAttack)) {
-            return;
-          }
+        // interactions.defendedPieces.forEach((defendedPiece) => {
+        //   const pin = pinsFromLastTurn.find(
+        //     (pin) => pin.pinnedPiece === pieceCoords
+        //   );
+        //   if (pin && !pin.possibleMoves.includes(defendedPiece)) {
+        //     return;
+        //   }
 
-          attacks.add(possibleAttack);
-        });
+        //   defenses.add(defendedPiece);
+        // });
+        // interactions.possibleCaptures.forEach((possibleCapture) => {
+        //   const pin = pinsFromLastTurn.find(
+        //     (pin) => pin.pinnedPiece === pieceCoords
+        //   );
+        //   if (pin && !pin.possibleMoves.includes(possibleCapture)) {
+        //     return;
+        //   }
 
-        possibleAttacks.defendedPieces.forEach((defendedPiece) => {
-          const pin = pinsFromLastTurn.find(
-            (pin) => pin.pinnedPiece === pieceCoords
-          );
-          if (pin && !pin.possibleMoves.includes(defendedPiece)) {
-            return;
-          }
+        //   captures.add(possibleCapture);
+        // });
 
-          defenses.add(defendedPiece);
-        });
-        possibleAttacks.possibleCaptures.forEach((possibleCapture) => {
-          const pin = pinsFromLastTurn.find(
-            (pin) => pin.pinnedPiece === pieceCoords
-          );
-          if (pin && !pin.possibleMoves.includes(possibleCapture)) {
-            return;
-          }
+        // if (interactions.kingChecks) {
+        //   interactions.kingChecks.forEach((check) => {
+        //     checks.add(check);
+        //   });
+        // }
 
-          captures.add(possibleCapture);
-        });
-
-        if (possibleAttacks.kingChecks) {
-          possibleAttacks.kingChecks.forEach((check) => {
-            checks.add(check);
-          });
-        }
-
-        const currentPiecePins = possibleAttacks.pins;
-        currentPiecePins.forEach((pin) => {
-          pins.add(pin);
-        });
+        // const currentPiecePins = interactions.pins;
+        // currentPiecePins.forEach((pin) => {
+        //   pins.add(pin);
+        // });
         x++;
       }
       x = 0;
       y++;
+    }
+
+    const whiteInteractionsValues = Array.from(whiteInteractions.values());
+    const blackInteractionsValues = Array.from(blackInteractions.values());
+    const pinsPerPieceByWhite = whiteInteractionsValues.map(
+      (currentInteractions) => currentInteractions.pins
+    );
+
+    const pinsByWhite = pinsPerPieceByWhite.length
+      ? pinsPerPieceByWhite.reduce((prev, curr) => prev.concat(curr))
+      : [];
+
+    const pinsPerPieceByBlack = blackInteractionsValues.map(
+      (currentInteractions) => currentInteractions.pins
+    );
+
+    const pinsByBlack = pinsPerPieceByBlack.length
+      ? pinsPerPieceByBlack.reduce((prev, curr) => prev.concat(curr))
+      : [];
+
+    for (const [currentCoords, currentInteractions] of whiteInteractions) {
+      const pin = pinsByBlack.find((pin) => pin.pinnedPiece === currentCoords);
+      currentInteractions.possibleMoves.forEach((move) => {
+        if (!pin || pin.possibleMoves.includes(move)) {
+          movesWhiteSet.add(move);
+        }
+      });
+      currentInteractions.possibleCaptures.forEach((capture) => {
+        if (!pin || pin.possibleMoves.includes(capture)) {
+          movesWhiteSet.add(capture);
+        }
+      });
+
+      currentInteractions.attackedTiles.forEach((tile) =>
+        attacksWhiteSet.add(tile)
+      );
+
+      currentInteractions.kingChecks.forEach((check) =>
+        checksWhiteSet.add(check)
+      );
+      currentInteractions.defendedPieces.forEach((defense) => {
+        defensesWhiteSet.add(defense);
+      });
+    }
+
+    for (const [currentCoords, currentInteractions] of blackInteractions) {
+      const pin = pinsByWhite.find((pin) => pin.pinnedPiece === currentCoords);
+      currentInteractions.possibleMoves.forEach((move) => {
+        if (!pin || pin.possibleMoves.includes(move)) {
+          movesBlackSet.add(move);
+        }
+      });
+      currentInteractions.possibleCaptures.forEach((capture) => {
+        if (!pin || pin.possibleMoves.includes(capture)) {
+          movesBlackSet.add(capture);
+        }
+      });
+
+      currentInteractions.attackedTiles.forEach((tile) =>
+        attacksBlackSet.add(tile)
+      );
+
+      currentInteractions.kingChecks.forEach((check) =>
+        checksBlackSet.add(check)
+      );
+      currentInteractions.defendedPieces.forEach((defense) => {
+        defensesBlackSet.add(defense);
+      });
     }
 
     whitePieceInteractions = {
@@ -184,36 +257,51 @@ export class PieceAttacks {
       pins: Array.from(pinsByBlack),
     };
 
-    const whiteKingInteractions = this.getPossibleMoves(
-      position,
-      whiteKingCoords
+    const whiteKingInteractionsNoEnemyKing = this._getPossibleKingMoves(
+      position.board,
+      blackPieceInteractions,
+      undefined,
+      position.isWhiteShortCastlingPossible,
+      position.isWhiteLongCastlingPossible,
+      position.whiteKingCoords,
+      "WHITE"
     );
-    whiteKingInteractions.possibleMoves.forEach((move) => {
-      attacksWhiteSet.add(move);
-      movesWhiteSet.add(move);
-    });
-    whiteKingInteractions.possibleCaptures.forEach((move) => {
-      capturesWhiteSet.add(move);
-    });
-    whiteKingInteractions.defendedPieces.forEach((move) => {
-      defensesWhiteSet.add(move);
-    });
-    const blackKingInteractions = this.getPossibleMoves(
-      position,
-      blackKingCoords
-    );
-    blackKingInteractions.possibleMoves.forEach((move) => {
-      attacksBlackSet.add(move);
-      movesBlackSet.add(move);
-    });
-    blackKingInteractions.possibleCaptures.forEach((move) => {
-      capturesBlackSet.add(move);
-    });
-    blackKingInteractions.defendedPieces.forEach((move) => {
-      defensesBlackSet.add(move);
-    });
 
-    return { white: whitePieceInteractions, black: blackPieceInteractions };
+    const blackKingInteractionsNoEnemyKing = this._getPossibleKingMoves(
+      position.board,
+      whitePieceInteractions,
+      undefined,
+      position.isBlackShortCastlingPossible,
+      position.isBlackLongCastlingPossible,
+      position.blackKingCoords,
+      "BLACK"
+    );
+
+    const whiteKingInteractions = this._getPossibleKingMoves(
+      position.board,
+      blackPieceInteractions,
+      blackKingInteractionsNoEnemyKing,
+      position.isWhiteShortCastlingPossible,
+      position.isWhiteLongCastlingPossible,
+      position.whiteKingCoords,
+      "WHITE"
+    );
+
+    const blackKingInteractions = this._getPossibleKingMoves(
+      position.board,
+      whitePieceInteractions,
+      whiteKingInteractionsNoEnemyKing,
+      position.isBlackShortCastlingPossible,
+      position.isBlackLongCastlingPossible,
+      position.blackKingCoords,
+      "BLACK"
+    );
+    return {
+      white: whitePieceInteractions,
+      whiteKing: whiteKingInteractions,
+      black: blackPieceInteractions,
+      blackKing: blackKingInteractions,
+    };
   }
 
   public static getPossibleMoves(
@@ -255,23 +343,27 @@ export class PieceAttacks {
       return this._getPossibleQueenMoves(board, coords, piece.color);
     }
     if (piece.pieceType === "KING") {
-      const interactions =
-        piece.color === "WHITE"
-          ? position.blackPieceInteractions
-          : position.whitePieceInteractions;
-      const isShortCastlingAllowed =
-        piece.color === "WHITE"
-          ? position.isWhiteShortCastlingPossible
-          : position.isBlackShortCastlingPossible;
+      let interactions,
+        kingInteractions,
+        isShortCastlingAllowed,
+        isLongCastlingAllowed;
 
-      const isLongCastlingAllowed =
-        piece.color === "WHITE"
-          ? position.isWhiteLongCastlingPossible
-          : position.isBlackLongCastlingPossible;
+      if (piece.color === "WHITE") {
+        interactions = position.blackPieceInteractions;
+        kingInteractions = position.blackKingInteractions;
+        isShortCastlingAllowed = position.isWhiteShortCastlingPossible;
+        isLongCastlingAllowed = position.isWhiteLongCastlingPossible;
+      } else {
+        interactions = position.whitePieceInteractions;
+        kingInteractions = position.whiteKingInteractions;
+        isShortCastlingAllowed = position.isBlackShortCastlingPossible;
+        isLongCastlingAllowed = position.isBlackLongCastlingPossible;
+      }
 
       return this._getPossibleKingMoves(
         board,
         interactions,
+        kingInteractions,
         isShortCastlingAllowed,
         isLongCastlingAllowed,
         coords,
@@ -822,6 +914,7 @@ export class PieceAttacks {
   private static _getPossibleKingMoves(
     board: Board,
     interactions: PieceInteractions,
+    kingInteractions: PieceInteractions | undefined,
     isShortCastlingAllowed: boolean,
     isLongCastlingAllowed: boolean,
     position: Coords,
@@ -830,6 +923,7 @@ export class PieceAttacks {
     let possibleMoves = [] as Coords[];
     const defendedPieces = [] as Coords[];
     let possibleCaptures = [] as Coords[];
+    const attackedTiles = [] as Coords[];
 
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
@@ -847,7 +941,11 @@ export class PieceAttacks {
         }
 
         if (tile === null) {
-          const isTileAttacked = interactions.attackedTiles.includes(coords);
+          attackedTiles.push(coords);
+
+          const isTileAttacked =
+            interactions.attackedTiles.includes(coords) ||
+            kingInteractions?.attackedTiles.includes(coords);
 
           if (!isTileAttacked) {
             possibleMoves.push(coords);
@@ -860,7 +958,9 @@ export class PieceAttacks {
           continue;
         }
 
-        const isPieceDefended = interactions.defendedPieces.includes(coords);
+        const isPieceDefended =
+          interactions.defendedPieces.includes(coords) ||
+          kingInteractions?.defendedPieces.includes(coords);
 
         if (!isPieceDefended) {
           possibleCaptures.push(coords);
@@ -954,7 +1054,7 @@ export class PieceAttacks {
 
     return {
       possibleMoves: possibleMoves,
-      attackedTiles: [...possibleMoves],
+      attackedTiles: attackedTiles,
       possibleCaptures: possibleCaptures,
       defendedPieces: defendedPieces,
       kingChecks: [],

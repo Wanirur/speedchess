@@ -3,7 +3,7 @@ import { type NextPage } from "next";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useState, useEffect, useRef, useCallback } from "react";
-import Chessgame, { type ChessgameForMatch } from "~/chess/game";
+import Chessgame, { type ChessgameForMatch } from "~/chess/chessgame";
 import { CombinedStrategies, SimpleHistory } from "~/chess/history";
 import type ChessPosition from "~/chess/position";
 import Chessboard from "~/components/chessboard";
@@ -15,7 +15,7 @@ import UserBanner from "~/components/user_banner";
 import StockfishProvider, { useStockfish } from "~/context/stockfish_provider";
 import { type Coords } from "~/utils/coords";
 import { type AlgebraicNotation } from "~/utils/notations";
-import { type TimeControl, type PromotedPieceType } from "~/utils/pieces";
+import { type TimeControl, type PromotedPieceType } from "~/chess/utils";
 import useGuestSession from "~/utils/use_guest";
 
 const toLongNotation = (chess: ChessgameForMatch) => {
@@ -358,6 +358,7 @@ const PlayBot: React.FC = () => {
             history={chess.history}
             index={indexOfBoardToDisplay}
             onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
+            gameResult={chess.gameResult}
           ></MovesHistory>
 
           <DrawResignPanel

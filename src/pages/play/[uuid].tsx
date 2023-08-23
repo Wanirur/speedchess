@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { type Channel } from "pusher-js";
 import { useEffect, useRef, useState } from "react";
-import Chessgame, { type ChessgameForMatch } from "~/chess/game";
+import Chessgame, { type ChessgameForMatch } from "~/chess/chessgame";
 import { CombinedStrategies, SimpleHistory } from "~/chess/history";
 import type ChessPosition from "~/chess/position";
 import Chessboard from "~/components/chessboard";
@@ -24,7 +24,7 @@ import {
   type GameResult,
   type TimeControl,
   oppositeColor,
-} from "~/utils/pieces";
+} from "~/chess/utils";
 import useGuestSession from "~/utils/use_guest";
 
 type SessionStorageData = {
@@ -438,6 +438,7 @@ const Play: NextPage = () => {
             history={chess.history}
             index={indexOfBoardToDisplay}
             onIndexChange={(index) => setIndexOfBoardToDisplay(index)}
+            gameResult={chess.gameResult}
           ></MovesHistory>
 
           <DrawResignPanel

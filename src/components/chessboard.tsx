@@ -17,13 +17,13 @@ import {
   blackRook,
   blackBishop,
   type PromotedPieceType,
-} from "~/utils/pieces";
+} from "~/chess/utils";
 import Image from "next/image";
 import { api } from "~/utils/api";
 import { Coords } from "~/utils/coords";
 import { twMerge } from "tailwind-merge";
 import { usePusher } from "~/context/pusher_provider";
-import type Chessgame from "~/chess/game";
+import type Chessgame from "~/chess/chessgame";
 import { type TrackingStrategy } from "~/chess/history";
 import { PieceAttacks } from "~/chess/attacks";
 
