@@ -1,9 +1,16 @@
+/* eslint-disable @next/next/no-before-interactive-script-outside-document */
 import { type PlayerColor } from "@prisma/client";
 import Script from "next/script";
-import { type ReactNode, createContext, useContext, useState } from "react";
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useState,
+  useRef,
+} from "react";
 import EventEmitter from "~/utils/event_emitter";
 import { AlgebraicNotation, type FEN } from "~/utils/notations";
-import { TimeControl } from "~/chess/utils";
+import { type TimeControl } from "~/chess/utils";
 
 //source: https://github.com/lichess-org/stockfish.wasm/blob/master/Readme.md
 const wasmThreadsSupported = () => {
@@ -471,8 +478,8 @@ type StockfishContextType = {
 };
 
 const StockfishContext = createContext<StockfishContextType>({
-  isLoading: true,
-  isError: false,
+  isLoading: false,
+  isError: true,
   isSuccess: false,
 });
 
@@ -482,6 +489,8 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
     isError: false,
     isSuccess: false,
   });
+
+  const runningRef = useRef<boolean>(false);
 
   return (
     <StockfishContext.Provider value={context}>
@@ -496,7 +505,7 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
             isSuccess: false,
           });
         }}
-        onReady={() => {
+        onLoad={() => {
           if (!wasmThreadsSupported()) {
             console.log(
               "wasm threads not supported (possibly incorrect headers?)"
@@ -506,26 +515,31 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
               isError: true,
               isSuccess: false,
             });
-
-            return;
           }
-
-          if (context.stockfish) {
-            setContext({ ...context });
+        }}
+        onReady={() => {
+          if (runningRef.current) {
             console.log("stockfish instance already running");
             return;
           }
 
+          runningRef.current = true;
+
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          Stockfish().then((sf: Stockfish) => {
-            setContext({
-              isLoading: false,
-              isError: false,
-              isSuccess: true,
-              stockfish: new StockfishWrapper(sf),
+          Stockfish()
+            .then((sf: Stockfish) => {
+              setContext({
+                isLoading: false,
+                isError: false,
+                isSuccess: true,
+                stockfish: new StockfishWrapper(sf),
+              });
+            })
+            .catch((e: Error) => {
+              console.log(e);
             });
-          });
         }}
+        strategy="beforeInteractive"
       ></Script>
       {children}
     </StockfishContext.Provider>
