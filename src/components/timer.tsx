@@ -1,52 +1,100 @@
 import type { Channel } from "pusher-js";
-import { useEffect, useState } from "react";
-import type { Coords, PlayerColor } from "~/utils/pieces";
+import { useEffect, useState, type HTMLAttributes } from "react";
+import { twMerge } from "tailwind-merge";
+import { type Coords } from "~/utils/coords";
+import type { PlayerColor } from "~/chess/utils";
 
-const Timer: React.FC<{
-  channel: Channel;
-  color: PlayerColor;
-  initial: number;
-  isLocked: boolean;
-}> = ({ channel, initial, isLocked }) => {
-  const [seconds, setSeconds] = useState<number>(Math.floor(initial / 1000));
+const Timer: React.FC<
+  {
+    channel?: Channel;
+    color: PlayerColor;
+    initial: number;
+    increment: number;
+    isLocked: boolean;
+    isGameFinished: boolean;
+    chessTimeoutFunc: (color: PlayerColor) => void;
+    onTimeChange?: (secondsLeft: number) => void;
+  } & HTMLAttributes<HTMLDivElement>
+> = ({
+  className,
+  channel,
+  color,
+  initial,
+  increment,
+  isLocked,
+  isGameFinished,
+  chessTimeoutFunc,
+  onTimeChange: onChange,
+}) => {
+  const [seconds, setSeconds] = useState<number>(Math.floor(initial));
 
   useEffect(() => {
-    if (seconds <= 0) {
-      return;
-    }
-    const interval = setInterval(() => {
-      if (!isLocked) {
-        setSeconds((x) => x - 1);
+    const timeout = setTimeout(() => {
+      if (!isLocked && !isGameFinished) {
+        if (seconds <= 0) {
+          return;
+        }
+
+        const secondsLeft = seconds - 1;
+
+        setSeconds(secondsLeft);
+        onChange?.(secondsLeft);
       }
     }, 1000);
 
     return () => {
-      clearInterval(interval);
+      clearTimeout(timeout);
     };
-  }, [seconds, isLocked]);
+  }, [isLocked, onChange, seconds, increment, isGameFinished]);
 
   useEffect(() => {
+    if (seconds <= 0) {
+      chessTimeoutFunc(color);
+    }
+  }, [seconds, chessTimeoutFunc, color]);
+
+  useEffect(() => {
+    if (!channel) {
+      return;
+    }
+
     const onMove = (move: {
       fromTile: Coords;
       toTile: Coords;
-      timeLeftInMilis: number;
+      whiteTimeLeftInMilis: number;
+      blackTimeLeftInMilis: number;
     }) => {
-      if (!isLocked) {
-        setSeconds(Math.round(move.timeLeftInMilis / 1000));
+      const timeLeftInMilis =
+        color === "WHITE"
+          ? move.whiteTimeLeftInMilis
+          : move.blackTimeLeftInMilis;
+
+      if (timeLeftInMilis && !isLocked) {
+        setSeconds(Math.ceil(timeLeftInMilis / 1000));
       }
     };
 
-    channel.bind("move_made", onMove);
+    channel?.bind("move_made", onMove);
     return () => {
-      channel.unbind("move_made", onMove);
+      channel?.unbind("move_made", onMove);
     };
-  }, [channel, isLocked]);
+  }, [channel, isLocked, color]);
+
+  useEffect(() => {
+    if (isLocked) {
+      setSeconds((sec) => (sec < initial ? sec + increment : sec));
+    }
+  }, [isLocked, increment, initial]);
+
+  const textColor = seconds <= 10 ? "text-red-900" : "text-white";
+
   return (
     <div
-      className={
-        "text-os w-full  bg-neutral-800 p-4 font-timer text-6xl " +
-        (seconds <= 10 ? "text-red-900" : "text-white")
-      }
+      className={twMerge(
+        "text-os flex items-center bg-neutral-800 px-5 font-timer text-5xl",
+        textColor,
+        className
+      )}
     >
       {Math.floor(seconds / 60).toString() +
         ":" +
