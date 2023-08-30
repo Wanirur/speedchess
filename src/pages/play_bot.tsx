@@ -17,6 +17,7 @@ import { type Coords } from "~/utils/coords";
 import { type AlgebraicNotation } from "~/utils/notations";
 import { type TimeControl, type PromotedPieceType } from "~/chess/utils";
 import useGuestSession from "~/utils/use_guest";
+import Layout from "~/components/layout";
 
 const toLongNotation = (chess: ChessgameForMatch) => {
   const algebraic = chess.history.notation.moves;
@@ -273,7 +274,7 @@ const PlayBot: React.FC = () => {
     chess.position.board;
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] items-center justify-center 3xl:min-h-[calc(100vh-7rem)]">
+    <Layout title="Playing bot - speedchess.net">
       <div className="relative flex h-[33rem] flex-col items-center justify-center bg-neutral-900 md:h-[30rem] md:w-[50rem] md:flex-row lg:h-[40rem] lg:w-[60rem] 3xl:h-[60rem] 3xl:w-[90rem]">
         <div className="z-10 h-80 w-80  md:h-[30rem] md:w-[30rem] lg:h-[40rem] lg:w-[40rem] 3xl:h-[60rem] 3xl:w-[60rem]">
           {isGameFinished && chess.gameResult ? (
@@ -412,7 +413,7 @@ const PlayBot: React.FC = () => {
           ></Timer>
         </div>
       </div>
-    </main>
+    </Layout>
   );
 };
 
