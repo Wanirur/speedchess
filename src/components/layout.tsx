@@ -12,6 +12,11 @@ const Layout: React.FC<{ title: string } & HTMLAttributes<HTMLDivElement>> = ({
         <title> {title} </title>
         <meta name="description" content="Play short time control chess" />
         <link rel="icon" href="/favicon.svg" />
+        <meta property="og:title" content="speedchess.net" />
+        <meta
+          property="og:description"
+          content="Play short time control chess"
+        />
       </Head>
 
       <Header className="h-14 3xl:h-28 3xl:text-6xl"></Header>
