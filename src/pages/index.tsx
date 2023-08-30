@@ -10,6 +10,7 @@ import { twMerge } from "tailwind-merge";
 import { usePusher } from "~/context/pusher_provider";
 import Login from "~/components/login";
 import useGuestSession from "~/utils/use_guest";
+import Layout from "~/components/layout";
 
 const Home: NextPage = () => {
   const { data: sessionData, status } = useSession();
@@ -19,13 +20,13 @@ const Home: NextPage = () => {
     return <div> loading... </div>;
   }
   return (
-    <main className="m-auto flex min-h-[calc(100vh-3.5rem)] w-screen max-w-[100vw] flex-col items-center justify-center overflow-hidden bg-neutral-900 3xl:min-h-[calc(100vh-7rem)]">
+    <Layout title={"Home - speedchess.net"}>
       {sessionData?.user?.image || guest ? (
         <UserLoggedInView></UserLoggedInView>
       ) : (
         <Login className="h-[30rem] w-80 3xl:h-[36rem] 3xl:w-96 3xl:text-xl"></Login>
       )}
-    </main>
+    </Layout>
   );
 };
 
