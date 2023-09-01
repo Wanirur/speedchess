@@ -1,5 +1,10 @@
 import { type NextApiHandler } from "next";
-import { matches, playersWaitingForMatch } from "~/server/matchmaking";
+import {
+  matches,
+  playersWaitingForMatch,
+  playingUsers,
+  queuedUpUsers,
+} from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 
 const ExistenceWebhookHandler: NextApiHandler = (req, res) => {
@@ -26,15 +31,29 @@ const ExistenceWebhookHandler: NextApiHandler = (req, res) => {
       continue;
     }
 
-    if (matches.has(channelUuid)) {
+    if (matches.has(channelUuid) && playingUsers.has(channelUuid)) {
+      const match = matches.get(channelUuid);
+      const white = match?.white.id;
+      const black = match?.black.id;
+
       matches.delete(channelUuid);
+      if (white) {
+        playingUsers.delete(white);
+      }
+      if (black) {
+        playingUsers.delete(black);
+      }
       continue;
     }
 
     playersWaitingForMatch.forEach((tiersInTimeControl) => {
       tiersInTimeControl.forEach((gamesInTier) => {
         const index = gamesInTier.findIndex((game) => game.id === channelUuid);
-        gamesInTier.splice(index, 1);
+        const matchWithOnePlayer = gamesInTier.splice(index, 1)[0];
+        const playerId = matchWithOnePlayer?.white.id;
+        if (playerId && queuedUpUsers.has(playerId)) {
+          queuedUpUsers.delete(playerId);
+        }
       });
     });
   }
