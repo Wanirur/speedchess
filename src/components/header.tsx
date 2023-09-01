@@ -14,24 +14,24 @@ const Header: React.FC<HTMLAttributes<HTMLDivElement>> = ({ className }) => {
   return (
     <header
       className={twMerge(
-        "flex items-center bg-neutral-900 px-5 font-logo text-xl font-semibold text-green-800 sm:px-10 sm:text-2xl",
+        "3xl: flex items-center bg-neutral-900 px-5 font-logo text-xl font-semibold text-green-800 sm:px-10  sm:text-2xl",
         className
       )}
     >
       <div className="flex w-1/2 items-center">
-        <Logo className="gap-1 text-xl sm:gap-2 sm:text-2xl"></Logo>
+        <Logo className="gap-1 text-xl sm:gap-2 sm:text-2xl  3xl:text-4xl"></Logo>
       </div>
-      <div className="flex w-1/2 items-center justify-end gap-4">
+      <div className="flex w-1/2 items-center justify-end gap-4 3xl:gap-6">
         {sessionData?.user?.image ? (
           <>
             <LogOut
-              className="h-1/2 cursor-pointer hover:stroke-white 3xl:h-14 3xl:w-14"
+              className="h-1/2 cursor-pointer hover:stroke-white 3xl:h-10 3xl:w-10"
               onClick={() => {
                 void signOut();
               }}
             ></LogOut>
             <Link href={`/user/${sessionData?.user.id}`}>
-              <User className="h-7 w-7 hover:stroke-white 3xl:h-14 3xl:w-14"></User>
+              <User className="h-7 w-7 hover:stroke-white 3xl:h-10 3xl:w-10"></User>
             </Link>
             <div className="relative h-7 w-7 3xl:h-14 3xl:w-14">
               <Image

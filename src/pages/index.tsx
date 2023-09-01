@@ -101,7 +101,9 @@ const UserLoggedInView: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-8 px-3 py-16">
       {queueUpMutation.isError && (
-        <p className="text-red-400">{queueUpMutation.error.message}</p>
+        <p className="text-center font-os text-sm text-red-400 md:text-xl">
+          {queueUpMutation.error.message}
+        </p>
       )}
 
       {sessionData?.user?.rating && (

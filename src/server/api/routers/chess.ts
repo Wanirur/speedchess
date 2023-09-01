@@ -70,7 +70,8 @@ export const chessgameRouter = createTRPCRouter({
 
         throw new TRPCError({
           code: "CONFLICT",
-          message: "You are already in queue in different time control!",
+          message:
+            "You are still in queue in different time control. Please wait up to 3 seconds.",
         });
       }
 
