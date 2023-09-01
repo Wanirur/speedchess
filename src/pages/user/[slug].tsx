@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { api } from "~/utils/api";
 import Layout from "~/components/layout";
+import LoadingDisplay from "~/components/loading";
+import ErrorDisplay from "~/components/error";
 
 const Profile: NextPage = () => {
   const router = useRouter();
@@ -59,11 +61,19 @@ const Profile: NextPage = () => {
   }, [fetchNextPage, inView, userData]);
 
   if (isError) {
-    return <div> error occured </div>;
+    return (
+      <Layout title="Error - speedchess.net">
+        <ErrorDisplay></ErrorDisplay>
+      </Layout>
+    );
   }
 
   if (isLoading) {
-    return <div> loading... </div>;
+    return (
+      <Layout title="Loading - speedchess.net">
+        <LoadingDisplay></LoadingDisplay>
+      </Layout>
+    );
   }
   return (
     <Layout title={`${userData?.name ?? "unknown"}'s profile - speedchess.net`}>
