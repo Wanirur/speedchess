@@ -11,13 +11,18 @@ import { usePusher } from "~/context/pusher_provider";
 import Login from "~/components/login";
 import useGuestSession from "~/utils/use_guest";
 import Layout from "~/components/layout";
+import LoadingDisplay from "~/components/loading";
 
 const Home: NextPage = () => {
   const { data: sessionData, status } = useSession();
   const { user: guest } = useGuestSession();
 
   if (status === "loading") {
-    return <div> loading... </div>;
+    return (
+      <Layout title="Loading - speedchess.net">
+        <LoadingDisplay></LoadingDisplay>
+      </Layout>
+    );
   }
   return (
     <Layout title={"Home - speedchess.net"}>
@@ -101,7 +106,7 @@ const UserLoggedInView: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-8 px-3 py-16">
       {queueUpMutation.isError && (
-        <p className="text-center font-os text-sm text-red-400 md:text-xl">
+        <p className="text-center font-os text-sm text-red-400 2xl:text-xl">
           {queueUpMutation.error.message}
         </p>
       )}

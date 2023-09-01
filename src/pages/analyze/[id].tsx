@@ -18,6 +18,8 @@ import { CombinedStrategies, HistoryWithVariations } from "~/chess/history";
 import { type AlgebraicNotation } from "~/utils/notations";
 import type ChessPosition from "~/chess/position";
 import Layout from "~/components/layout";
+import LoadingDisplay from "~/components/loading";
+import ErrorDisplay from "~/components/error";
 
 const AnalyzePage = () => {
   const router = useRouter();
@@ -191,7 +193,11 @@ const AnalyzePage = () => {
   }, [gameData, chess]);
 
   if (!sessionData?.user || isError || isStockfishError) {
-    return <div> error </div>;
+    return (
+      <Layout title="Error - speedchess.net">
+        <ErrorDisplay></ErrorDisplay>
+      </Layout>
+    );
   }
 
   if (
@@ -202,7 +208,11 @@ const AnalyzePage = () => {
     !blackData ||
     !whiteData
   ) {
-    return <div> loading...</div>;
+    return (
+      <Layout title="Loading - speedchess.net">
+        <LoadingDisplay></LoadingDisplay>
+      </Layout>
+    );
   }
 
   const boardToDisplay =
