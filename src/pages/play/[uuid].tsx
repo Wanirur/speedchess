@@ -27,6 +27,8 @@ import {
 } from "~/chess/utils";
 import useGuestSession from "~/utils/use_guest";
 import Layout from "~/components/layout";
+import LoadingDisplay from "~/components/loading";
+import ErrorDisplay from "~/components/error";
 
 type SessionStorageData = {
   moves: string;
@@ -338,7 +340,9 @@ const Play: NextPage = () => {
     (!sessionData?.user && !guest)
   ) {
     return (
-      <div className="text-red-600"> An error occured. Please refresh. </div>
+      <Layout title="Error - speedchess.net">
+        <ErrorDisplay></ErrorDisplay>
+      </Layout>
     );
   }
 
@@ -352,7 +356,11 @@ const Play: NextPage = () => {
     !chess ||
     !(sessionData?.user || guest)
   ) {
-    return <div className="text-white"> Loading... </div>;
+    return (
+      <Layout title="Loading - speedchess.net">
+        <LoadingDisplay></LoadingDisplay>
+      </Layout>
+    );
   }
 
   const gameSummaryRating =

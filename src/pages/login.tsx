@@ -2,6 +2,7 @@ import { type NextPage } from "next";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import Layout from "~/components/layout";
+import LoadingDisplay from "~/components/loading";
 import Login from "~/components/login";
 
 const LoginPage: NextPage = () => {
@@ -13,7 +14,11 @@ const LoginPage: NextPage = () => {
   }, [callbackUrl]);
 
   if (!router.isReady) {
-    return <div> Loading... </div>;
+    return (
+      <Layout title="Loading - speedchess.net">
+        <LoadingDisplay></LoadingDisplay>
+      </Layout>
+    );
   }
 
   return (

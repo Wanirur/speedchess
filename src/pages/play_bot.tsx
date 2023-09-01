@@ -18,6 +18,8 @@ import { type AlgebraicNotation } from "~/utils/notations";
 import { type TimeControl, type PromotedPieceType } from "~/chess/utils";
 import useGuestSession from "~/utils/use_guest";
 import Layout from "~/components/layout";
+import ErrorDisplay from "~/components/error";
+import LoadingDisplay from "~/components/loading";
 
 const toLongNotation = (chess: ChessgameForMatch) => {
   const algebraic = chess.history.notation.moves;
@@ -58,9 +60,9 @@ const PlayBot: React.FC = () => {
     | undefined
   >();
 
-  const { data: sessionData } = useSession();
-  const { user: guest } = useGuestSession();
-  const { isError, stockfish } = useStockfish();
+  const { data: sessionData, status } = useSession();
+  const { user: guest, isLoading: isGuestSessionLoading } = useGuestSession();
+  const { isError: hasStockishFailedToLoad, stockfish } = useStockfish();
 
   const storageCleanupFunction = useCallback(() => {
     sessionStorage.removeItem("white_time");
@@ -251,8 +253,19 @@ const PlayBot: React.FC = () => {
     };
   }, [stockfish, chess, opponentsColor, storageCleanupFunction]);
 
-  if (isClient && (isError || (!sessionData && !guest))) {
-    return <div className="text-red"> error </div>;
+  if (
+    isClient &&
+    (hasStockishFailedToLoad ||
+      (!sessionData &&
+        status !== "loading" &&
+        !guest &&
+        !isGuestSessionLoading))
+  ) {
+    return (
+      <Layout title="Error - speedchess.net">
+        <ErrorDisplay></ErrorDisplay>
+      </Layout>
+    );
   }
 
   if (
@@ -263,7 +276,11 @@ const PlayBot: React.FC = () => {
     !opponentsData ||
     !stockfish
   ) {
-    return <div className="text-white"> Loading... </div>;
+    return (
+      <Layout title="Loading - speedchess.net">
+        <LoadingDisplay></LoadingDisplay>
+      </Layout>
+    );
   }
 
   const isDisplayedBoardLatest =
