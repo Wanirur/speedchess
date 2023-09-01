@@ -39,10 +39,12 @@ const QueueUpCard: React.FC<
   return (
     <div
       className={twMerge(
-        "flex h-24 w-32 flex-col items-center justify-center gap-2 bg-neutral-700 font-os text-white md:h-48 md:w-64 md:gap-5 3xl:h-64 3xl:w-96 3xl:gap-8",
+        "relative flex h-24 w-32 flex-col items-center justify-center gap-2 bg-neutral-700 font-os text-white md:h-48 md:w-64 md:gap-5 3xl:h-64 3xl:w-96 3xl:gap-8",
         className
       )}
     >
+      <div className="absolute h-full w-full md:hidden" onClick={onClick}></div>
+
       <div className="relative flex items-center justify-center">
         <span className="mx-1 text-2xl md:text-6xl 3xl:text-7xl">
           {`${timeControl.initialTime / 60} | ${timeControl.increment}`}
@@ -58,8 +60,9 @@ const QueueUpCard: React.FC<
           </div>
         </div>
       </div>
+
       <button
-        className="rounded-md bg-green-700 p-1 font-os text-sm text-white hover:bg-green-800 md:p-4 md:text-base 3xl:text-xl"
+        className="rounded-md bg-green-700 p-1.5 font-os text-xs text-white hover:bg-green-800 md:p-4 md:text-base 3xl:text-xl"
         onClick={onClick}
       >
         Play
