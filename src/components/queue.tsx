@@ -78,15 +78,24 @@ const Queue: React.FC<
           }`}
           onClick={() => {
             const color = Math.random() > 0.5 ? "white" : "black";
-            void router.push(
-              `/play_bot?color=${color}&time=${
-                timeControl.initialTime / 60
-              }&increment=${timeControl.increment}`
-            );
+            //reload after pushing in order to setup headers correctly - necessary for stockfish to use SharedArrayBuffers
+            router
+              .push(
+                `/play_bot?color=${color}&time=${
+                  timeControl.initialTime / 60
+                }&increment=${timeControl.increment}`
+              )
+              .then(() => {
+                router.reload();
+              })
+              .catch((e) => {
+                console.log(e);
+              });
           }}
         >
           play a bot
         </button>
+
         <button
           className="rounded-md bg-red-900 p-3 hover:bg-red-950 md:p-4"
           onClick={() => {
