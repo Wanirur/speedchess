@@ -315,7 +315,7 @@ const Chessboard: React.FC<
                         src={resolvePieceToImage(tile)}
                         alt={tile.pieceType}
                         fill
-                        className="cursor-pointer"
+                        className="cursor-pointer p-0.5 md:p-0"
                       ></Image>
                     )
                   ) : (
@@ -331,14 +331,14 @@ const Chessboard: React.FC<
                   )}
                   {((color === "WHITE" && rowIndex === 0) ||
                     (color === "BLACK" && rowIndex === 7)) && (
-                    <div className="absolute bottom-0 p-1 py-0 font-os text-sm font-bold">
+                    <div className="absolute bottom-0 right-0 px-0.5 font-os text-2xs font-semibold md:px-1 md:text-xs lg:text-base">
                       {String.fromCharCode("a".charCodeAt(0) + index)}
                     </div>
                   )}
 
-                  {((color === "WHITE" && index === 7) ||
-                    (color === "BLACK" && index === 0)) && (
-                    <div className="absolute right-0 p-0.5 py-0 font-os text-sm font-bold">
+                  {((color === "WHITE" && index === 0) ||
+                    (color === "BLACK" && index === 7)) && (
+                    <div className="absolute left-0 px-0.5 font-os text-2xs font-semibold md:text-xs lg:text-base">
                       {rowIndex + 1}
                     </div>
                   )}

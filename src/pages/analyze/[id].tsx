@@ -24,7 +24,7 @@ import ErrorDisplay from "~/components/error";
 const AnalyzePage = () => {
   const router = useRouter();
   const { id } = router.query;
-  const { data: sessionData } = useSession();
+  const { data: sessionData, status } = useSession();
 
   const [chess, setChess] = useState<ChessgameForAnalysis>(
     new Chessgame(
@@ -192,7 +192,11 @@ const AnalyzePage = () => {
     }
   }, [gameData, chess]);
 
-  if (!sessionData?.user || isError || isStockfishError) {
+  if (
+    (!sessionData?.user && status !== "loading") ||
+    isError ||
+    isStockfishError
+  ) {
     return (
       <Layout title="Error - speedchess.net">
         <ErrorDisplay></ErrorDisplay>
@@ -206,7 +210,8 @@ const AnalyzePage = () => {
     isLoading ||
     !stockfish ||
     !blackData ||
-    !whiteData
+    !whiteData ||
+    !sessionData?.user
   ) {
     return (
       <Layout title="Loading - speedchess.net">

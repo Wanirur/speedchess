@@ -505,7 +505,7 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
             isSuccess: false,
           });
         }}
-        onLoad={() => {
+        onReady={() => {
           if (!wasmThreadsSupported()) {
             console.log(
               "wasm threads not supported (possibly incorrect headers?)"
@@ -515,9 +515,10 @@ const StockfishProvider = ({ children }: { children: ReactNode }) => {
               isError: true,
               isSuccess: false,
             });
+
+            return;
           }
-        }}
-        onReady={() => {
+
           if (runningRef.current) {
             console.log("stockfish instance already running");
             return;
