@@ -18,6 +18,14 @@ const config = {
         logo: ["Francois One", "sans-serif"],
         timer: ["Share Tech Mono", "monospace"],
       },
+      fontSize: {
+        "2xs": [
+          "0.55rem",
+          {
+            lineHeight: "1rem",
+          },
+        ],
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

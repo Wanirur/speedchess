@@ -199,7 +199,20 @@ const Profile: NextPage = () => {
                       </div>
                       <div className="flex w-1/5 items-center justify-center">
                         <Link href={`/analyze/${game.id}`}>
-                          <button className="rounded-md bg-green-700 p-2 hover:bg-green-800 md:px-4 md:py-3">
+                          <button
+                            className="rounded-md bg-green-700 p-2 hover:bg-green-800 md:px-4 md:py-3"
+                            onClick={() => {
+                              //reload after pushing in order to setup headers correctly - necessary for stockfish to use SharedArrayBuffers
+                              router
+                                .push(`/analyze/${game.id}`)
+                                .then(() => {
+                                  router.reload();
+                                })
+                                .catch((e) => {
+                                  console.log(e);
+                                });
+                            }}
+                          >
                             Analyze
                           </button>
                         </Link>
