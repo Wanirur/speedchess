@@ -3,6 +3,7 @@ import { useEffect, useState, type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 import { type Coords } from "~/utils/coords";
 import type { PlayerColor } from "~/chess/utils";
+import { api } from "~/utils/api";
 
 const Timer: React.FC<
   {
@@ -79,6 +80,28 @@ const Timer: React.FC<
       channel?.unbind("move_made", onMove);
     };
   }, [channel, isLocked, color]);
+
+  const { data: playersTime } = api.chess.getPlayersTime.useQuery(
+    { gameId: channel?.name ?? "" },
+    {
+      enabled: !!channel,
+      refetchOnMount: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: false,
+    }
+  );
+
+  useEffect(() => {
+    if (!playersTime) {
+      return;
+    }
+
+    if (color === "WHITE") {
+      setSeconds(Math.floor(playersTime.white / 1000));
+    } else {
+      setSeconds(Math.floor(playersTime.black / 1000));
+    }
+  }, [playersTime, color]);
 
   useEffect(() => {
     if (isLocked) {
