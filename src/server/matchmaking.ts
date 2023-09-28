@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { type TimeControlName } from "@prisma/client";
-import { type MatchPairing } from "./game";
+import { type MatchPairing } from "./match_pairing";
 import { type TimeControl } from "~/chess/utils";
 
 export const playersWaitingForMatch = new Map<
@@ -123,4 +123,5 @@ export const playingUsers = new Map<
   { gameId: string; timeControl: TimeControl }
 >(); // key: userId, value: {gameId, timeControl}
 export const abandonTimeouts = new Map<string, NodeJS.Timeout>();
+export const delayedAbandonments = new Map<string, string>(); //key: gameId, value: userId
 export const guestUsers = new Map<string, NodeJS.Timeout>();

@@ -7,7 +7,7 @@ import {
   addGameToQueue,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
-import { MatchPairing } from "~/server/game";
+import { MatchPairing } from "~/server/match_pairing";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
