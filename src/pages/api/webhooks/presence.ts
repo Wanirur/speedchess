@@ -1,8 +1,18 @@
 import { type NextApiHandler } from "next";
-import { abandonTimeouts, matches } from "~/server/matchmaking";
+import {
+  abandonTimeouts,
+  delayedAbandonments,
+  matches,
+} from "~/server/matchmaking";
 import pusher from "~/server/pusher";
 
-const PresenceWebhookHandler: NextApiHandler = (req, res) => {
+type PresenceEventData = {
+  name: string;
+  channel: string;
+  user_id: string;
+};
+
+const PresenceWebhookHandler: NextApiHandler = async (req, res) => {
   const webhookReq = {
     headers: req.headers,
     rawBody: JSON.stringify(req.body),
@@ -30,10 +40,17 @@ const PresenceWebhookHandler: NextApiHandler = (req, res) => {
       continue;
     }
 
-    const userId = event.data;
+    const { user_id: userId } = (await JSON.parse(
+      event.data
+    )) as PresenceEventData;
     const match = matches.get(channelUuid);
 
     const abandonColor = match?.white.id === userId ? "BLACK" : "WHITE";
+    const isDelayed = delayedAbandonments.get(channelUuid) === userId;
+    if (isDelayed) {
+      continue;
+    }
+
     abandonTimeouts.set(
       channelUuid,
       setTimeout(() => {
@@ -54,6 +71,14 @@ const PresenceWebhookHandler: NextApiHandler = (req, res) => {
   for (const event of addedMembers) {
     const channelUuid = event.channel;
     if (!abandonTimeouts.has(channelUuid)) {
+      if (matches.has(channelUuid)) {
+        const { user_id: userId } = (await JSON.parse(
+          event.data
+        )) as PresenceEventData;
+
+        delayedAbandonments.set(channelUuid, userId);
+      }
+
       continue;
     }
 

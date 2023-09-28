@@ -3,6 +3,7 @@ import { useEffect, useState, type HTMLAttributes } from "react";
 import { twMerge } from "tailwind-merge";
 import { type Coords } from "~/utils/coords";
 import type { PlayerColor } from "~/chess/utils";
+import { api } from "~/utils/api";
 
 const Timer: React.FC<
   {
@@ -80,6 +81,28 @@ const Timer: React.FC<
     };
   }, [channel, isLocked, color]);
 
+  const { data: playersTime } = api.chess.getPlayersTime.useQuery(
+    { gameId: channel?.name ?? "" },
+    {
+      enabled: !!channel,
+      refetchOnMount: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: false,
+    }
+  );
+
+  useEffect(() => {
+    if (!playersTime) {
+      return;
+    }
+
+    if (color === "WHITE") {
+      setSeconds(Math.floor(playersTime.white / 1000));
+    } else {
+      setSeconds(Math.floor(playersTime.black / 1000));
+    }
+  }, [playersTime, color]);
+
   useEffect(() => {
     if (isLocked) {
       setSeconds((sec) => (sec < initial ? sec + increment : sec));
@@ -87,6 +110,11 @@ const Timer: React.FC<
   }, [isLocked, increment, initial]);
 
   const textColor = seconds <= 10 ? "text-red-900" : "text-white";
+  const minutes = Math.floor(seconds / 60);
+  const minutesToDisplay = minutes < 0 ? 0 : minutes;
+
+  const secondsOnTimer = seconds % 60;
+  const secondsToDisplay = secondsOnTimer < 0 ? 0 : secondsOnTimer;
 
   return (
     <div
@@ -96,9 +124,7 @@ const Timer: React.FC<
         className
       )}
     >
-      {Math.floor(seconds / 60).toString() +
-        ":" +
-        (seconds % 60).toString().padStart(2, "0")}
+      {`${minutesToDisplay}:${secondsToDisplay.toString().padStart(2, "0")}`}
     </div>
   );
 };
