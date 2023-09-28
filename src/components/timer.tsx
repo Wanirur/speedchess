@@ -110,6 +110,11 @@ const Timer: React.FC<
   }, [isLocked, increment, initial]);
 
   const textColor = seconds <= 10 ? "text-red-900" : "text-white";
+  const minutes = Math.floor(seconds / 60);
+  const minutesToDisplay = minutes < 0 ? 0 : minutes;
+
+  const secondsOnTimer = seconds % 60;
+  const secondsToDisplay = secondsOnTimer < 0 ? 0 : secondsOnTimer;
 
   return (
     <div
@@ -119,9 +124,7 @@ const Timer: React.FC<
         className
       )}
     >
-      {Math.floor(seconds / 60).toString() +
-        ":" +
-        (seconds % 60).toString().padStart(2, "0")}
+      {`${minutesToDisplay}:${secondsToDisplay.toString().padStart(2, "0")}`}
     </div>
   );
 };
