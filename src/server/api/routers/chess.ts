@@ -7,7 +7,7 @@ import {
   addGameToQueue,
 } from "~/server/matchmaking";
 import pusher from "~/server/pusher";
-import { MatchPairing } from "~/server/game";
+import { MatchPairing } from "~/server/match_pairing";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import {
@@ -160,7 +160,7 @@ export const chessgameRouter = createTRPCRouter({
 
       let whiteTime = match.white.timeLeftInMilis;
       let blackTime = match.black.timeLeftInMilis;
-      const timeSinceLastMove = Date.now() - match.lastMoveTime;
+      const timeSinceLastMove = Date.now() - match.lastMoveTimestamp;
       if (match.turn === match.white) {
         whiteTime -= timeSinceLastMove;
       } else {
@@ -498,6 +498,46 @@ export const chessgameRouter = createTRPCRouter({
       return {
         moves: game.moves,
         result: { winner: game.result, reason: game.reason } as GameResult,
+      };
+    }),
+  getPlayersTime: protectedProcedure
+    .input(z.object({ gameId: z.string().uuid() }))
+    .query(({ ctx, input }) => {
+      const user = ctx.session?.user ?? {
+        id: ctx.guestId,
+        rating: 1200,
+        name: "guest",
+      };
+
+      const match = matches.get(input.gameId);
+
+      if (!match) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The game does not exist",
+        });
+      }
+
+      if (user.id !== match.white.id && user.id !== match.black.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not a player",
+        });
+      }
+
+      const newTimestamp = Date.now();
+      const diff = newTimestamp - match.lastMoveTimestamp;
+      if (match.turn === match.white) {
+        match.white.timeLeftInMilis -= diff;
+      } else {
+        match.black.timeLeftInMilis -= diff;
+      }
+
+      match.lastMoveTimestamp = newTimestamp;
+
+      return {
+        white: match.white.timeLeftInMilis,
+        black: match.black.timeLeftInMilis,
       };
     }),
 });

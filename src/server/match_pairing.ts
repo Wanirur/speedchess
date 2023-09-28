@@ -54,9 +54,12 @@ export class MatchPairing {
   private get gameResult() {
     return this.chess.gameResult;
   }
-  private _lastMoveTime: number;
-  public get lastMoveTime() {
-    return this._lastMoveTime;
+  private _lastMoveTimestamp: number;
+  public get lastMoveTimestamp() {
+    return this._lastMoveTimestamp;
+  }
+  public set lastMoveTimestamp(moveTime: number) {
+    this._lastMoveTimestamp = moveTime;
   }
 
   private _initialTime: number;
@@ -97,7 +100,7 @@ export class MatchPairing {
     this._turn = this._white;
     this._drawOfferedBy = null;
     this._id = randomUUID();
-    this._lastMoveTime = Date.now();
+    this._lastMoveTimestamp = Date.now();
     this._initialTime = timeControl.initialTime;
     this._increment = timeControl.increment;
 
@@ -108,7 +111,7 @@ export class MatchPairing {
   }
 
   start() {
-    this._lastMoveTime = Date.now();
+    this._lastMoveTimestamp = Date.now();
     this._hasStarted = true;
   }
 
@@ -118,8 +121,8 @@ export class MatchPairing {
     }
 
     const moveEnd = Date.now();
-    const duration = moveEnd - this._lastMoveTime;
-    this._lastMoveTime = moveEnd;
+    const duration = moveEnd - this._lastMoveTimestamp;
+    this._lastMoveTimestamp = moveEnd;
     this._turn.timeLeftInMilis -= duration;
     let timeLeft = this._turn.timeLeftInMilis;
     if (timeLeft <= 0) {
@@ -163,8 +166,8 @@ export class MatchPairing {
     }
 
     const moveEnd = Date.now();
-    const duration = moveEnd - this._lastMoveTime;
-    this._lastMoveTime = moveEnd;
+    const duration = moveEnd - this._lastMoveTimestamp;
+    this._lastMoveTimestamp = moveEnd;
     this._turn.timeLeftInMilis -= duration;
     const timeLeft = this._turn.timeLeftInMilis;
 
