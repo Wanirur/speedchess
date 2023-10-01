@@ -12,6 +12,7 @@ Simple chess website made with [create-T3-app](https://github.com/t3-oss/create-
   - MySQL
   - NextAuth
   - [stockfish.wasm](https://github.com/lichess-org/stockfish.wasm)
+  - jest
   
 ## Features 
  - login using Google or Discord account
